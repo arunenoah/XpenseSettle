@@ -57,7 +57,7 @@ class ExpenseController extends Controller
             $validated['splits'] = $this->processSplits(
                 $request->get('split_type'),
                 $request->get('splits'),
-                $group->members()->pluck('id')->toArray(),
+                $group->members()->pluck('users.id')->toArray(),
                 $validated['amount']
             );
 
@@ -170,7 +170,7 @@ class ExpenseController extends Controller
             $validated['splits'] = $this->processSplits(
                 $request->get('split_type'),
                 $request->get('splits'),
-                $group->members()->pluck('id')->toArray(),
+                $group->members()->pluck('users.id')->toArray(),
                 $validated['amount']
             );
 
