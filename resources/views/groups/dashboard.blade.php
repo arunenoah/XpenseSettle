@@ -164,6 +164,12 @@
                         <div class="mt-3 flex items-center justify-between">
                             @if($item['status'] === 'pending')
                                 <span class="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
+                                @if($item['net_amount'] > 0 && count($item['payment_ids'] ?? []) > 0)
+                                    <button onclick="openGroupPaymentModal({{ $item['payment_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
+                                            class="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs">
+                                        ✓ Mark Paid
+                                    </button>
+                                @endif
                             @elseif($item['status'] === 'paid')
                                 <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
                             @endif
@@ -407,4 +413,59 @@
     </div>
     </div>
 </div>
+
+<!-- Payment Modal -->
+<div id="groupPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeGroupPaymentModal(event)">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" onclick="event.stopPropagation()">
+        <h3 class="text-2xl font-black text-gray-900 mb-4">Mark Payment as Paid</h3>
+
+        <form id="groupPaymentForm" method="POST" enctype="multipart/form-data">
+            @csrf
+            @method('PUT')
+
+            <div class="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                <p class="text-sm text-gray-600">Paying to:</p>
+                <p class="text-lg font-black text-gray-900" id="groupPayeeName"></p>
+                <p class="text-3xl font-black text-green-600 mt-2" id="groupPaymentAmount"></p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Payment Notes (Optional)</label>
+                <textarea name="notes" rows="2" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200" placeholder="e.g., Paid via UPI, Reference: TXN123"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Upload Receipt (Optional)</label>
+                <input type="file" name="receipt" accept="image/*" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500">
+                <p class="text-xs text-gray-500 mt-1">📸 Upload a screenshot or photo of payment confirmation</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closeGroupPaymentModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
+                    ✓ Mark as Paid
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openGroupPaymentModal(paymentId, payeeName, amount, expenseTitle) {
+    document.getElementById('groupPayeeName').textContent = payeeName;
+    document.getElementById('groupPaymentAmount').textContent = '$' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('groupPaymentForm').action = '/payments/' + paymentId + '/mark-paid';
+    document.getElementById('groupPaymentModal').classList.remove('hidden');
+    document.getElementById('groupPaymentModal').classList.add('flex');
+}
+
+function closeGroupPaymentModal(event) {
+    if (!event || event.target.id === 'groupPaymentModal') {
+        document.getElementById('groupPaymentModal').classList.add('hidden');
+        document.getElementById('groupPaymentModal').classList.remove('flex');
+    }
+}
+</script>
 @endsection
