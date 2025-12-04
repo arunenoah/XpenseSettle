@@ -43,10 +43,15 @@ class DashboardController extends Controller
             $q->where('user_id', $user->id);
         })
             ->where('status', 'paid')
-            ->with(['split.expense.payer', 'split.expense.group'])
+            ->with(['split.expense.payer', 'split.expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }])
             ->latest()
             ->limit(10)
-            ->get();
+            ->get()
+            ->filter(function ($payment) {
+                return $payment->split->expense->group !== null;
+            });
 
         // Calculate totals across all groups
         $totalOwed = 0;
@@ -64,32 +69,50 @@ class DashboardController extends Controller
                 ->count();
         }
 
-        // Get recent expenses across all groups
-        $recentExpenses = Expense::whereHas('group.members', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
+        // Get recent expenses across all groups (exclude deleted groups)
+        $recentExpenses = Expense::whereHas('group', function ($q) {
+            $q->withoutTrashed();
         })
-            ->with('payer', 'group')
+            ->whereHas('group.members', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->with(['payer', 'group' => function ($q) {
+                $q->withoutTrashed();
+            }])
             ->latest()
             ->limit(5)
             ->get();
 
-        // Get expenses where user is a participant
+        // Get expenses where user is a participant (exclude deleted groups)
         $userExpenses = $user->expenseSplits()
-            ->with('expense.group', 'expense.payer')
+            ->whereHas('expense.group', function ($q) {
+                $q->withoutTrashed();
+            })
+            ->with(['expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }, 'expense.payer'])
             ->latest()
             ->limit(5)
             ->get();
 
-        // Get people who owe the user money (user is the payer, others haven't paid)
+        // Get people who owe the user money (exclude deleted groups)
         $peopleOweMe = \App\Models\Payment::whereHas('split.expense', function ($q) use ($user) {
             $q->where('payer_id', $user->id);
         })
+            ->whereHas('split.expense.group', function ($q) {
+                $q->withoutTrashed();
+            })
             ->whereHas('split', function ($q) use ($user) {
                 $q->where('user_id', '!=', $user->id);
             })
             ->where('status', 'pending')
-            ->with(['split.user', 'split.expense.group'])
+            ->with(['split.user', 'split.expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }])
             ->get()
+            ->filter(function ($payment) {
+                return $payment->split->expense->group !== null;
+            })
             ->groupBy('split.user_id')
             ->map(function ($payments) {
                 $user = $payments->first()->split->user;
