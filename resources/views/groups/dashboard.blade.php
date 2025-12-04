@@ -83,9 +83,9 @@
                 </p>
                 <p class="text-3xl sm:text-4xl font-black text-red-600">
                     @if($userBalance['total_owed'] > 0)
-                        ₹{{ number_format($userBalance['total_owed'], 0) }}
+                        ${{ number_format($userBalance['total_owed'], 2) }}
                     @else
-                        ₹0
+                        $0.00
                     @endif
                 </p>
             </div>
@@ -94,13 +94,23 @@
                     <span class="text-xl">🤑</span>
                     <span>They Owe You</span>
                 </p>
-                <p class="text-3xl sm:text-4xl font-black text-green-600">
-                    @if($userBalance['net_balance'] < 0)
-                        ₹{{ number_format(abs($userBalance['net_balance']), 0) }}
+                <p class="text-3xl sm:text-4xl font-black text-green-600 mb-3">
+                    @if(count($settlement['owes_me']) > 0)
+                        ${{ number_format(collect($settlement['owes_me'])->sum('amount'), 2) }}
                     @else
-                        ₹0
+                        $0.00
                     @endif
                 </p>
+                @if(count($settlement['owes_me']) > 0)
+                    <div class="text-xs text-gray-600 max-h-32 overflow-y-auto">
+                        @foreach($settlement['owes_me'] as $item)
+                            <div class="mb-1 pb-1 border-b border-gray-100 last:border-b-0">
+                                <p class="font-semibold text-gray-900">{{ $item['from_user']->name }}</p>
+                                <p class="text-xs text-gray-500">{{ $item['expense']->title }}</p>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
             <div class="bg-white rounded-xl p-4 shadow-md border-2 {{ $userBalance['net_balance'] >= 0 ? 'border-green-200' : 'border-orange-200' }}">
                 <p class="text-sm font-bold {{ $userBalance['net_balance'] >= 0 ? 'text-green-700' : 'text-orange-700' }} flex items-center gap-2 mb-2">
@@ -108,7 +118,7 @@
                     <span>Net Balance</span>
                 </p>
                 <p class="text-3xl sm:text-4xl font-black {{ $userBalance['net_balance'] >= 0 ? 'text-green-600' : 'text-orange-600' }}">
-                    {{ $userBalance['net_balance'] >= 0 ? '+' : '' }}₹{{ number_format($userBalance['net_balance'], 0) }}
+                    {{ $userBalance['net_balance'] >= 0 ? '+' : '' }}${{ number_format($userBalance['net_balance'], 2) }}
                 </p>
             </div>
         </div>
@@ -123,15 +133,15 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-gray-600 mb-1">💰 Total</p>
-                <p class="text-xl font-black text-gray-900">₹{{ number_format($userBalance['total_owed'] + $userBalance['total_paid'], 0) }}</p>
+                <p class="text-xl font-black text-gray-900">${{ number_format($userBalance['total_owed'] + $userBalance['total_paid'], 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-red-600 mb-1">😬 You Owe</p>
-                <p class="text-xl font-black text-red-600">₹{{ number_format($userBalance['total_owed'], 0) }}</p>
+                <p class="text-xl font-black text-red-600">${{ number_format($userBalance['total_owed'], 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-green-600 mb-1">🤑 They Owe</p>
-                <p class="text-xl font-black text-green-600">₹{{ number_format(abs($userBalance['net_balance']), 0) }}</p>
+                <p class="text-xl font-black text-green-600">${{ number_format(abs($userBalance['net_balance']), 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-blue-600 mb-1">📝 Expenses</p>
@@ -145,12 +155,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- You Owe -->
             @if(count($settlement['i_owe']) > 0)
-                <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-6">
+                <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-6 flex flex-col">
                     <h3 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
                         <span class="text-2xl">😬</span>
                         <span>Pay These Friends!</span>
                     </h3>
-                    <div class="space-y-3">
+                    <div class="space-y-3 overflow-y-auto max-h-96 flex-1 pr-2">
                         @foreach($settlement['i_owe'] as $debt)
                             <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                                 <div class="flex items-start justify-between gap-3 mb-2">
@@ -160,13 +170,29 @@
                                     </div>
                                     <p class="font-bold text-orange-600 flex-shrink-0">${{ number_format($debt['amount'], 2) }}</p>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    @if($debt['status'] === 'pending')
-                                        <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Pending</span>
-                                    @elseif($debt['status'] === 'paid')
-                                        <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Paid</span>
-                                    @else
-                                        <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($debt['status']) }}</span>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        @if($debt['status'] === 'pending')
+                                            <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Pending</span>
+                                        @elseif($debt['status'] === 'paid')
+                                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Paid</span>
+                                        @else
+                                            <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($debt['status']) }}</span>
+                                        @endif
+                                    </div>
+                                    @if($debt['expense']->payer_id === auth()->id())
+                                        <div class="flex gap-1">
+                                            <a href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $debt['expense']]) }}" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200">
+                                                Edit
+                                            </a>
+                                            <form action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $debt['expense']]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this expense?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -177,12 +203,12 @@
 
             <!-- Others Owe You -->
             @if(count($settlement['owes_me']) > 0)
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6">
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 flex flex-col">
                     <h3 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
                         <span class="text-2xl">🤑</span>
                         <span>Friends Owe You!</span>
                     </h3>
-                    <div class="space-y-3">
+                    <div class="space-y-3 overflow-y-auto max-h-96 flex-1 pr-2">
                         @foreach($settlement['owes_me'] as $credit)
                             <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
                                 <div class="flex items-start justify-between gap-3 mb-2">
@@ -192,13 +218,29 @@
                                     </div>
                                     <p class="font-bold text-green-600 flex-shrink-0">${{ number_format($credit['amount'], 2) }}</p>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    @if($credit['status'] === 'pending')
-                                        <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Pending</span>
-                                    @elseif($credit['status'] === 'paid')
-                                        <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Paid</span>
-                                    @else
-                                        <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($credit['status']) }}</span>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        @if($credit['status'] === 'pending')
+                                            <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Pending</span>
+                                        @elseif($credit['status'] === 'paid')
+                                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Paid</span>
+                                        @else
+                                            <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($credit['status']) }}</span>
+                                        @endif
+                                    </div>
+                                    @if($credit['expense']->payer_id === auth()->id())
+                                        <div class="flex gap-1">
+                                            <a href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $credit['expense']]) }}" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200">
+                                                Edit
+                                            </a>
+                                            <form action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $credit['expense']]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this expense?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
+                                                    Delete
+                                                </button>
+                                            </form>
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -242,11 +284,11 @@
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-semibold text-gray-600">💸 Paid</span>
-                            <span class="text-sm font-bold text-gray-900">₹{{ number_format($balance['total_paid'], 0) }}</span>
+                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_paid'], 2) }}</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-xs font-semibold text-gray-600">💰 Share</span>
-                            <span class="text-sm font-bold text-gray-900">₹{{ number_format($balance['total_owed'], 0) }}</span>
+                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_owed'], 2) }}</span>
                         </div>
                         <div class="pt-2 border-t-2 border-gray-100">
                             <div class="flex justify-between items-center">
@@ -254,7 +296,7 @@
                                     {{ $balance['net_balance'] >= 0 ? '🤑 Gets Back' : '😬 Owes' }}
                                 </span>
                                 <span class="text-xl font-black {{ $balance['net_balance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $balance['net_balance'] >= 0 ? '+' : '' }}₹{{ number_format(abs($balance['net_balance']), 0) }}
+                                    {{ $balance['net_balance'] >= 0 ? '+' : '' }}${{ number_format(abs($balance['net_balance']), 2) }}
                                 </span>
                             </div>
                         </div>
@@ -301,7 +343,7 @@
                                 </p>
                             </div>
                             <div class="flex-shrink-0 text-right">
-                                <p class="text-2xl font-black text-orange-600">₹{{ number_format($expense->amount, 0) }}</p>
+                                <p class="text-2xl font-black text-orange-600">${{ number_format($expense->amount, 2) }}</p>
                                 <span class="inline-block mt-1 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 text-xs font-bold rounded-full">
                                     {{ ucfirst(str_replace('_', ' ', $expense->split_type)) }} split
                                 </span>
