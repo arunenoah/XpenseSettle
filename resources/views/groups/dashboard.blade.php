@@ -159,7 +159,7 @@
 
     <!-- Settlement Breakdown -->
     @if($settlement['i_owe'] || $settlement['owes_me'])
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="space-y-6">
             <!-- You Owe -->
             @if(count($settlement['i_owe']) > 0)
                 <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-6 flex flex-col">
