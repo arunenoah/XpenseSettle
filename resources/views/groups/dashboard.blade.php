@@ -75,50 +75,26 @@
             <span class="text-3xl">💰</span>
             <span>Your Money Situation</span>
         </h2>
+        @php
+            $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
+            $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
+            $netBalance = $totalOwe - $totalOwed;
+        @endphp
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-white rounded-xl p-4 shadow-md border-2 border-red-200">
                 <p class="text-sm font-bold text-red-700 flex items-center gap-2 mb-2">
                     <span class="text-xl">😬</span>
                     <span>You Owe</span>
                 </p>
-                <p class="text-3xl sm:text-4xl font-black text-red-600">
-                    @if(collect($settlement['i_owe'])->sum('amount') > 0)
-                        ${{ number_format(collect($settlement['i_owe'])->sum('amount'), 2) }}
-                    @else
-                        $0.00
-                    @endif
-                </p>
+                <p class="text-3xl sm:text-4xl font-black text-red-600">${{ number_format($totalOwed, 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-4 shadow-md border-2 border-green-200">
                 <p class="text-sm font-bold text-green-700 flex items-center gap-2 mb-2">
                     <span class="text-xl">🤑</span>
                     <span>They Owe You</span>
                 </p>
-                <p class="text-3xl sm:text-4xl font-black text-green-600 mb-3">
-                    @if(count($settlement['owes_me']) > 0)
-                        ${{ number_format(collect($settlement['owes_me'])->sum('amount'), 2) }}
-                    @else
-                        $0.00
-                    @endif
-                </p>
-                @if(count($settlement['owes_me']) > 0)
-                    <div class="text-xs text-gray-600 max-h-32 overflow-y-auto">
-                        @foreach($settlement['owes_me'] as $item)
-                            <div class="mb-1 pb-1 border-b border-gray-100 last:border-b-0">
-                                <p class="font-semibold text-gray-900">{{ $item['from_user']->name }}</p>
-                                @if($item['expense'])
-                                    <p class="text-xs text-gray-500">{{ $item['expense']->title }}</p>
-                                @else
-                                    <p class="text-xs text-gray-500">Total owed from all expenses</p>
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+                <p class="text-3xl sm:text-4xl font-black text-green-600">${{ number_format($totalOwe, 2) }}</p>
             </div>
-            @php
-                $netBalance = collect($settlement['owes_me'])->sum('amount') - collect($settlement['i_owe'])->sum('amount');
-            @endphp
             <div class="bg-white rounded-xl p-4 shadow-md border-2 {{ $netBalance >= 0 ? 'border-green-200' : 'border-orange-200' }}">
                 <p class="text-sm font-bold {{ $netBalance >= 0 ? 'text-green-700' : 'text-orange-700' }} flex items-center gap-2 mb-2">
                     <span class="text-xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
@@ -140,15 +116,15 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-gray-600 mb-1">💰 Total</p>
-                <p class="text-xl font-black text-gray-900">${{ number_format(collect($settlement['i_owe'])->sum('amount') + collect($settlement['owes_me'])->sum('amount') + $userBalance['total_owed'], 2) }}</p>
+                <p class="text-xl font-black text-gray-900">${{ number_format($totalOwed + $totalOwe, 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-red-600 mb-1">😬 You Owe</p>
-                <p class="text-xl font-black text-red-600">${{ number_format(collect($settlement['i_owe'])->sum('amount'), 2) }}</p>
+                <p class="text-xl font-black text-red-600">${{ number_format($totalOwed, 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-green-600 mb-1">🤑 They Owe</p>
-                <p class="text-xl font-black text-green-600">${{ number_format(collect($settlement['owes_me'])->sum('amount'), 2) }}</p>
+                <p class="text-xl font-black text-green-600">${{ number_format($totalOwe, 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-blue-600 mb-1">📝 Expenses</p>
@@ -157,112 +133,44 @@
         </div>
     </div>
 
-    <!-- Settlement Breakdown -->
-    @if($settlement['i_owe'] || $settlement['owes_me'])
-        <div class="space-y-6">
-            <!-- You Owe -->
-            @if(count($settlement['i_owe']) > 0)
-                <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl shadow-lg p-6 flex flex-col">
-                    <h3 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
-                        <span class="text-2xl">😬</span>
-                        <span>Pay These Friends!</span>
-                    </h3>
-                    <div class="space-y-3 overflow-y-auto max-h-96 flex-1 pr-2">
-                        @foreach($settlement['i_owe'] as $debt)
-                            <div class="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                                <div class="flex items-start justify-between gap-3 mb-2">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="font-semibold text-gray-900">{{ $debt['to_user']->name }}</p>
-                                        @if($debt['expense'])
-                                            <p class="text-sm text-gray-600">{{ $debt['expense']->title }}</p>
-                                        @else
-                                            <p class="text-sm text-gray-600">Total owed from all expenses</p>
-                                        @endif
-                                    </div>
-                                    <p class="font-bold text-orange-600 flex-shrink-0">${{ number_format($debt['amount'], 2) }}</p>
-                                </div>
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        @if($debt['status'] === 'pending')
-                                            <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Pending</span>
-                                        @elseif($debt['status'] === 'paid')
-                                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Paid</span>
-                                        @else
-                                            <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($debt['status']) }}</span>
-                                        @endif
-                                    </div>
-                                    @if($debt['expense'] && $debt['expense']->payer_id === auth()->id())
-                                        <div class="flex gap-1">
-                                            <a href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $debt['expense']]) }}" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200">
-                                                Edit
-                                            </a>
-                                            <form action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $debt['expense']]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this expense?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </div>
-                                    @endif
+    <!-- Settlement Breakdown (Net per Person) -->
+    @if(count($settlement) > 0)
+        <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
+            <h3 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">⚖️</span>
+                <span>Settlement Summary</span>
+            </h3>
+            <div class="space-y-3">
+                @foreach($settlement as $item)
+                    @php
+                        $isOwed = $item['net_amount'] > 0;
+                        $bgColor = $isOwed ? 'from-red-50 to-orange-50' : 'from-green-50 to-emerald-50';
+                        $borderColor = $isOwed ? 'border-orange-200' : 'border-green-200';
+                        $textColor = $isOwed ? 'text-orange-600' : 'text-green-600';
+                        $label = $isOwed ? 'You Owe' : 'They Owe You';
+                        $emoji = $isOwed ? '😬' : '🤑';
+                    @endphp
+                    <div class="p-4 bg-gradient-to-r {{ $bgColor }} border {{ $borderColor }} rounded-lg">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 flex-1">
+                                <span class="text-2xl">{{ $emoji }}</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-bold text-gray-900">{{ $item['user']->name }}</p>
+                                    <p class="text-sm {{ $textColor }} font-semibold">{{ $label }}</p>
                                 </div>
                             </div>
-                        @endforeach
+                            <p class="font-black text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($item['amount'], 2) }}</p>
+                        </div>
+                        <div class="mt-3 flex items-center justify-between">
+                            @if($item['status'] === 'pending')
+                                <span class="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
+                            @elseif($item['status'] === 'paid')
+                                <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
+                            @endif
+                        </div>
                     </div>
-                </div>
-            @endif
-
-            <!-- Others Owe You -->
-            @if(count($settlement['owes_me']) > 0)
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl shadow-lg p-6 flex flex-col">
-                    <h3 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
-                        <span class="text-2xl">🤑</span>
-                        <span>Friends Owe You!</span>
-                    </h3>
-                    <div class="space-y-3 overflow-y-auto max-h-96 flex-1 pr-2">
-                        @foreach($settlement['owes_me'] as $credit)
-                            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                <div class="flex items-start justify-between gap-3 mb-2">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="font-semibold text-gray-900">{{ $credit['from_user']->name }}</p>
-                                        @if($credit['expense'])
-                                            <p class="text-sm text-gray-600">{{ $credit['expense']->title }}</p>
-                                        @else
-                                            <p class="text-sm text-gray-600">Total owed from all expenses</p>
-                                        @endif
-                                    </div>
-                                    <p class="font-bold text-green-600 flex-shrink-0">${{ number_format($credit['amount'], 2) }}</p>
-                                </div>
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        @if($credit['status'] === 'pending')
-                                            <span class="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded">Pending</span>
-                                        @elseif($credit['status'] === 'paid')
-                                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Paid</span>
-                                        @else
-                                            <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($credit['status']) }}</span>
-                                        @endif
-                                    </div>
-                                    @if($credit['expense'] && $credit['expense']->payer_id === auth()->id())
-                                        <div class="flex gap-1">
-                                            <a href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $credit['expense']]) }}" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200">
-                                                Edit
-                                            </a>
-                                            <form action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $credit['expense']]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this expense?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200">
-                                                    Delete
-                                                </button>
-                                            </form>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
+                @endforeach
+            </div>
         </div>
     @else
         <div class="bg-gradient-to-br from-green-100 via-emerald-100 to-teal-100 rounded-3xl shadow-xl p-8">

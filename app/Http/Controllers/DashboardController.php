@@ -201,14 +201,12 @@ class DashboardController extends Controller
 
     /**
      * Calculate settlement for a user in a group.
-     * Returns who owes the user money and who the user owes.
+     * Returns net balance with each person (positive = user owes, negative = person owes user).
      */
     private function calculateSettlement(Group $group, $user)
     {
-        $owesMe = [];     // Who owes the user (aggregated by person)
-        $iOwe = [];       // Who the user owes (aggregated by person)
-        $owesMeMap = [];  // Temp map for aggregating owes_me
-        $iOweMap = [];    // Temp map for aggregating i_owe
+        // Maps to track amounts owed between user and each other person
+        $netBalances = [];  // User ID => [user_obj, net_amount, status]
 
         foreach ($group->expenses as $expense) {
             // Handle itemwise expenses (no splits, full amount)
@@ -216,25 +214,27 @@ class DashboardController extends Controller
                 if ($user->id !== $expense->payer_id) {
                     // User is not the payer - they owe the full amount to the payer
                     $payerId = $expense->payer_id;
-                    if (!isset($iOweMap[$payerId])) {
-                        $iOweMap[$payerId] = [
-                            'to_user' => $expense->payer,
-                            'total' => 0,
+                    if (!isset($netBalances[$payerId])) {
+                        $netBalances[$payerId] = [
+                            'user' => $expense->payer,
+                            'net_amount' => 0,
+                            'status' => 'pending',
                         ];
                     }
-                    $iOweMap[$payerId]['total'] += $expense->amount;
+                    $netBalances[$payerId]['net_amount'] += $expense->amount;
                 } else {
-                    // User is the payer - aggregate amount owed by each member
+                    // User is the payer - they are owed by each member
                     foreach ($group->members as $member) {
                         if ($member->id !== $user->id) {
                             $memberId = $member->id;
-                            if (!isset($owesMeMap[$memberId])) {
-                                $owesMeMap[$memberId] = [
-                                    'from_user' => $member,
-                                    'total' => 0,
+                            if (!isset($netBalances[$memberId])) {
+                                $netBalances[$memberId] = [
+                                    'user' => $member,
+                                    'net_amount' => 0,
+                                    'status' => 'pending',
                                 ];
                             }
-                            $owesMeMap[$memberId]['total'] += $expense->amount;
+                            $netBalances[$memberId]['net_amount'] -= $expense->amount;
                         }
                     }
                 }
@@ -247,13 +247,14 @@ class DashboardController extends Controller
 
                         if (!$payment || $payment->status !== 'paid') {
                             $payerId = $expense->payer_id;
-                            if (!isset($iOweMap[$payerId])) {
-                                $iOweMap[$payerId] = [
-                                    'to_user' => $expense->payer,
-                                    'total' => 0,
+                            if (!isset($netBalances[$payerId])) {
+                                $netBalances[$payerId] = [
+                                    'user' => $expense->payer,
+                                    'net_amount' => 0,
+                                    'status' => 'pending',
                                 ];
                             }
-                            $iOweMap[$payerId]['total'] += $split->share_amount;
+                            $netBalances[$payerId]['net_amount'] += $split->share_amount;
                         }
                     } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
                         // User is the payer, someone else is a participant
@@ -261,41 +262,35 @@ class DashboardController extends Controller
 
                         if (!$payment || $payment->status !== 'paid') {
                             $memberId = $split->user_id;
-                            if (!isset($owesMeMap[$memberId])) {
-                                $owesMeMap[$memberId] = [
-                                    'from_user' => $split->user,
-                                    'total' => 0,
+                            if (!isset($netBalances[$memberId])) {
+                                $netBalances[$memberId] = [
+                                    'user' => $split->user,
+                                    'net_amount' => 0,
+                                    'status' => 'pending',
                                 ];
                             }
-                            $owesMeMap[$memberId]['total'] += $split->share_amount;
+                            $netBalances[$memberId]['net_amount'] -= $split->share_amount;
                         }
                     }
                 }
             }
         }
 
-        // Convert aggregated maps to settlement arrays
-        foreach ($owesMeMap as $memberId => $data) {
-            $owesMe[] = [
-                'from_user' => $data['from_user'],
-                'expense' => null,
-                'amount' => $data['total'],
-                'status' => 'pending',
-            ];
+        // Convert to settlement array, filtering out zero balances
+        // Positive net_amount = user owes this person
+        // Negative net_amount = this person owes user (we show as positive amount they owe)
+        $settlements = [];
+        foreach ($netBalances as $personId => $data) {
+            if ($data['net_amount'] != 0) {
+                $settlements[] = [
+                    'user' => $data['user'],
+                    'amount' => abs($data['net_amount']),
+                    'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
+                    'status' => $data['status'],
+                ];
+            }
         }
 
-        foreach ($iOweMap as $payerId => $data) {
-            $iOwe[] = [
-                'to_user' => $data['to_user'],
-                'expense' => null,
-                'amount' => $data['total'],
-                'status' => 'pending',
-            ];
-        }
-
-        return [
-            'owes_me' => $owesMe,
-            'i_owe' => $iOwe,
-        ];
+        return $settlements;
     }
 }
