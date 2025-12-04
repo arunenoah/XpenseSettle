@@ -233,17 +233,21 @@ class DashboardController extends Controller
         $enrichedSettlement = [];
         foreach ($settlement as $item) {
             $paymentIds = [];
+            $otherUserId = $item['user']->id;
 
             // Find all relevant payments for this settlement
             foreach ($group->expenses as $expense) {
                 if ($item['net_amount'] > 0) {
-                    // User owes this person - they are the payer
-                    if ($expense->payer_id === $item['user']->id) {
+                    // User owes this person (item['user']) - they are the payer
+                    if ($expense->payer_id === $otherUserId) {
                         foreach ($expense->splits as $split) {
                             if ($split->user_id === $user->id) {
                                 $payment = $split->payment;
-                                if ($payment && $payment->status !== 'paid') {
-                                    $paymentIds[] = $payment->id;
+                                if ($payment) {
+                                    // Include payment ID if it's pending
+                                    if ($payment->status === 'pending') {
+                                        $paymentIds[] = $payment->id;
+                                    }
                                 }
                             }
                         }
