@@ -22,6 +22,7 @@ class GroupController extends Controller
     public function index()
     {
         $groups = auth()->user()->groups()
+            ->withoutTrashed()
             ->with('creator', 'members')
             ->latest()
             ->paginate(12);
