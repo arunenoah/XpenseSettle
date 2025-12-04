@@ -97,7 +97,7 @@
                     </div>
 
                     @if($group->isAdmin(auth()->user()) && $member->id !== auth()->id())
-                        <form action="{{ route('groups.members.remove', [$group, $member->pivot->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $member->name }} from this group?');">
+                        <form action="{{ route('groups.members.remove', [$group, $member->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $member->name }} from this group?');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all font-bold text-sm">
