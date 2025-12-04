@@ -106,7 +106,11 @@
                         @foreach($settlement['owes_me'] as $item)
                             <div class="mb-1 pb-1 border-b border-gray-100 last:border-b-0">
                                 <p class="font-semibold text-gray-900">{{ $item['from_user']->name }}</p>
-                                <p class="text-xs text-gray-500">{{ $item['expense']->title }}</p>
+                                @if($item['expense'])
+                                    <p class="text-xs text-gray-500">{{ $item['expense']->title }}</p>
+                                @else
+                                    <p class="text-xs text-gray-500">Total owed from all expenses</p>
+                                @endif
                             </div>
                         @endforeach
                     </div>
