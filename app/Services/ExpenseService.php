@@ -49,8 +49,14 @@ class ExpenseService
      */
     private function createEqualSplits(Expense $expense, Group $group): void
     {
-        $members = $group->members;
-        $splitAmount = $expense->amount / count($members);
+        $members = $group->members()->select('users.id', 'users.name', 'users.email')->get();
+        $memberCount = count($members);
+
+        if ($memberCount === 0) {
+            return;
+        }
+
+        $splitAmount = $expense->amount / $memberCount;
 
         foreach ($members as $member) {
             ExpenseSplit::create([
