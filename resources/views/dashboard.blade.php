@@ -448,16 +448,6 @@
                         @endforeach
                     </div>
                 </div>
-            @else
-                <div class="bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl shadow-lg p-6 border-2 border-green-300">
-                    <div class="flex items-center gap-3">
-                        <span class="text-4xl">🎊</span>
-                        <div>
-                            <p class="font-black text-green-900 text-lg">All Caught Up!</p>
-                            <p class="text-sm font-semibold text-green-700">You're a payment superstar! ⭐</p>
-                        </div>
-                    </div>
-                </div>
             @endif
 
             <!-- Quick Stats -->
