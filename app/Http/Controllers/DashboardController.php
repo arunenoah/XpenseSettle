@@ -180,30 +180,56 @@ class DashboardController extends Controller
         $iOwe = [];      // Who the user owes
 
         foreach ($group->expenses as $expense) {
-            foreach ($expense->splits as $split) {
-                if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
-                    // User is a participant and is not the payer
-                    $payment = $split->payment;
-
-                    if (!$payment || $payment->status !== 'paid') {
-                        $iOwe[] = [
-                            'to_user' => $expense->payer,
-                            'expense' => $expense,
-                            'amount' => $split->share_amount,
-                            'status' => $payment ? $payment->status : 'pending',
-                        ];
+            // Handle itemwise expenses (no splits, full amount)
+            if ($expense->split_type === 'itemwise') {
+                if ($user->id !== $expense->payer_id) {
+                    // User is not the payer - they owe the full amount to the payer
+                    $iOwe[] = [
+                        'to_user' => $expense->payer,
+                        'expense' => $expense,
+                        'amount' => $expense->amount,
+                        'status' => 'pending', // Itemwise expenses are always pending (no payment tracking)
+                    ];
+                } else {
+                    // User is the payer - all other members owe them
+                    foreach ($group->members as $member) {
+                        if ($member->id !== $user->id) {
+                            $owesMe[] = [
+                                'from_user' => $member,
+                                'expense' => $expense,
+                                'amount' => $expense->amount,
+                                'status' => 'pending',
+                            ];
+                        }
                     }
-                } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
-                    // User is the payer, someone else is a participant
-                    $payment = $split->payment;
+                }
+            } else {
+                // Handle regular splits (equal, custom)
+                foreach ($expense->splits as $split) {
+                    if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
+                        // User is a participant and is not the payer
+                        $payment = $split->payment;
 
-                    if (!$payment || $payment->status !== 'paid') {
-                        $owesMe[] = [
-                            'from_user' => $split->user,
-                            'expense' => $expense,
-                            'amount' => $split->share_amount,
-                            'status' => $payment ? $payment->status : 'pending',
-                        ];
+                        if (!$payment || $payment->status !== 'paid') {
+                            $iOwe[] = [
+                                'to_user' => $expense->payer,
+                                'expense' => $expense,
+                                'amount' => $split->share_amount,
+                                'status' => $payment ? $payment->status : 'pending',
+                            ];
+                        }
+                    } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
+                        // User is the payer, someone else is a participant
+                        $payment = $split->payment;
+
+                        if (!$payment || $payment->status !== 'paid') {
+                            $owesMe[] = [
+                                'from_user' => $split->user,
+                                'expense' => $expense,
+                                'amount' => $split->share_amount,
+                                'status' => $payment ? $payment->status : 'pending',
+                            ];
+                        }
                     }
                 }
             }
