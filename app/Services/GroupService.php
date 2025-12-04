@@ -137,16 +137,27 @@ class GroupService
 
             // Get amount owed by this member
             foreach ($group->expenses as $expense) {
-                $split = $expense->splits()->where('user_id', $member->id)->first();
-                if ($split && $member->id !== $expense->payer_id) {
-                    $totalOwed += $split->share_amount;
+                if ($expense->split_type === 'itemwise') {
+                    // For itemwise: only count if member is the payer (they paid the full amount)
+                    if ($member->id === $expense->payer_id) {
+                        $totalPaid += $expense->amount;
+                    }
+                } else {
+                    // For equal/custom splits: use the splits table
+                    $split = $expense->splits()->where('user_id', $member->id)->first();
+                    if ($split && $member->id !== $expense->payer_id) {
+                        $totalOwed += $split->share_amount;
+                    }
                 }
             }
 
-            // Get amount paid by this member
-            $totalPaid = $member->paidExpenses()
-                ->where('group_id', $group->id)
-                ->sum('amount');
+            // Get amount paid by this member (for non-itemwise only)
+            if ($totalPaid === 0) {
+                $totalPaid = $member->paidExpenses()
+                    ->where('group_id', $group->id)
+                    ->where('split_type', '!=', 'itemwise')
+                    ->sum('amount');
+            }
 
             $balances[$member->id] = [
                 'user' => $member,
