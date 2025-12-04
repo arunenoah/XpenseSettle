@@ -243,21 +243,27 @@
                     $theyOweMe = $peopleOweMe->sum('total_owed');
                     $netBalance = $totalOwed - $theyOweMe;
                 @endphp
-                @if($netBalance != 0)
+                @if($totalOwed > 0 || $theyOweMe > 0)
                     <div class="relative" style="max-width: 180px; max-height: 180px; margin: 0 auto;">
                         <canvas id="balance-donut" width="180" height="180"></canvas>
                         <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <p class="text-2xl font-black {{ $netBalance > 0 ? 'text-red-600' : 'text-green-600' }}">₹{{ number_format(abs($netBalance), 0) }}</p>
-                            <p class="text-xs font-semibold text-gray-600">{{ $netBalance > 0 ? 'You Owe' : 'They Owe' }}</p>
+                            <p class="text-2xl font-black text-gray-900">₹{{ number_format($totalOwed + $theyOweMe, 0) }}</p>
+                            <p class="text-xs font-semibold text-gray-600">Total</p>
                         </div>
                     </div>
                     <div class="mt-3 space-y-1">
                         <div class="flex items-center justify-between text-xs">
-                            <span class="text-gray-600">Gross Owed:</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-3 h-3 bg-red-500 rounded-full"></span>
+                                <span class="font-semibold">You Owe</span>
+                            </span>
                             <span class="font-bold text-red-600">₹{{ number_format($totalOwed, 0) }}</span>
                         </div>
                         <div class="flex items-center justify-between text-xs">
-                            <span class="text-gray-600">You Paid:</span>
+                            <span class="flex items-center gap-1">
+                                <span class="w-3 h-3 bg-green-500 rounded-full"></span>
+                                <span class="font-semibold">They Owe</span>
+                            </span>
                             <span class="font-bold text-green-600">₹{{ number_format($theyOweMe, 0) }}</span>
                         </div>
                     </div>
@@ -265,15 +271,13 @@
                     <script>
                     (function() {
                         const ctx = document.getElementById('balance-donut').getContext('2d');
-                        const netBalance = {{ $netBalance }};
-                        const isOwed = netBalance > 0;
                         new Chart(ctx, {
                             type: 'doughnut',
                             data: {
-                                labels: [isOwed ? 'You Owe' : 'They Owe You'],
+                                labels: ['You Owe', 'They Owe You'],
                                 datasets: [{
-                                    data: [Math.abs({{ $netBalance }}), 0],
-                                    backgroundColor: [isOwed ? '#EF4444' : '#10B981', '#E5E7EB'],
+                                    data: [{{ $totalOwed }}, {{ $theyOweMe }}],
+                                    backgroundColor: ['#EF4444', '#10B981'],
                                     borderWidth: 0
                                 }]
                             },
@@ -286,7 +290,7 @@
                                     tooltip: {
                                         callbacks: {
                                             label: function(context) {
-                                                return (isOwed ? 'You Owe: ' : 'They Owe: ') + '₹' + Math.abs({{ $netBalance }}).toLocaleString();
+                                                return context.label + ': ₹' + context.parsed.toLocaleString();
                                             }
                                         }
                                     }
@@ -328,7 +332,11 @@
                                 $name = $item['group']->name;
                                 return strlen($name) > 10 ? substr($name, 0, 10) . '...' : $name;
                             }, $topGroups);
-                            $groupData = array_map(fn($item) => $item['total_expenses'] * 1000, $topGroups);
+                            // Calculate total amount for each group
+                            $groupData = array_map(function($item) {
+                                $groupExpenses = \App\Models\Expense::where('group_id', $item['group']->id)->sum('amount');
+                                return $groupExpenses;
+                            }, $topGroups);
                         @endphp
                         new Chart(ctx, {
                             type: 'bar',
