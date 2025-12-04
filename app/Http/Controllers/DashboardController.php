@@ -294,6 +294,51 @@ class DashboardController extends Controller
             }
         }
 
+        // Account for advances
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
+            ->get();
+
+        foreach ($advances as $advance) {
+            // Check if user is a sender of this advance
+            if ($advance->senders()->where('user_id', $user->id)->exists()) {
+                // User sent this advance to someone
+                $recipientId = $advance->sent_to_user_id;
+                $advanceAmount = $advance->amount_per_person;
+
+                if (!isset($netBalances[$recipientId])) {
+                    $netBalances[$recipientId] = [
+                        'user' => $advance->sentTo,
+                        'net_amount' => 0,
+                        'status' => 'pending',
+                    ];
+                }
+
+                // Advance reduces what the user owes (positive amount = owes)
+                $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+            }
+
+            // Check if user received an advance from someone
+            if ($advance->sent_to_user_id === $user->id) {
+                // Someone sent this advance to the user
+                foreach ($advance->senders as $sender) {
+                    $senderId = $sender->id;
+                    $advanceAmount = $advance->amount_per_person;
+
+                    if (!isset($netBalances[$senderId])) {
+                        $netBalances[$senderId] = [
+                            'user' => $sender,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                        ];
+                    }
+
+                    // Advance reduces what they owe to user (negative amount = owed)
+                    $netBalances[$senderId]['net_amount'] += $advanceAmount;
+                }
+            }
+        }
+
         // Convert to settlement array, filtering out zero balances
         // Positive net_amount = user owes this person
         // Negative net_amount = this person owes user (we show as positive amount they owe)
