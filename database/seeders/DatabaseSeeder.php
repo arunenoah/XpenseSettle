@@ -46,9 +46,13 @@ class DatabaseSeeder extends Seeder
     {
         // Check if running in production
         if (app()->environment('production')) {
-            $this->command->error('⚠️  WARNING: Seeding is disabled in production for security!');
-            $this->command->error('Create users manually with strong passwords.');
-            return;
+            $this->command->warn('⚠️  WARNING: Running seeder in production!');
+            $this->command->warn('This will populate your database with sample data.');
+
+            if (!$this->command->confirm('Do you want to proceed?')) {
+                $this->command->error('Seeding cancelled.');
+                return;
+            }
         }
 
         $this->command->info('🌱 Starting database seeding...');
