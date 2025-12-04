@@ -204,8 +204,8 @@ class DashboardController extends Controller
             ->with('expense', 'payment')
             ->get();
 
-        // Get settlement summary (who owes whom)
-        $settlement = $this->calculateSettlementWithPayments($group, $user);
+        // Get settlement summary (who owes whom) - pass the loaded expenses to avoid lazy loading
+        $settlement = $this->calculateSettlementWithPayments($group, $user, $expenses);
 
         // Calculate advance amounts for each member
         $memberAdvances = $this->calculateMemberAdvances($group);
@@ -225,9 +225,14 @@ class DashboardController extends Controller
      * Calculate settlement for a user in a group with payment details.
      * Returns net balance with each person plus associated payment IDs.
      */
-    private function calculateSettlementWithPayments(Group $group, $user)
+    private function calculateSettlementWithPayments(Group $group, $user, $expenses = null)
     {
         $settlement = $this->calculateSettlement($group, $user);
+
+        // Use passed expenses to avoid lazy loading
+        if ($expenses === null) {
+            $expenses = $group->expenses()->with('payer', 'splits.payment', 'splits.user')->get();
+        }
 
         // Enrich settlement with payment IDs
         $enrichedSettlement = [];
@@ -236,7 +241,7 @@ class DashboardController extends Controller
             $otherUserId = $item['user']->id;
 
             // Find all relevant payments for this settlement
-            foreach ($group->expenses as $expense) {
+            foreach ($expenses as $expense) {
                 if ($item['net_amount'] > 0) {
                     // User owes this person (item['user']) - they are the payer
                     if ($expense->payer_id === $otherUserId) {
