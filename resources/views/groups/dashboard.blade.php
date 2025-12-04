@@ -183,6 +183,117 @@
         </div>
     @endif
 
+    <!-- Advances Section -->
+    <div class="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-2xl shadow-lg p-6">
+        <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+            <span class="text-3xl">💰</span>
+            <span>Advances</span>
+        </h2>
+
+        <!-- Add Advance Form -->
+        <div class="bg-white rounded-xl p-6 shadow-md border-2 border-blue-200 mb-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">➕ Add Advance</h3>
+            <form action="{{ route('groups.advances.store', $group) }}" method="POST" class="space-y-4">
+                @csrf
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Sent To -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Sent To</label>
+                        <select name="sent_to_user_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">-- Select Person --</option>
+                            @foreach($group->members as $member)
+                                @if($member->id !== auth()->id())
+                                    <option value="{{ $member->id }}">{{ $member->name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Amount Per Person -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Per Person</label>
+                        <input type="number" name="amount_per_person" step="0.01" min="0" placeholder="100" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <!-- Date -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+                        <input type="date" name="date" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description (Optional)</label>
+                        <input type="text" name="description" placeholder="e.g., Travel advance" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Senders -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Who Sent This Advance?</label>
+                    <div class="space-y-2">
+                        @foreach($group->members as $member)
+                            <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                                <input type="checkbox" name="senders[]" value="{{ $member->id }}" class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                                <span class="text-gray-700">{{ $member->name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all">
+                    ➕ Record Advance
+                </button>
+            </form>
+        </div>
+
+        <!-- Advances List -->
+        @php
+            $advances = \App\Models\Advance::where('group_id', $group->id)->with(['senders', 'sentTo'])->latest()->get();
+        @endphp
+
+        @if($advances->count() > 0)
+            <div class="space-y-3">
+                @foreach($advances as $advance)
+                    <div class="p-4 bg-white border-2 border-blue-200 rounded-lg">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <div class="flex-1 min-w-0">
+                                <p class="font-bold text-gray-900">
+                                    {{ $advance->senders->pluck('name')->join(', ') }} → {{ $advance->sentTo->name }}
+                                </p>
+                                @if($advance->description)
+                                    <p class="text-sm text-gray-600">{{ $advance->description }}</p>
+                                @endif
+                                <p class="text-xs text-gray-500 mt-1">{{ $advance->date->format('M d, Y') }}</p>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <p class="font-black text-lg text-blue-600">${{ number_format($advance->amount_per_person * $advance->senders()->count(), 2) }}</p>
+                                <p class="text-xs text-gray-600">(₹{{ number_format($advance->amount_per_person, 2) }} each)</p>
+                            </div>
+                        </div>
+
+                        <!-- Delete Button -->
+                        <div class="mt-3 flex justify-end">
+                            <form action="{{ route('groups.advances.destroy', ['group' => $group, 'advance' => $advance]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this advance record?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200 transition-all">
+                                    🗑️ Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-8 bg-white rounded-xl border-2 border-dashed border-blue-200">
+                <p class="text-gray-600 font-medium">No advances recorded yet</p>
+                <p class="text-sm text-gray-500 mt-1">Use the form above to add an advance</p>
+            </div>
+        @endif
+    </div>
+
     <!-- Squad Members -->
     <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
         <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
