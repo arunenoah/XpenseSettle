@@ -13,7 +13,7 @@
             </div>
             <div class="text-right">
                 <div class="text-3xl sm:text-4xl font-bold text-blue-600">
-                    {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($expense->amount, 2) }}
+                    {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($expense->amount, 2) }}
                 </div>
                 <span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }}">
                     {{ ucfirst(str_replace('_', ' ', $expense->status)) }}
@@ -63,7 +63,7 @@
                         </div>
                         <div class="text-right">
                             <div class="text-lg font-bold text-blue-600">
-                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($item['amount'], 2) }}
+                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($item['amount'], 2) }}
                             </div>
                             @if($item['paid'])
                                 <span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-semibold">✓ Paid</span>
@@ -80,7 +80,7 @@
                 <div class="flex justify-between items-center">
                     <span class="text-gray-700 font-semibold">Total to be settled:</span>
                     <span class="text-xl font-bold text-blue-600">
-                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format(collect($settlement)->sum('amount'), 2) }}
+                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format(collect($settlement)->sum('amount'), 2) }}
                     </span>
                 </div>
             </div>
@@ -96,7 +96,7 @@
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
                     <span class="text-gray-900">{{ $split->user->name }}</span>
                     <span class="font-semibold text-gray-900">
-                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($split->share_amount, 2) }}
+                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($split->share_amount, 2) }}
                     </span>
                 </div>
             @empty
@@ -169,13 +169,13 @@
         <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8">
             <div class="flex flex-col sm:flex-row gap-3">
                 <a
-                    href="{{ route('expenses.edit', ['group' => $group, 'expense' => $expense]) }}"
+                    href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $expense]) }}"
                     class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-center"
                 >
                     Edit Expense
                 </a>
                 <form
-                    action="{{ route('expenses.destroy', ['group' => $group, 'expense' => $expense]) }}"
+                    action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $expense]) }}"
                     method="POST"
                     class="flex-1"
                     onsubmit="return confirm('Are you sure you want to delete this expense?');"

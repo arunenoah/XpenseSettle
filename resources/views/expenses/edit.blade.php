@@ -8,7 +8,7 @@
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Edit Expense</h1>
         <p class="text-gray-600 mb-6">Update expense details for <strong>{{ $group->name }}</strong></p>
 
-        <form action="{{ route('expenses.update', ['group' => $group, 'expense' => $expense]) }}" method="POST" class="space-y-6">
+        <form action="{{ route('groups.expenses.update', ['group' => $group, 'expense' => $expense]) }}" method="POST" class="space-y-6">
             @csrf
             @method('PUT')
 
@@ -50,7 +50,7 @@
                 <label for="amount" class="block text-sm font-semibold text-gray-700 mb-2">Amount</label>
                 <div class="relative">
                     <span class="absolute left-4 top-3 sm:top-4 text-gray-600 font-semibold">
-                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}
+                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}
                     </span>
                     <input
                         type="number"
@@ -117,7 +117,7 @@
                                 </label>
                                 <div class="relative flex-1">
                                     <span class="absolute right-3 top-2 sm:top-3 text-gray-600 text-sm">
-                                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}
+                                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}
                                     </span>
                                     <input
                                         type="number"
@@ -174,7 +174,7 @@
                     Save Changes
                 </button>
                 <a
-                    href="{{ route('expenses.show', ['group' => $group, 'expense' => $expense]) }}"
+                    href="{{ route('groups.expenses.show', ['group' => $group, 'expense' => $expense]) }}"
                     class="flex-1 px-6 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-center"
                 >
                     Cancel
@@ -186,7 +186,7 @@
         <div class="mt-8 p-4 bg-red-50 border border-red-200 rounded-lg">
             <h3 class="font-semibold text-red-900 mb-2">Delete Expense</h3>
             <p class="text-sm text-red-800 mb-4">Once you delete an expense, it cannot be recovered.</p>
-            <form action="{{ route('expenses.destroy', ['group' => $group, 'expense' => $expense]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this expense? This action cannot be undone.');">
+            <form action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $expense]) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this expense? This action cannot be undone.');">
                 @csrf
                 @method('DELETE')
                 <button
