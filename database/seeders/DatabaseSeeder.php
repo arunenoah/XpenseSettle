@@ -58,46 +58,22 @@ class DatabaseSeeder extends Seeder
         $this->command->info('🌱 Starting database seeding...');
         $this->command->warn('⚠️  Using test passwords - DO NOT use in production!');
 
-        // Create users
-        $this->command->info('👥 Creating users...');
-        
-        $arun = User::create([
-            'name' => 'Arun Kumar',
-            'email' => 'arun@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        // Users already exist, fetch them
+        $this->command->info('👥 Using existing users...');
 
-        $velu = User::create([
-            'name' => 'Velu',
-            'email' => 'velu@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $arun = User::where('email', 'arun@example.com')->first();
+        $velu = User::where('email', 'velu@example.com')->first();
+        $dhana = User::where('email', 'dhana@example.com')->first();
+        $karthick = User::where('email', 'karthick@example.com')->first();
+        $param = User::where('email', 'param@example.com')->first();
+        $mohan = User::where('email', 'mohan@example.com')->first();
 
-        $dhana = User::create([
-            'name' => 'Dhana',
-            'email' => 'dhana@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        if (!$arun || !$velu || !$dhana || !$karthick || !$param || !$mohan) {
+            $this->command->error('❌ Not all required users exist. Please create them first.');
+            return;
+        }
 
-        $karthick = User::create([
-            'name' => 'Karthick',
-            'email' => 'karthick@example.com',
-            'password' => Hash::make('password'),
-        ]);
-
-        $param = User::create([
-            'name' => 'Param',
-            'email' => 'param@example.com',
-            'password' => Hash::make('password'),
-        ]);
-
-        $mohan = User::create([
-            'name' => 'Mohan',
-            'email' => 'mohan@example.com',
-            'password' => Hash::make('password'),
-        ]);
-
-        $this->command->info('✅ Created 6 users');
+        $this->command->info('✅ Found 6 existing users');
 
         // Create groups
         $this->command->info('👥 Creating groups...');
@@ -592,19 +568,13 @@ class DatabaseSeeder extends Seeder
         $this->command->info('🎉 Database seeding completed successfully!');
         $this->command->newLine();
         $this->command->info('📊 Summary:');
-        $this->command->info('  - Users: 6');
+        $this->command->info('  - Users: 6 (already existed)');
         $this->command->info('  - Groups: 5 (Roommates, Goa, Ooty, Office Lunch, Hunter Valley)');
         $this->command->info('  - Expenses: 19');
         $this->command->info('  - Payments: Multiple marked as paid');
         $this->command->info('  - Comments: 13');
         $this->command->newLine();
-        $this->command->info('🔐 Login Credentials (all passwords: password):');
-        $this->command->info('  - arun@example.com (Admin of Roommates group)');
-        $this->command->info('  - velu@example.com (Member of Roommates & Trip)');
-        $this->command->info('  - dhana@example.com (Admin of Lunch group, Member of Roommates)');
-        $this->command->info('  - karthick@example.com (Admin of Trip group)');
-        $this->command->info('  - param@example.com (Member of Trip & Lunch)');
-        $this->command->info('  - mohan@example.com (Member of Lunch)');
+        $this->command->info('✅ Sample data created for all groups!');
         $this->command->newLine();
     }
 }
