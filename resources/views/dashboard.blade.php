@@ -35,23 +35,6 @@
             </div>
         </div>
 
-        <!-- Summary Breakdown -->
-        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg sm:rounded-xl shadow-md sm:shadow-lg p-3 sm:p-6 border-2 border-blue-200 transform hover:scale-105 transition-transform">
-            <div class="flex flex-col text-xs">
-                <p class="font-bold text-blue-700 mb-2">📊 Breakdown</p>
-                <div class="space-y-1">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Owed:</span>
-                        <span class="font-bold text-red-600">₹{{ number_format($totalOwed, 0) }}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Paid:</span>
-                        <span class="font-bold text-green-600">₹{{ number_format($totalPaid, 0) }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Pending Count Card -->
         <div class="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-lg sm:rounded-xl shadow-md sm:shadow-lg p-3 sm:p-6 border-2 border-yellow-200 transform hover:scale-105 transition-transform">
             <div class="flex flex-col">
@@ -307,88 +290,22 @@
                 @endif
             </div>
             
-            <!-- Groups Overview -->
+            <!-- Breakdown Card -->
             <div class="bg-white rounded-xl p-4 shadow-md">
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-sm font-bold text-gray-900 flex items-center gap-1">
-                        <span class="text-lg">👥</span>
-                        <span>Top Groups</span>
-                    </h3>
-                    @if(count($groups) > 3)
-                        <span class="text-xs font-semibold text-gray-500">+{{ count($groups) - 3 }} more</span>
-                    @endif
+                <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <span class="text-lg">📊</span>
+                    <span>Breakdown</span>
+                </h3>
+                <div class="space-y-3">
+                    <div class="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-3 border border-red-200">
+                        <p class="text-xs font-semibold text-red-700 mb-1">You Owe</p>
+                        <p class="text-2xl font-black text-red-600">₹{{ number_format($totalOwed, 0) }}</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
+                        <p class="text-xs font-semibold text-green-700 mb-1">They Owe You</p>
+                        <p class="text-2xl font-black text-green-600">₹{{ number_format($theyOweMe, 0) }}</p>
+                    </div>
                 </div>
-                @if(count($groups) > 0)
-                    <div style="height: 160px;">
-                        <canvas id="groups-bar" height="160"></canvas>
-                    </div>
-                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <script>
-                    (function() {
-                        const ctx = document.getElementById('groups-bar').getContext('2d');
-                        @php
-                            $topGroups = array_slice($groups->toArray(), 0, 3);
-                            $groupLabels = array_map(function($item) {
-                                $name = $item['group']->name;
-                                return strlen($name) > 10 ? substr($name, 0, 10) . '...' : $name;
-                            }, $topGroups);
-                            // Calculate total amount for each group
-                            $groupData = array_map(function($item) {
-                                $groupExpenses = \App\Models\Expense::where('group_id', $item['group']->id)->sum('amount');
-                                return $groupExpenses;
-                            }, $topGroups);
-                        @endphp
-                        new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: {!! json_encode(array_values($groupLabels)) !!},
-                                datasets: [{
-                                    data: {!! json_encode(array_values($groupData)) !!},
-                                    backgroundColor: ['#EF4444', '#F59E0B', '#10B981'],
-                                    borderRadius: 8,
-                                    barThickness: 40,
-                                    maxBarThickness: 50
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { 
-                                    legend: { display: false },
-                                    tooltip: {
-                                        callbacks: {
-                                            label: function(context) {
-                                                return 'Expenses: ' + context.parsed.y.toLocaleString();
-                                            }
-                                        }
-                                    }
-                                },
-                                scales: {
-                                    y: { 
-                                        beginAtZero: true, 
-                                        ticks: { 
-                                            font: { size: 9 },
-                                            callback: function(value) {
-                                                return '₹' + (value/1000) + 'k';
-                                            }
-                                        },
-                                        grid: { display: false }
-                                    },
-                                    x: { 
-                                        ticks: { font: { size: 9 } },
-                                        grid: { display: false }
-                                    }
-                                }
-                            }
-                        });
-                    })();
-                    </script>
-                @else
-                    <div class="text-center py-8">
-                        <p class="text-4xl mb-2">👥</p>
-                        <p class="text-sm font-bold text-gray-600">No groups yet</p>
-                    </div>
-                @endif
             </div>
             
             <!-- Quick Stats -->
