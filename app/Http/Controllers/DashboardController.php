@@ -66,9 +66,27 @@ class DashboardController extends Controller
         $pendingCount = 0;
 
         foreach ($user->groups as $group) {
+            // Get payment stats from splits
             $stats = $this->paymentService->getPaymentStats($user, $group->id);
             $totalOwed += $stats['pending_amount'];
             $totalPaid += $stats['paid_amount'];
+
+            // Add itemwise expense amounts
+            $itemwiseExpenses = \App\Models\Expense::where('group_id', $group->id)
+                ->where('split_type', 'itemwise')
+                ->get();
+
+            foreach ($itemwiseExpenses as $expense) {
+                if ($user->id !== $expense->payer_id) {
+                    // User is not the payer - they owe this amount
+                    $totalOwed += $expense->amount;
+                } else {
+                    // User is the payer - they should get this back
+                    // Count as potentially paid if split-up among members
+                    $totalPaid += $expense->amount;
+                }
+            }
+
             $pendingCount += $pendingPayments
                 ->filter(function ($payment) use ($group) {
                     return $payment->split->expense->group_id === $group->id;
