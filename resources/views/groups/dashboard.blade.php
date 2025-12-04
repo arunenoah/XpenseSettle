@@ -323,8 +323,8 @@
             <span>Recent Activity</span>
         </h2>
         @if(count($expenses) > 0)
-            <div class="space-y-3">
-                @foreach($expenses as $expense)
+            <div class="space-y-3 overflow-y-auto max-h-screen pr-2" style="max-height: 600px;">
+                @foreach($expenses->take(10) as $expense)
                     <div class="bg-white p-5 rounded-xl border-2 border-orange-200 hover:shadow-lg hover:border-orange-400 transition-all transform hover:scale-102">
                         <div class="flex items-start justify-between gap-3 mb-3">
                             <div class="flex-1 min-w-0">
@@ -360,6 +360,11 @@
                     </div>
                 @endforeach
             </div>
+            @if(count($expenses) > 10)
+                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                    <p class="text-sm font-semibold text-blue-700">📊 Showing 10 of {{ count($expenses) }} expenses (scroll to see more)</p>
+                </div>
+            @endif
         @else
             <div class="bg-white rounded-xl p-8 text-center border-2 border-dashed border-orange-300">
                 <div class="text-6xl mb-4">🤷</div>
