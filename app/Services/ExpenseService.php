@@ -33,8 +33,8 @@ class ExpenseService
         // Create splits based on split_type
         if (isset($data['splits'])) {
             $this->createSplits($expense, $data['splits']);
-        } else {
-            // Default: equal split among group members
+        } elseif ($expense->split_type !== 'itemwise') {
+            // Default: equal split among group members (but NOT for itemwise)
             $this->createEqualSplits($expense, $group);
         }
 
