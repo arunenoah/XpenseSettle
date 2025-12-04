@@ -93,7 +93,9 @@
                         <div class="flex-1 min-w-0">
                             <p class="font-bold text-sm text-gray-900 truncate">{{ $payment->split->expense->payer->name }}</p>
                             <p class="text-xs text-gray-600 truncate">💰 {{ $payment->split->expense->title }}</p>
-                            <p class="text-xs text-gray-500">🏠 {{ $payment->split->expense->group->name }}</p>
+                            @if($payment->split->expense->group)
+                                <p class="text-xs text-gray-500">🏠 {{ $payment->split->expense->group->name }}</p>
+                            @endif
                         </div>
                     </div>
                     <div class="flex items-center justify-between mb-2">
@@ -103,14 +105,16 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="openPaymentModal({{ $payment->id }}, '{{ $payment->split->expense->payer->name }}', {{ $payment->split->share_amount }}, '{{ $payment->split->expense->title }}')" 
+                        <button onclick="openPaymentModal({{ $payment->id }}, '{{ $payment->split->expense->payer->name }}', {{ $payment->split->share_amount }}, '{{ $payment->split->expense->title }}')"
                                 class="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs">
                             ✓ Mark Paid
                         </button>
-                        <a href="{{ route('groups.expenses.show', [$payment->split->expense->group, $payment->split->expense]) }}" 
-                           class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold text-xs">
-                            👁️
-                        </a>
+                        @if($payment->split->expense->group)
+                            <a href="{{ route('groups.expenses.show', [$payment->split->expense->group, $payment->split->expense]) }}"
+                               class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold text-xs">
+                                👁️
+                            </a>
+                        @endif
                     </div>
                     <p class="text-xs text-gray-500 mt-2">📅 {{ $payment->split->expense->date->diffForHumans() }}</p>
                 </div>

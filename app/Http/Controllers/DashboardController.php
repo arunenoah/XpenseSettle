@@ -35,8 +35,15 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Get pending payments
-        $pendingPayments = $this->paymentService->getPendingPaymentsForUser($user);
+        // Get pending payments (exclude deleted groups)
+        $pendingPayments = $this->paymentService->getPendingPaymentsForUser($user)
+            ->load(['split.expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }])
+            ->filter(function ($payment) {
+                return $payment->split->expense->group !== null;
+            })
+            ->values();
 
         // Get paid payments
         $paidPayments = \App\Models\Payment::whereHas('split', function ($q) use ($user) {
