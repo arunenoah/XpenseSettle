@@ -3,7 +3,7 @@
 @section('title', $group->name)
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="w-full px-4 sm:px-6 lg:px-8">
     <div class="space-y-6 sm:space-y-8">
         <!-- Navigation Menu -->
         <div class="bg-white rounded-xl shadow-md p-2 flex gap-2 overflow-x-auto">
