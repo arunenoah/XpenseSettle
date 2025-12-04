@@ -1,0 +1,67 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Group extends Model
+{
+    /** @use HasFactory<\Database\Factories\GroupFactory> */
+    use HasFactory;
+
+    protected $fillable = ['created_by', 'name', 'icon', 'description', 'currency'];
+
+    /**
+     * Get the user who created the group.
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get members of the group.
+     */
+    public function members()
+    {
+        return $this->belongsToMany(User::class, 'group_members')
+                    ->withPivot('role')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get group members records.
+     */
+    public function groupMembers()
+    {
+        return $this->hasMany(GroupMember::class);
+    }
+
+    /**
+     * Get expenses in this group.
+     */
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    /**
+     * Check if user is admin of this group.
+     */
+    public function isAdmin(User $user)
+    {
+        return $this->groupMembers()
+                    ->where('user_id', $user->id)
+                    ->where('role', 'admin')
+                    ->exists();
+    }
+
+    /**
+     * Check if user is member of this group.
+     */
+    public function hasMember(User $user)
+    {
+        return $this->members()->where('user_id', $user->id)->exists();
+    }
+}

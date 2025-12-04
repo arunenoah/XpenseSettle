@@ -1,0 +1,243 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Expense;
+use App\Models\ExpenseSplit;
+use App\Models\Group;
+use App\Models\User;
+
+class ExpenseService
+{
+    /**
+     * Create a new expense with splits.
+     *
+     * @param Group $group
+     * @param User $payer
+     * @param array $data
+     * @return Expense
+     */
+    public function createExpense(Group $group, User $payer, array $data): Expense
+    {
+        $expense = Expense::create([
+            'group_id' => $group->id,
+            'payer_id' => $payer->id,
+            'title' => $data['title'],
+            'description' => $data['description'] ?? null,
+            'amount' => $data['amount'],
+            'split_type' => $data['split_type'] ?? 'equal',
+            'date' => $data['date'] ?? now()->toDateString(),
+            'status' => 'pending',
+        ]);
+
+        // Create splits based on split_type
+        if (isset($data['splits'])) {
+            $this->createSplits($expense, $data['splits']);
+        } else {
+            // Default: equal split among group members
+            $this->createEqualSplits($expense, $group);
+        }
+
+        return $expense;
+    }
+
+    /**
+     * Create equal splits for an expense.
+     *
+     * @param Expense $expense
+     * @param Group $group
+     */
+    private function createEqualSplits(Expense $expense, Group $group): void
+    {
+        $members = $group->members;
+        $splitAmount = $expense->amount / count($members);
+
+        foreach ($members as $member) {
+            ExpenseSplit::create([
+                'expense_id' => $expense->id,
+                'user_id' => $member->id,
+                'share_amount' => round($splitAmount, 2),
+            ]);
+        }
+    }
+
+    /**
+     * Create custom splits for an expense.
+     *
+     * @param Expense $expense
+     * @param array $splits
+     */
+    private function createSplits(Expense $expense, array $splits): void
+    {
+        foreach ($splits as $userId => $data) {
+            // Handle both simple amount and detailed split data
+            if (is_array($data)) {
+                ExpenseSplit::create([
+                    'expense_id' => $expense->id,
+                    'user_id' => $userId,
+                    'share_amount' => $data['amount'] ?? 0,
+                    'percentage' => $data['percentage'] ?? null,
+                ]);
+            } else {
+                ExpenseSplit::create([
+                    'expense_id' => $expense->id,
+                    'user_id' => $userId,
+                    'share_amount' => $data,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Create percentage-based splits for an expense.
+     *
+     * @param Expense $expense
+     * @param array $percentages Array of user_id => percentage
+     */
+    public function createPercentageSplits(Expense $expense, array $percentages): void
+    {
+        $totalPercentage = array_sum($percentages);
+
+        if (abs($totalPercentage - 100) > 0.01) {
+            throw new \Exception("Percentages must add up to 100%. Current total: {$totalPercentage}%");
+        }
+
+        foreach ($percentages as $userId => $percentage) {
+            $shareAmount = round(($expense->amount * $percentage) / 100, 2);
+
+            ExpenseSplit::create([
+                'expense_id' => $expense->id,
+                'user_id' => $userId,
+                'share_amount' => $shareAmount,
+                'percentage' => $percentage,
+            ]);
+        }
+
+        // Handle rounding issues - adjust the first split
+        $totalSplit = $expense->splits()->sum('share_amount');
+        if (abs($totalSplit - $expense->amount) > 0.01) {
+            $diff = round($expense->amount - $totalSplit, 2);
+            $firstSplit = $expense->splits()->first();
+            $firstSplit->update(['share_amount' => $firstSplit->share_amount + $diff]);
+        }
+    }
+
+    /**
+     * Create custom adjustable splits with individual amounts.
+     *
+     * @param Expense $expense
+     * @param array $customSplits Array of user_id => amount
+     * @param bool $validateTotal Whether to validate that splits equal expense amount
+     */
+    public function createCustomAdjustableSplits(Expense $expense, array $customSplits, bool $validateTotal = true): void
+    {
+        $totalSplit = array_sum($customSplits);
+
+        if ($validateTotal && abs($totalSplit - $expense->amount) > 0.01) {
+            throw new \Exception(
+                "Custom splits total (\${$totalSplit}) must equal expense amount (\${$expense->amount})"
+            );
+        }
+
+        foreach ($customSplits as $userId => $amount) {
+            ExpenseSplit::create([
+                'expense_id' => $expense->id,
+                'user_id' => $userId,
+                'share_amount' => round($amount, 2),
+            ]);
+        }
+    }
+
+    /**
+     * Update an expense.
+     *
+     * @param Expense $expense
+     * @param array $data
+     * @return Expense
+     */
+    public function updateExpense(Expense $expense, array $data): Expense
+    {
+        // Only allow editing if not fully paid
+        if ($expense->status === 'fully_paid') {
+            throw new \Exception('Cannot edit a fully paid expense');
+        }
+
+        $expense->update([
+            'title' => $data['title'] ?? $expense->title,
+            'description' => $data['description'] ?? $expense->description,
+            'amount' => $data['amount'] ?? $expense->amount,
+            'split_type' => $data['split_type'] ?? $expense->split_type,
+            'date' => $data['date'] ?? $expense->date,
+        ]);
+
+        // Update splits if provided
+        if (isset($data['splits'])) {
+            $expense->splits()->delete();
+            $this->createSplits($expense, $data['splits']);
+        }
+
+        return $expense;
+    }
+
+    /**
+     * Delete an expense.
+     *
+     * @param Expense $expense
+     * @return bool
+     */
+    public function deleteExpense(Expense $expense): bool
+    {
+        // Delete related records
+        $expense->splits()->delete();
+        $expense->comments()->delete();
+        $expense->attachments()->delete();
+
+        return $expense->delete();
+    }
+
+    /**
+     * Calculate settlement needed for an expense.
+     *
+     * @param Expense $expense
+     * @return array
+     */
+    public function getExpenseSettlement(Expense $expense): array
+    {
+        $settlement = [];
+
+        foreach ($expense->splits as $split) {
+            if ($split->user_id !== $expense->payer_id) {
+                $settlement[] = [
+                    'from' => $split->user,
+                    'to' => $expense->payer,
+                    'amount' => $split->share_amount,
+                    'paid' => $split->payment && $split->payment->status === 'paid',
+                ];
+            }
+        }
+
+        return $settlement;
+    }
+
+    /**
+     * Mark expense as fully paid.
+     *
+     * @param Expense $expense
+     * @return Expense
+     */
+    public function markExpenseAsPaid(Expense $expense): Expense
+    {
+        // Check if all splits are paid
+        $unpaidCount = $expense->splits()
+            ->whereHas('payment', function ($query) {
+                $query->where('status', '!=', 'paid');
+            }, '=', 0)
+            ->count();
+
+        if ($unpaidCount === 0) {
+            $expense->update(['status' => 'fully_paid']);
+        }
+
+        return $expense;
+    }
+}
