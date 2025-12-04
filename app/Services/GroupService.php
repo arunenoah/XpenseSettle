@@ -145,7 +145,7 @@ class GroupService
                 } else {
                     // For equal/custom splits: use the splits table
                     $split = $expense->splits()->where('user_id', $member->id)->first();
-                    if ($split && $member->id !== $expense->payer_id) {
+                    if ($split) {
                         $totalOwed += $split->share_amount;
                     }
                 }
