@@ -269,7 +269,7 @@
                             </div>
                             <div class="text-right flex-shrink-0">
                                 <p class="font-black text-lg text-blue-600">${{ number_format($advance->amount_per_person * $advance->senders()->count(), 2) }}</p>
-                                <p class="text-xs text-gray-600">(₹{{ number_format($advance->amount_per_person, 2) }} each)</p>
+                                <p class="text-xs text-gray-600">({{ $group->currency }}{{ number_format($advance->amount_per_person, 2) }} each)</p>
                             </div>
                         </div>
 
@@ -324,6 +324,12 @@
                             <span class="text-xs font-semibold text-gray-600">💰 Share</span>
                             <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_owed'], 2) }}</span>
                         </div>
+                        @if(isset($memberAdvances[$balance['user']->id]) && $memberAdvances[$balance['user']->id] > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-semibold text-blue-600">🚀 Advanced</span>
+                                <span class="text-sm font-bold text-blue-600">${{ number_format($memberAdvances[$balance['user']->id], 2) }}</span>
+                            </div>
+                        @endif
                         <div class="pt-2 border-t-2 border-gray-100">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm font-bold {{ $balance['net_balance'] >= 0 ? 'text-green-700' : 'text-red-700' }}">

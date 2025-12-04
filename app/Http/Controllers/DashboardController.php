@@ -207,6 +207,9 @@ class DashboardController extends Controller
         // Get settlement summary (who owes whom)
         $settlement = $this->calculateSettlement($group, $user);
 
+        // Calculate advance amounts for each member
+        $memberAdvances = $this->calculateMemberAdvances($group);
+
         return view('groups.dashboard', [
             'group' => $group,
             'balances' => $balances,
@@ -214,6 +217,7 @@ class DashboardController extends Controller
             'expenses' => $expenses,
             'pendingPayments' => $pendingPayments,
             'settlement' => $settlement,
+            'memberAdvances' => $memberAdvances,
         ]);
     }
 
@@ -300,8 +304,8 @@ class DashboardController extends Controller
             ->get();
 
         foreach ($advances as $advance) {
-            // Check if user is a sender of this advance
-            if ($advance->senders()->where('user_id', $user->id)->exists()) {
+            // Check if user is a sender of this advance (using loaded collection)
+            if ($advance->senders->contains('id', $user->id)) {
                 // User sent this advance to someone
                 $recipientId = $advance->sent_to_user_id;
                 $advanceAmount = $advance->amount_per_person;
@@ -355,5 +359,29 @@ class DashboardController extends Controller
         }
 
         return $settlements;
+    }
+
+    /**
+     * Calculate total advances paid by each group member.
+     * Returns array with user_id => total_advance_amount paid by that user.
+     */
+    private function calculateMemberAdvances(Group $group)
+    {
+        $memberAdvances = [];
+
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with('senders')
+            ->get();
+
+        foreach ($advances as $advance) {
+            foreach ($advance->senders as $sender) {
+                if (!isset($memberAdvances[$sender->id])) {
+                    $memberAdvances[$sender->id] = 0;
+                }
+                $memberAdvances[$sender->id] += $advance->amount_per_person;
+            }
+        }
+
+        return $memberAdvances;
     }
 }
