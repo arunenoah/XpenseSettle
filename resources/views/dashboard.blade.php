@@ -208,15 +208,15 @@
     </div>
     @endif
 
-    <!-- Analytics Dashboard - Compact -->
+    <!-- Analytics Dashboard - HIDDEN FOR NOW -->
+    <!--
     <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-4 sm:p-6">
         <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-4 flex items-center gap-2">
             <span class="text-2xl">📊</span>
             <span>Quick Analytics</span>
         </h2>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Balance Overview -->
             <div class="bg-white rounded-xl p-4 shadow-md">
                 <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1">
                     <span class="text-lg">🎯</span>
@@ -289,8 +289,7 @@
                     </div>
                 @endif
             </div>
-            
-            <!-- Breakdown Card -->
+
             <div class="bg-white rounded-xl p-4 shadow-md">
                 <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <span class="text-lg">📊</span>
@@ -307,24 +306,23 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Quick Stats -->
+
             <div class="bg-white rounded-xl p-4 shadow-md space-y-3">
                 <h3 class="text-sm font-bold text-gray-900 mb-3 flex items-center gap-1">
                     <span class="text-lg">⚡</span>
                     <span>Quick Stats</span>
                 </h3>
-                
+
                 <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
                     <p class="text-xs font-bold text-green-700 mb-1">💰 Total Groups</p>
                     <p class="text-2xl font-black text-green-900">{{ count($groups) }}</p>
                 </div>
-                
+
                 <div class="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-3 border border-red-200">
                     <p class="text-xs font-bold text-red-700 mb-1">😬 Pending</p>
                     <p class="text-2xl font-black text-red-900">{{ $pendingCount }}</p>
                 </div>
-                
+
                 <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-200">
                     <p class="text-xs font-bold text-blue-700 mb-1">📊 Recent</p>
                     <p class="text-2xl font-black text-blue-900">{{ count($recentExpenses) }}</p>
@@ -332,6 +330,7 @@
             </div>
         </div>
     </div>
+    -->
 
     <!-- Main Content Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
