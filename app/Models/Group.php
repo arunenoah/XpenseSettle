@@ -62,6 +62,6 @@ class Group extends Model
      */
     public function hasMember(User $user)
     {
-        return $this->members()->where('user_id', $user->id)->exists();
+        return $this->members()->where('group_members.user_id', $user->id)->exists();
     }
 }
