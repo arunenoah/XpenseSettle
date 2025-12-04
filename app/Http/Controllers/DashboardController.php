@@ -139,11 +139,10 @@ class DashboardController extends Controller
             'net_balance' => 0,
         ];
 
-        // Get recent expenses in this group
+        // Get all expenses in this group
         $expenses = $group->expenses()
             ->with('payer', 'splits')
             ->latest()
-            ->limit(10)
             ->get();
 
         // Get pending payments for user in this group
