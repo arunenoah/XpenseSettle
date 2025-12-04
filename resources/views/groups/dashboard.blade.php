@@ -169,7 +169,11 @@
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <div class="flex-1 min-w-0">
                                         <p class="font-semibold text-gray-900">{{ $debt['to_user']->name }}</p>
-                                        <p class="text-sm text-gray-600">{{ $debt['expense']->title }}</p>
+                                        @if($debt['expense'])
+                                            <p class="text-sm text-gray-600">{{ $debt['expense']->title }}</p>
+                                        @else
+                                            <p class="text-sm text-gray-600">Total owed from all expenses</p>
+                                        @endif
                                     </div>
                                     <p class="font-bold text-orange-600 flex-shrink-0">${{ number_format($debt['amount'], 2) }}</p>
                                 </div>
@@ -183,7 +187,7 @@
                                             <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($debt['status']) }}</span>
                                         @endif
                                     </div>
-                                    @if($debt['expense']->payer_id === auth()->id())
+                                    @if($debt['expense'] && $debt['expense']->payer_id === auth()->id())
                                         <div class="flex gap-1">
                                             <a href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $debt['expense']]) }}" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200">
                                                 Edit
@@ -217,7 +221,11 @@
                                 <div class="flex items-start justify-between gap-3 mb-2">
                                     <div class="flex-1 min-w-0">
                                         <p class="font-semibold text-gray-900">{{ $credit['from_user']->name }}</p>
-                                        <p class="text-sm text-gray-600">{{ $credit['expense']->title }}</p>
+                                        @if($credit['expense'])
+                                            <p class="text-sm text-gray-600">{{ $credit['expense']->title }}</p>
+                                        @else
+                                            <p class="text-sm text-gray-600">Total owed from all expenses</p>
+                                        @endif
                                     </div>
                                     <p class="font-bold text-green-600 flex-shrink-0">${{ number_format($credit['amount'], 2) }}</p>
                                 </div>
@@ -231,7 +239,7 @@
                                             <span class="inline-block px-2 py-1 bg-gray-100 text-gray-800 text-xs font-semibold rounded">{{ ucfirst($credit['status']) }}</span>
                                         @endif
                                     </div>
-                                    @if($credit['expense']->payer_id === auth()->id())
+                                    @if($credit['expense'] && $credit['expense']->payer_id === auth()->id())
                                         <div class="flex gap-1">
                                             <a href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $credit['expense']]) }}" class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded hover:bg-blue-200">
                                                 Edit

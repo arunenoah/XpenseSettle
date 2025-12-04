@@ -205,30 +205,36 @@ class DashboardController extends Controller
      */
     private function calculateSettlement(Group $group, $user)
     {
-        $owesMe = [];    // Who owes the user
-        $iOwe = [];      // Who the user owes
+        $owesMe = [];     // Who owes the user (aggregated by person)
+        $iOwe = [];       // Who the user owes (aggregated by person)
+        $owesMeMap = [];  // Temp map for aggregating owes_me
+        $iOweMap = [];    // Temp map for aggregating i_owe
 
         foreach ($group->expenses as $expense) {
             // Handle itemwise expenses (no splits, full amount)
             if ($expense->split_type === 'itemwise') {
                 if ($user->id !== $expense->payer_id) {
                     // User is not the payer - they owe the full amount to the payer
-                    $iOwe[] = [
-                        'to_user' => $expense->payer,
-                        'expense' => $expense,
-                        'amount' => $expense->amount,
-                        'status' => 'pending', // Itemwise expenses are always pending (no payment tracking)
-                    ];
+                    $payerId = $expense->payer_id;
+                    if (!isset($iOweMap[$payerId])) {
+                        $iOweMap[$payerId] = [
+                            'to_user' => $expense->payer,
+                            'total' => 0,
+                        ];
+                    }
+                    $iOweMap[$payerId]['total'] += $expense->amount;
                 } else {
-                    // User is the payer - all other members owe them
+                    // User is the payer - aggregate amount owed by each member
                     foreach ($group->members as $member) {
                         if ($member->id !== $user->id) {
-                            $owesMe[] = [
-                                'from_user' => $member,
-                                'expense' => $expense,
-                                'amount' => $expense->amount,
-                                'status' => 'pending',
-                            ];
+                            $memberId = $member->id;
+                            if (!isset($owesMeMap[$memberId])) {
+                                $owesMeMap[$memberId] = [
+                                    'from_user' => $member,
+                                    'total' => 0,
+                                ];
+                            }
+                            $owesMeMap[$memberId]['total'] += $expense->amount;
                         }
                     }
                 }
@@ -240,28 +246,51 @@ class DashboardController extends Controller
                         $payment = $split->payment;
 
                         if (!$payment || $payment->status !== 'paid') {
-                            $iOwe[] = [
-                                'to_user' => $expense->payer,
-                                'expense' => $expense,
-                                'amount' => $split->share_amount,
-                                'status' => $payment ? $payment->status : 'pending',
-                            ];
+                            $payerId = $expense->payer_id;
+                            if (!isset($iOweMap[$payerId])) {
+                                $iOweMap[$payerId] = [
+                                    'to_user' => $expense->payer,
+                                    'total' => 0,
+                                ];
+                            }
+                            $iOweMap[$payerId]['total'] += $split->share_amount;
                         }
                     } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
                         // User is the payer, someone else is a participant
                         $payment = $split->payment;
 
                         if (!$payment || $payment->status !== 'paid') {
-                            $owesMe[] = [
-                                'from_user' => $split->user,
-                                'expense' => $expense,
-                                'amount' => $split->share_amount,
-                                'status' => $payment ? $payment->status : 'pending',
-                            ];
+                            $memberId = $split->user_id;
+                            if (!isset($owesMeMap[$memberId])) {
+                                $owesMeMap[$memberId] = [
+                                    'from_user' => $split->user,
+                                    'total' => 0,
+                                ];
+                            }
+                            $owesMeMap[$memberId]['total'] += $split->share_amount;
                         }
                     }
                 }
             }
+        }
+
+        // Convert aggregated maps to settlement arrays
+        foreach ($owesMeMap as $memberId => $data) {
+            $owesMe[] = [
+                'from_user' => $data['from_user'],
+                'expense' => null,
+                'amount' => $data['total'],
+                'status' => 'pending',
+            ];
+        }
+
+        foreach ($iOweMap as $payerId => $data) {
+            $iOwe[] = [
+                'to_user' => $data['to_user'],
+                'expense' => null,
+                'amount' => $data['total'],
+                'status' => 'pending',
+            ];
         }
 
         return [
