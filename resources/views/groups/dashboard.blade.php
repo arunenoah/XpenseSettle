@@ -82,8 +82,8 @@
                     <span>You Owe</span>
                 </p>
                 <p class="text-3xl sm:text-4xl font-black text-red-600">
-                    @if($userBalance['total_owed'] > 0)
-                        ${{ number_format($userBalance['total_owed'], 2) }}
+                    @if(collect($settlement['i_owe'])->sum('amount') > 0)
+                        ${{ number_format(collect($settlement['i_owe'])->sum('amount'), 2) }}
                     @else
                         $0.00
                     @endif
@@ -112,13 +112,16 @@
                     </div>
                 @endif
             </div>
-            <div class="bg-white rounded-xl p-4 shadow-md border-2 {{ $userBalance['net_balance'] >= 0 ? 'border-green-200' : 'border-orange-200' }}">
-                <p class="text-sm font-bold {{ $userBalance['net_balance'] >= 0 ? 'text-green-700' : 'text-orange-700' }} flex items-center gap-2 mb-2">
-                    <span class="text-xl">{{ $userBalance['net_balance'] >= 0 ? '✅' : '⚠️' }}</span>
+            @php
+                $netBalance = collect($settlement['owes_me'])->sum('amount') - collect($settlement['i_owe'])->sum('amount');
+            @endphp
+            <div class="bg-white rounded-xl p-4 shadow-md border-2 {{ $netBalance >= 0 ? 'border-green-200' : 'border-orange-200' }}">
+                <p class="text-sm font-bold {{ $netBalance >= 0 ? 'text-green-700' : 'text-orange-700' }} flex items-center gap-2 mb-2">
+                    <span class="text-xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
                     <span>Net Balance</span>
                 </p>
-                <p class="text-3xl sm:text-4xl font-black {{ $userBalance['net_balance'] >= 0 ? 'text-green-600' : 'text-orange-600' }}">
-                    {{ $userBalance['net_balance'] >= 0 ? '+' : '' }}${{ number_format($userBalance['net_balance'], 2) }}
+                <p class="text-3xl sm:text-4xl font-black {{ $netBalance >= 0 ? 'text-green-600' : 'text-orange-600' }}">
+                    {{ $netBalance >= 0 ? '+' : '' }}${{ number_format($netBalance, 2) }}
                 </p>
             </div>
         </div>
@@ -133,15 +136,15 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-gray-600 mb-1">💰 Total</p>
-                <p class="text-xl font-black text-gray-900">${{ number_format($userBalance['total_owed'] + $userBalance['total_paid'], 2) }}</p>
+                <p class="text-xl font-black text-gray-900">${{ number_format(collect($settlement['i_owe'])->sum('amount') + collect($settlement['owes_me'])->sum('amount') + $userBalance['total_owed'], 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-red-600 mb-1">😬 You Owe</p>
-                <p class="text-xl font-black text-red-600">${{ number_format($userBalance['total_owed'], 2) }}</p>
+                <p class="text-xl font-black text-red-600">${{ number_format(collect($settlement['i_owe'])->sum('amount'), 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-green-600 mb-1">🤑 They Owe</p>
-                <p class="text-xl font-black text-green-600">${{ number_format(abs($userBalance['net_balance']), 2) }}</p>
+                <p class="text-xl font-black text-green-600">${{ number_format(collect($settlement['owes_me'])->sum('amount'), 2) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-blue-600 mb-1">📝 Expenses</p>
