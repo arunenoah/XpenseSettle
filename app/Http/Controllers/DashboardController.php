@@ -187,9 +187,9 @@ class DashboardController extends Controller
             'net_balance' => 0,
         ];
 
-        // Get all expenses in this group
+        // Get all expenses in this group (with payment relationships for settlement calculation)
         $expenses = $group->expenses()
-            ->with('payer', 'splits')
+            ->with('payer', 'splits.payment', 'splits.user')
             ->latest()
             ->get();
 
