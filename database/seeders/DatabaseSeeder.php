@@ -44,7 +44,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Check if running in production
+        if (app()->environment('production')) {
+            $this->command->error('⚠️  WARNING: Seeding is disabled in production for security!');
+            $this->command->error('Create users manually with strong passwords.');
+            return;
+        }
+
         $this->command->info('🌱 Starting database seeding...');
+        $this->command->warn('⚠️  Using test passwords - DO NOT use in production!');
 
         // Create users
         $this->command->info('👥 Creating users...');
