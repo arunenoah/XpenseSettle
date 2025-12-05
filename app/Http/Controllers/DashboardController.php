@@ -359,6 +359,7 @@ class DashboardController extends Controller
                         'user' => $advance->sentTo,
                         'net_amount' => 0,
                         'status' => 'pending',
+                        'expenses' => [],
                     ];
                 }
 
@@ -378,6 +379,7 @@ class DashboardController extends Controller
                             'user' => $sender,
                             'net_amount' => 0,
                             'status' => 'pending',
+                            'expenses' => [],
                         ];
                     }
 
