@@ -33,7 +33,6 @@
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">They spent for me</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">I spent for them</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance sent</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Final Balance</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Details</th>
@@ -47,8 +46,8 @@
                                 $isOwed = $item['net_amount'] > 0;
                                 // net_amount already includes advance reductions, don't double-subtract
                                 $finalAmount = abs($item['net_amount']);
-                                // Show row if user owes money OR if there's an advance involved
-                                $shouldShow = $isOwed || $item['advance'] > 0;
+                                // Always show settlements
+                                $shouldShow = true;
 
                                 // Calculate they spent for me vs I spent for them
                                 $theySpentForMe = 0;
@@ -106,16 +105,6 @@
                                     @endif
                                 </td>
 
-                                <!-- Advance sent -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($item['advance'] > 0)
-                                        <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold">
-                                            💰 ${{ number_format($item['advance'], 2) }}
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-gray-500">—</span>
-                                    @endif
-                                </td>
 
                                 <!-- Balance (Final Amount) -->
                                 <td class="px-4 sm:px-6 py-4">
@@ -259,7 +248,6 @@
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">They spent for me</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">I spent for them</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance sent</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Final Balance</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Details</th>
@@ -273,8 +261,8 @@
                                 $isOwed = $item['net_amount'] > 0;
                                 // net_amount already includes advance reductions, don't double-subtract
                                 $finalAmount = abs($item['net_amount']);
-                                // Show row if user owes money OR if there's an advance involved
-                                $shouldShow = $isOwed || $item['advance'] > 0;
+                                // Always show settlements
+                                $shouldShow = true;
 
                                 // Calculate they spent for me vs I spent for them
                                 $theySpentForMe = 0;
@@ -332,16 +320,6 @@
                                     @endif
                                 </td>
 
-                                <!-- Advance sent -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($item['advance'] > 0)
-                                        <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold">
-                                            💰 ${{ number_format($item['advance'], 2) }}
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-gray-500">—</span>
-                                    @endif
-                                </td>
 
                                 <!-- Balance (Final Amount) -->
                                 <td class="px-4 sm:px-6 py-4">
