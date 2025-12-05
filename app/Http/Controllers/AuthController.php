@@ -21,7 +21,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle login request.
+     * Handle login request with PIN only.
      */
     public function login(Request $request)
     {
@@ -33,16 +33,20 @@ class AuthController extends Controller
         if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
             $seconds = RateLimiter::availableIn($key);
             return back()->withErrors([
-                'email' => "Too many login attempts. Please try again in {$seconds} seconds.",
-            ])->withInput($request->only('email'));
+                'pin' => "Too many login attempts. Please try again in {$seconds} seconds.",
+            ]);
         }
         
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required|string',
+        $validated = $request->validate([
+            'pin' => 'required|string|digits:6',
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Find user by PIN
+        $user = User::where('pin', $validated['pin'])->first();
+
+        // Check if user exists
+        if ($user) {
+            Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
             
             // Clear rate limiter on successful login
@@ -55,8 +59,8 @@ class AuthController extends Controller
         RateLimiter::hit($key, $decayMinutes * 60);
 
         return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->withInput($request->only('email'));
+            'pin' => 'Invalid PIN. Please try again.',
+        ]);
     }
 
     /**
@@ -82,14 +86,18 @@ class AuthController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/'
             ],
+            'pin' => 'required|string|digits:6|confirmed|unique:users',
         ], [
             'password.regex' => 'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&#)',
+            'pin.digits' => 'PIN must be exactly 6 digits.',
+            'pin.unique' => 'This PIN is already taken. Please choose a different one.',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            'pin' => $validated['pin'],
         ]);
 
         event(new Registered($user));
