@@ -164,6 +164,7 @@
                         <div class="mt-3 flex items-center justify-between">
                             @if($item['status'] === 'pending')
                                 <span class="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
+                                <!-- DEBUG: net_amount={{ $item['net_amount'] }}, payment_ids_count={{ count($item['payment_ids'] ?? []) }} -->
                                 @if($item['net_amount'] > 0 && count($item['payment_ids'] ?? []) > 0)
                                     <button onclick="openGroupPaymentModal({{ $item['payment_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
                                             class="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs">
