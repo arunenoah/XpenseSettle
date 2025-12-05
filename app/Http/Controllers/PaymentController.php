@@ -61,10 +61,9 @@ class PaymentController extends Controller
 
         // Get settlement for this user in this group
         // Load all necessary relationships including payments for accurate settlement calculation
-        // Use whereNull('deleted_at') to explicitly include only non-deleted expenses
         $group->load([
             'expenses' => function ($query) {
-                $query->whereNull('deleted_at')->latest();
+                $query->latest();
             },
             'expenses.splits.user',
             'expenses.splits.payment',
@@ -95,7 +94,6 @@ class PaymentController extends Controller
 
         // Ensure all expenses are loaded (including those from earlier queries)
         $expenses = \App\Models\Expense::where('group_id', $group->id)
-            ->whereNull('deleted_at')
             ->with(['splits.payment', 'splits.user', 'payer'])
             ->get();
 
@@ -257,7 +255,6 @@ class PaymentController extends Controller
 
         // Fetch all expenses for this group (not relying on pre-loaded group.expenses)
         $expenses = \App\Models\Expense::where('group_id', $group->id)
-            ->whereNull('deleted_at')
             ->with(['splits.payment', 'splits.user', 'payer'])
             ->get();
 
