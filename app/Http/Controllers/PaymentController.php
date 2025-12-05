@@ -93,8 +93,15 @@ class PaymentController extends Controller
         $netBalances = [];  // User ID => [user_obj, net_amount, status, expenses]
 
         // Ensure all expenses are loaded (including those from earlier queries)
+        // Fetch fresh to guarantee all data is included
         $expenses = \App\Models\Expense::where('group_id', $group->id)
-            ->with(['splits.payment', 'splits.user', 'payer'])
+            ->with([
+                'splits' => function ($q) {
+                    $q->with(['payment', 'user']);
+                },
+                'payer'
+            ])
+            ->orderBy('created_at', 'desc')
             ->get();
 
         foreach ($expenses as $expense) {
@@ -255,7 +262,13 @@ class PaymentController extends Controller
 
         // Fetch all expenses for this group (not relying on pre-loaded group.expenses)
         $expenses = \App\Models\Expense::where('group_id', $group->id)
-            ->with(['splits.payment', 'splits.user', 'payer'])
+            ->with([
+                'splits' => function ($q) {
+                    $q->with(['payment', 'user']);
+                },
+                'payer'
+            ])
+            ->orderBy('created_at', 'desc')
             ->get();
 
         // Process expenses
