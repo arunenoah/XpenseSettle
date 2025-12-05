@@ -12,11 +12,9 @@ class AttachmentService
     private const ALLOWED_MIME_TYPES = [
         'image/jpeg',
         'image/png',
-        'image/gif',
-        'application/pdf',
     ];
 
-    private const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    private const MAX_FILE_SIZE = 50 * 1024; // 50KB
 
     /**
      * Upload and attach a file to a model.
@@ -53,11 +51,11 @@ class AttachmentService
     private function validateFile(UploadedFile $file): void
     {
         if (!in_array($file->getMimeType(), self::ALLOWED_MIME_TYPES)) {
-            throw new \Exception('File type not allowed. Allowed types: JPG, PNG, GIF, PDF');
+            throw new \Exception('File type not allowed. Please upload PNG or JPEG images only.');
         }
 
         if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \Exception('File size exceeds maximum allowed size of 10MB');
+            throw new \Exception('File size exceeds maximum allowed size of 50KB. Please use a smaller image.');
         }
     }
 
