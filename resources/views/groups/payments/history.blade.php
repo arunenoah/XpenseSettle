@@ -40,11 +40,22 @@
                             @php
                                 $isOwed = $item['net_amount'] > 0;
                                 $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
+                                // Show row if user owes money OR if there's an advance involved
+                                $shouldShow = $isOwed || $item['advance'] > 0;
                             @endphp
+                            @if($shouldShow)
                             <tr class="hover:bg-gray-50 transition-all">
                                 <!-- Expense Name -->
                                 <td class="px-4 sm:px-6 py-4">
-                                    <p class="font-semibold text-gray-900">Settlement</p>
+                                    <div class="flex flex-col gap-1">
+                                        @if(count($item['expenses']) > 0)
+                                            @foreach($item['expenses'] as $expense)
+                                                <p class="font-semibold text-gray-900 text-sm">{{ $expense['title'] }}</p>
+                                            @endforeach
+                                        @else
+                                            <p class="font-semibold text-gray-900">Settlement</p>
+                                        @endif
+                                    </div>
                                 </td>
 
                                 <!-- Bill by (Person Name) -->
@@ -111,6 +122,7 @@
                                     <span class="text-xs text-gray-500">if any</span>
                                 </td>
                             </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>
