@@ -105,7 +105,7 @@
                                                     <div class="bg-white rounded-lg p-3 border-2 border-blue-200">
                                                         <div class="flex items-start gap-2">
                                                             @if(str_contains($attachment->mime_type, 'image'))
-                                                                <img src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}" alt="Attachment" class="w-20 h-20 object-cover rounded">
+                                                                <img src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}" alt="Attachment" class="w-20 h-20 object-cover rounded cursor-pointer hover:opacity-75 transition-opacity" onclick="openImageModal('{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}', '{{ addslashes($attachment->file_name) }}')">
                                                             @else
                                                                 <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
                                                                     <span class="text-2xl">📄</span>
@@ -116,7 +116,7 @@
                                                                 <p class="text-xs text-gray-500">{{ $attachment->file_size_kb }} KB</p>
                                                                 <p class="text-xs text-gray-500">{{ $attachment->created_at->format('M d, Y') }}</p>
                                                                 <a href="{{ route('attachments.download', ['attachment' => $attachment->id]) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 inline-block">
-                                                                    View File →
+                                                                    Download →
                                                                 </a>
                                                             </div>
                                                         </div>
@@ -158,5 +158,46 @@ function toggleAttachments(paymentId) {
         row.classList.add('hidden');
     }
 }
+
+function openImageModal(imageUrl, imageName) {
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const imageName2 = document.getElementById('imageName');
+
+    modalImage.src = imageUrl;
+    imageName2.textContent = imageName;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+// Close modal when clicking outside the image
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('imageModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeImageModal();
+            }
+        });
+    }
+});
 </script>
+
+<!-- Image Modal -->
+<div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onclick="closeImageModal()">
+    <div class="relative max-w-4xl w-full mx-4" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-4xl font-bold">✕</button>
+        <img id="modalImage" src="" alt="Attachment" class="w-full h-auto rounded-lg">
+        <div class="mt-4 text-center">
+            <p id="imageName" class="text-white font-semibold text-sm truncate"></p>
+        </div>
+    </div>
+</div>
+
 @endsection
