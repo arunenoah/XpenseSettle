@@ -159,6 +159,10 @@
                         $emoji = $isOwed ? '😬' : '🤑';
                     @endphp
                     <div class="p-4 bg-gradient-to-r {{ $bgColor }} border {{ $borderColor }} rounded-lg">
+                        @php
+                            // Calculate final amount after advance
+                            $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
+                        @endphp
                         <div class="flex items-center justify-between gap-3">
                             <div class="flex items-center gap-3 flex-1">
                                 <span class="text-2xl">{{ $emoji }}</span>
@@ -167,18 +171,29 @@
                                     <p class="text-sm {{ $textColor }} font-semibold">{{ $label }}</p>
                                 </div>
                             </div>
-                            <p class="font-black text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($item['amount'], 2) }}</p>
+                            <p class="font-black text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($finalAmount, 2) }}</p>
                         </div>
 
                         <!-- Show advance details if applicable -->
-                        @if($isOwed && $item['advance'] > 0)
+                        @if($item['advance'] > 0)
                             <div class="mt-2 pt-2 border-t border-current border-opacity-20">
-                                <p class="text-xs {{ $textColor }} font-semibold">
-                                    💰 Advance Paid: -${{ number_format($item['advance'], 2) }}
-                                </p>
-                                <p class="text-xs text-gray-600 mt-1">
-                                    After advance, you owe: <span class="font-bold {{ $textColor }}">${{ number_format($item['amount'] - $item['advance'], 2) }}</span>
-                                </p>
+                                @if($isOwed)
+                                    <!-- User owes this person - advance reduces amount owed -->
+                                    <p class="text-xs {{ $textColor }} font-semibold">
+                                        💰 Advance Paid: -${{ number_format($item['advance'], 2) }}
+                                    </p>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        Original amount: <span class="font-bold">${{ number_format($item['amount'], 2) }}</span>
+                                    </p>
+                                @else
+                                    <!-- Person owes user - advance was sent to them -->
+                                    <p class="text-xs {{ $textColor }} font-semibold">
+                                        💰 Advance Sent: +${{ number_format($item['advance'], 2) }}
+                                    </p>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        (After deducting what they owe you from advance sent)
+                                    </p>
+                                @endif
                             </div>
                         @endif
 
