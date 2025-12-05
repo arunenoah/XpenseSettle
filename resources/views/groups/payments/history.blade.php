@@ -69,68 +69,69 @@
     </div>
 
     <!-- Settlement Breakdown -->
-    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div class="px-4 sm:px-6 py-6 border-b-2 border-gray-200">
-            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <span class="text-3xl">💳</span>
-                <span>Who Owes What</span>
-            </h2>
-        </div>
+    @if($settlement->count() > 0)
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-4 sm:px-6 py-6 border-b-2 border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <span class="text-3xl">💳</span>
+                    <span>Who Owes What</span>
+                </h2>
+            </div>
 
-        <div class="divide-y divide-gray-200">
-            @foreach($settlement as $item)
-                @php
-                    $isOwed = $item['net_amount'] > 0;
-                    $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
-                @endphp
-                <div class="p-6 hover:bg-gray-50 transition-all">
-                    <div class="flex items-center justify-between gap-4 flex-wrap">
-                        <!-- Person Info -->
-                        <div class="flex items-center gap-3">
-                            <div class="w-12 h-12 rounded-full {{ $isOwed ? 'bg-gradient-to-br from-red-400 to-pink-400' : 'bg-gradient-to-br from-green-400 to-emerald-400' }} flex items-center justify-center flex-shrink-0">
-                                <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
-                            </div>
-                            <div>
-                                <p class="font-bold text-gray-900 text-lg">{{ $item['user']->name }}</p>
-                                <p class="text-sm text-gray-600">
-                                    @if($isOwed)
-                                        You owe them
-                                    @else
-                                        They owe you
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Amount -->
-                        <div class="text-right">
-                            <!-- Final Amount -->
-                            <p class="text-3xl font-black {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
-                                ${{ number_format($finalAmount, 2) }}
-                            </p>
-
-                            <!-- Advance Details -->
-                            @if($item['advance'] > 0)
-                                <div class="mt-2 space-y-1">
-                                    <p class="text-xs {{ $isOwed ? 'text-red-600' : 'text-green-600' }} font-semibold">
-                                        💰 Advance: -${{ number_format($item['advance'], 2) }}
-                                    </p>
-                                    <p class="text-xs text-gray-600">
-                                        Original: ${{ number_format($item['amount'], 2) }}
+            <div class="divide-y divide-gray-200">
+                @foreach($settlement as $item)
+                    @php
+                        $isOwed = $item['net_amount'] > 0;
+                        $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
+                    @endphp
+                    <div class="p-6 hover:bg-gray-50 transition-all">
+                        <div class="flex items-center justify-between gap-4 flex-wrap">
+                            <!-- Person Info -->
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-full {{ $isOwed ? 'bg-gradient-to-br from-red-400 to-pink-400' : 'bg-gradient-to-br from-green-400 to-emerald-400' }} flex items-center justify-center flex-shrink-0">
+                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-900 text-lg">{{ $item['user']->name }}</p>
+                                    <p class="text-sm text-gray-600">
+                                        @if($isOwed)
+                                            You owe them
+                                        @else
+                                            They owe you
+                                        @endif
                                     </p>
                                 </div>
-                            @endif
+                            </div>
 
-                            <!-- Status Badge -->
-                            <span class="inline-block mt-2 px-3 py-1 {{ $isOwed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} text-xs font-bold rounded-full">
-                                {{ $isOwed ? '😬 You Owe' : '🤑 They Owe' }}
-                            </span>
+                            <!-- Amount -->
+                            <div class="text-right">
+                                <!-- Final Amount -->
+                                <p class="text-3xl font-black {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
+                                    ${{ number_format($finalAmount, 2) }}
+                                </p>
+
+                                <!-- Advance Details -->
+                                @if($item['advance'] > 0)
+                                    <div class="mt-2 space-y-1">
+                                        <p class="text-xs {{ $isOwed ? 'text-red-600' : 'text-green-600' }} font-semibold">
+                                            💰 Advance: -${{ number_format($item['advance'], 2) }}
+                                        </p>
+                                        <p class="text-xs text-gray-600">
+                                            Original: ${{ number_format($item['amount'], 2) }}
+                                        </p>
+                                    </div>
+                                @endif
+
+                                <!-- Status Badge -->
+                                <span class="inline-block mt-2 px-3 py-1 {{ $isOwed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} text-xs font-bold rounded-full">
+                                    {{ $isOwed ? '😬 You Owe' : '🤑 They Owe' }}
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         </div>
-    </div>
     @else
         <!-- No Settlement -->
         <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
