@@ -19,6 +19,10 @@
             <span class="text-xl">💸</span>
             <span>Add Expense</span>
         </a>
+        <a href="{{ route('groups.payments.history', $group) }}" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all text-base">
+            <span class="text-xl">📋</span>
+            <span>Payment History</span>
+        </a>
         @if($group->isAdmin(auth()->user()))
             <a href="{{ route('groups.edit', $group) }}" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all text-base">
                 <span class="text-xl">✏️</span>
