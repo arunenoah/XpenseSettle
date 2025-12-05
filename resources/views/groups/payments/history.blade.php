@@ -1,0 +1,162 @@
+@extends('layouts.app')
+
+@section('title', 'Payment History - ' . $group->name)
+
+@section('content')
+<div class="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <a href="{{ route('groups.dashboard', $group) }}" class="text-blue-600 hover:text-blue-700 font-semibold mb-2 inline-block">
+                ← Back to Group
+            </a>
+            <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Payment History
+            </h1>
+            <p class="mt-2 text-gray-600">{{ $group->name }}</p>
+        </div>
+    </div>
+
+    @if($payments->count() > 0)
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Person</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Date</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach($payments as $payment)
+                            <tr class="hover:bg-gray-50 transition-all">
+                                <!-- Expense Title -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <p class="font-semibold text-gray-900">{{ $payment->split->expense->title }}</p>
+                                        <p class="text-xs text-gray-500">ID: {{ $payment->id }}</p>
+                                    </div>
+                                </td>
+
+                                <!-- Person -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($payment->split->user->name, 0, 1)) }}</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">{{ $payment->split->user->name }}</span>
+                                    </div>
+                                </td>
+
+                                <!-- Amount -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <p class="font-bold text-gray-900">${{ number_format($payment->split->share_amount, 2) }}</p>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($payment->status === 'pending')
+                                        <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">⏳ Pending</span>
+                                    @elseif($payment->status === 'paid')
+                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">✓ Paid</span>
+                                    @elseif($payment->status === 'approved')
+                                        <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">✓ Approved</span>
+                                    @elseif($payment->status === 'rejected')
+                                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">✗ Rejected</span>
+                                    @endif
+                                </td>
+
+                                <!-- Date -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex flex-col">
+                                        @if($payment->paid_date)
+                                            <p class="text-sm text-gray-900 font-medium">{{ $payment->paid_date->format('M d, Y') }}</p>
+                                        @else
+                                            <p class="text-sm text-gray-500 italic">—</p>
+                                        @endif
+                                        <p class="text-xs text-gray-500">{{ $payment->created_at->diffForHumans() }}</p>
+                                    </div>
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($payment->attachments->count() > 0)
+                                        <button onclick="toggleAttachments({{ $payment->id }})" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                            📎 {{ $payment->attachments->count() }}
+                                        </button>
+                                    @else
+                                        <span class="text-xs text-gray-500">No attachments</span>
+                                    @endif
+                                </td>
+                            </tr>
+
+                            <!-- Attachments Row -->
+                            @if($payment->attachments->count() > 0)
+                                <tr id="attachments-{{ $payment->id }}" class="hidden bg-blue-50">
+                                    <td colspan="6" class="px-4 sm:px-6 py-4">
+                                        <div class="space-y-2">
+                                            <h4 class="font-bold text-gray-900 mb-3">📎 Attachments:</h4>
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                @foreach($payment->attachments as $attachment)
+                                                    <div class="bg-white rounded-lg p-3 border-2 border-blue-200">
+                                                        <div class="flex items-start gap-2">
+                                                            @if(str_contains($attachment->mime_type, 'image'))
+                                                                <img src="{{ asset('storage/' . $attachment->path) }}" alt="Attachment" class="w-20 h-20 object-cover rounded">
+                                                            @else
+                                                                <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
+                                                                    <span class="text-2xl">📄</span>
+                                                                </div>
+                                                            @endif
+                                                            <div class="flex-1">
+                                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $attachment->file_name }}</p>
+                                                                <p class="text-xs text-gray-500">{{ $attachment->file_size_kb }} KB</p>
+                                                                <p class="text-xs text-gray-500">{{ $attachment->created_at->format('M d, Y') }}</p>
+                                                                <a href="{{ asset('storage/' . $attachment->path) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 inline-block">
+                                                                    View File →
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-center">
+            {{ $payments->links() }}
+        </div>
+    @else
+        <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-lg p-8 text-center">
+            <p class="text-4xl mb-4">📭</p>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">No Payments Yet</h2>
+            <p class="text-gray-600">No payments have been marked as paid in this group yet.</p>
+            <a href="{{ route('groups.dashboard', $group) }}" class="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
+                Back to Dashboard
+            </a>
+        </div>
+    @endif
+</div>
+
+<script>
+function toggleAttachments(paymentId) {
+    const row = document.getElementById('attachments-' + paymentId);
+    if (row.classList.contains('hidden')) {
+        row.classList.remove('hidden');
+    } else {
+        row.classList.add('hidden');
+    }
+}
+</script>
+@endsection

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Models\ExpenseSplit;
 use App\Models\Payment;
+use App\Models\Group;
 use App\Services\AttachmentService;
 use App\Services\PaymentService;
 use App\Services\NotificationService;
@@ -24,6 +25,33 @@ class PaymentController extends Controller
         $this->paymentService = $paymentService;
         $this->attachmentService = $attachmentService;
         $this->notificationService = $notificationService;
+    }
+
+    /**
+     * Display payment history for a group.
+     */
+    public function groupPaymentHistory(Group $group)
+    {
+        // Check if user is member of group
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        // Get all payments for this group
+        $payments = Payment::whereHas('split.expense', function ($q) use ($group) {
+            $q->where('group_id', $group->id);
+        })
+        ->with([
+            'split.user',
+            'split.expense.payer',
+            'split.expense.group',
+            'paidBy',
+            'attachments'
+        ])
+        ->latest()
+        ->paginate(20);
+
+        return view('groups.payments.history', compact('group', 'payments'));
     }
 
     /**
