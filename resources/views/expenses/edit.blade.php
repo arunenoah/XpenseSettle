@@ -8,7 +8,7 @@
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Edit Expense</h1>
         <p class="text-gray-600 mb-6">Update expense details for <strong>{{ $group->name }}</strong></p>
 
-        <form action="{{ route('groups.expenses.update', ['group' => $group, 'expense' => $expense]) }}" method="POST" class="space-y-6">
+        <form action="{{ route('groups.expenses.update', ['group' => $group, 'expense' => $expense]) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PUT')
 
@@ -154,6 +154,60 @@
                 </div>
             @enderror
 
+            <!-- Current Attachments -->
+            @if($expense->attachments->count() > 0)
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-3">Current Attachments</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        @foreach($expense->attachments as $attachment)
+                            <div class="border-2 border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                                <div class="flex items-center gap-2 flex-1 min-w-0">
+                                    <span>📎</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-900 truncate">{{ $attachment->file_name }}</p>
+                                        <p class="text-xs text-gray-500">{{ $attachment->file_size_kb }} KB</p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('attachments.download', ['attachment' => $attachment->id]) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold ml-2 flex-shrink-0">
+                                    View
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            <!-- Add More Attachments -->
+            <div>
+                <label for="attachments" class="block text-sm font-semibold text-gray-700 mb-2">Add More Attachments (Optional)</label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer" id="dropzone">
+                    <input
+                        type="file"
+                        id="attachments"
+                        name="attachments[]"
+                        multiple
+                        accept="image/png,image/jpeg,application/pdf"
+                        class="hidden"
+                        onchange="updateFileList()"
+                    />
+                    <div class="space-y-2">
+                        <p class="text-2xl">📎</p>
+                        <p class="text-sm font-semibold text-gray-700">Click to upload or drag and drop</p>
+                        <p class="text-xs text-gray-500">PNG, JPEG, or PDF • Max 5MB per file</p>
+                    </div>
+                </div>
+
+                <!-- File List -->
+                <div id="file-list" class="mt-4 space-y-2 hidden">
+                    <p class="text-sm font-semibold text-gray-700">New Files:</p>
+                    <ul id="files" class="space-y-2"></ul>
+                </div>
+
+                @error('attachments')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Expense Info -->
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <p class="text-sm text-gray-700"><strong>Created by:</strong> {{ $expense->payer->name }}</p>
@@ -243,6 +297,68 @@ function updateTotalDisplay() {
 // Update total display on amount change
 document.getElementById('amount').addEventListener('change', updateTotalDisplay);
 document.getElementById('amount').addEventListener('input', updateTotalDisplay);
+
+// File upload handling
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('attachments');
+
+dropzone.addEventListener('click', () => fileInput.click());
+
+dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('border-blue-500', 'bg-blue-50');
+});
+
+dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+});
+
+dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+    fileInput.files = e.dataTransfer.files;
+    updateFileList();
+});
+
+function updateFileList() {
+    const files = fileInput.files;
+    const fileList = document.getElementById('file-list');
+    const fileListUl = document.getElementById('files');
+
+    fileListUl.innerHTML = '';
+
+    if (files.length > 0) {
+        fileList.classList.remove('hidden');
+        Array.from(files).forEach((file, index) => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200';
+            li.innerHTML = `
+                <span class="flex items-center gap-2 text-sm">
+                    <span>${file.name.length > 30 ? file.name.substring(0, 27) + '...' : file.name}</span>
+                    <span class="text-xs text-gray-500">(${(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                </span>
+                <button type="button" onclick="removeFile(${index})" class="text-red-600 hover:text-red-700 font-bold">✕</button>
+            `;
+            fileListUl.appendChild(li);
+        });
+    } else {
+        fileList.classList.add('hidden');
+    }
+}
+
+function removeFile(index) {
+    const dt = new DataTransfer();
+    const files = fileInput.files;
+
+    for (let i = 0; i < files.length; i++) {
+        if (i !== index) {
+            dt.items.add(files[i]);
+        }
+    }
+
+    fileInput.files = dt.files;
+    updateFileList();
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', toggleCustomSplits);
