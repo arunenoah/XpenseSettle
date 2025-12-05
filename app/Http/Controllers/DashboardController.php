@@ -71,20 +71,17 @@ class DashboardController extends Controller
             $totalOwed += $stats['pending_amount'];
             $totalPaid += $stats['paid_amount'];
 
-            // Add itemwise expense amounts
+            // Add itemwise expense amounts (only count towards payer's total paid)
             $itemwiseExpenses = \App\Models\Expense::where('group_id', $group->id)
                 ->where('split_type', 'itemwise')
                 ->get();
 
             foreach ($itemwiseExpenses as $expense) {
-                if ($user->id !== $expense->payer_id) {
-                    // User is not the payer - they owe this amount
-                    $totalOwed += $expense->amount;
-                } else {
-                    // User is the payer - they should get this back
-                    // Count as potentially paid if split-up among members
+                if ($user->id === $expense->payer_id) {
+                    // User is the payer - count full amount as paid
                     $totalPaid += $expense->amount;
                 }
+                // If user is NOT the payer, itemwise expenses don't affect settlement
             }
 
             $pendingCount += $pendingPayments
@@ -297,73 +294,47 @@ class DashboardController extends Controller
         $netBalances = [];  // User ID => [user_obj, net_amount, status]
 
         foreach ($group->expenses as $expense) {
+            // Skip itemwise expenses - they don't create splits and don't affect settlement
+            if ($expense->split_type === 'itemwise') {
+                continue;
+            }
+
             // Skip expenses where user is both payer and sole participant (self-payment)
             if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $user->id) {
                 continue;
             }
 
-            // Handle itemwise expenses (no splits, full amount)
-            if ($expense->split_type === 'itemwise') {
-                if ($user->id !== $expense->payer_id) {
-                    // User is not the payer - they owe the full amount to the payer
-                    $payerId = $expense->payer_id;
-                    if (!isset($netBalances[$payerId])) {
-                        $netBalances[$payerId] = [
-                            'user' => $expense->payer,
-                            'net_amount' => 0,
-                            'status' => 'pending',
-                        ];
-                    }
-                    $netBalances[$payerId]['net_amount'] += $expense->amount;
-                } else {
-                    // User is the payer - they are owed by each member
-                    foreach ($group->members as $member) {
-                        if ($member->id !== $user->id) {
-                            $memberId = $member->id;
-                            if (!isset($netBalances[$memberId])) {
-                                $netBalances[$memberId] = [
-                                    'user' => $member,
-                                    'net_amount' => 0,
-                                    'status' => 'pending',
-                                ];
-                            }
-                            $netBalances[$memberId]['net_amount'] -= $expense->amount;
-                        }
-                    }
-                }
-            } else {
-                // Handle regular splits (equal, custom)
-                foreach ($expense->splits as $split) {
-                    if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
-                        // User is a participant and is not the payer
-                        $payment = $split->payment;
+            // Handle regular splits (equal, custom)
+            foreach ($expense->splits as $split) {
+                if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
+                    // User is a participant and is not the payer
+                    $payment = $split->payment;
 
-                        if (!$payment || $payment->status !== 'paid') {
-                            $payerId = $expense->payer_id;
-                            if (!isset($netBalances[$payerId])) {
-                                $netBalances[$payerId] = [
-                                    'user' => $expense->payer,
-                                    'net_amount' => 0,
-                                    'status' => 'pending',
-                                ];
-                            }
-                            $netBalances[$payerId]['net_amount'] += $split->share_amount;
+                    if (!$payment || $payment->status !== 'paid') {
+                        $payerId = $expense->payer_id;
+                        if (!isset($netBalances[$payerId])) {
+                            $netBalances[$payerId] = [
+                                'user' => $expense->payer,
+                                'net_amount' => 0,
+                                'status' => 'pending',
+                            ];
                         }
-                    } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
-                        // User is the payer, someone else is a participant
-                        $payment = $split->payment;
+                        $netBalances[$payerId]['net_amount'] += $split->share_amount;
+                    }
+                } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
+                    // User is the payer, someone else is a participant
+                    $payment = $split->payment;
 
-                        if (!$payment || $payment->status !== 'paid') {
-                            $memberId = $split->user_id;
-                            if (!isset($netBalances[$memberId])) {
-                                $netBalances[$memberId] = [
-                                    'user' => $split->user,
-                                    'net_amount' => 0,
-                                    'status' => 'pending',
-                                ];
-                            }
-                            $netBalances[$memberId]['net_amount'] -= $split->share_amount;
+                    if (!$payment || $payment->status !== 'paid') {
+                        $memberId = $split->user_id;
+                        if (!isset($netBalances[$memberId])) {
+                            $netBalances[$memberId] = [
+                                'user' => $split->user,
+                                'net_amount' => 0,
+                                'status' => 'pending',
+                            ];
                         }
+                        $netBalances[$memberId]['net_amount'] -= $split->share_amount;
                     }
                 }
             }
