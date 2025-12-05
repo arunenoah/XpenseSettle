@@ -138,17 +138,17 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'paid_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
-            'proof_of_payment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
+            'receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf,gif|max:10240',
         ]);
 
         try {
             // Create or update payment
             $payment = $this->paymentService->markAsPaid($split, $user, $validated);
 
-            // Handle proof of payment attachment
-            if ($request->hasFile('proof_of_payment')) {
+            // Handle receipt attachment
+            if ($request->hasFile('receipt')) {
                 $this->attachmentService->uploadAttachment(
-                    $request->file('proof_of_payment'),
+                    $request->file('receipt'),
                     $payment,
                     'payments'
                 );
