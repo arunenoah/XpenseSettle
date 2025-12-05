@@ -127,34 +127,38 @@
     <!-- Attachments Section -->
     @if($expense->attachments->count() > 0)
         <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8 mb-6">
-            <h2 class="text-xl font-bold text-gray-900 mb-4">Attachments</h2>
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>📎</span>
+                <span>Attachments ({{ $expense->attachments->count() }})</span>
+            </h2>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 @foreach($expense->attachments as $attachment)
-                    <div class="border border-gray-200 rounded-lg p-4">
-                        <div class="flex items-start gap-3">
-                            <div class="flex-shrink-0">
-                                @if(str_starts_with($attachment->mime_type, 'image/'))
+                    <div class="border-2 border-blue-200 rounded-lg p-4 hover:shadow-md transition-all">
+                        <div class="flex flex-col">
+                            <div class="flex-shrink-0 mb-3">
+                                @if(str_contains($attachment->mime_type, 'image'))
                                     <img
-                                        src="{{ asset('storage/' . $attachment->file_path) }}"
-                                        alt="{{ $attachment->original_name }}"
-                                        class="h-16 w-16 object-cover rounded"
+                                        src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}"
+                                        alt="{{ $attachment->file_name }}"
+                                        class="h-24 w-full object-cover rounded"
                                     />
                                 @else
-                                    <div class="h-16 w-16 bg-gray-100 rounded flex items-center justify-center">
-                                        <span class="text-2xl">📄</span>
+                                    <div class="h-24 w-full bg-gray-100 rounded flex items-center justify-center">
+                                        <span class="text-4xl">📄</span>
                                     </div>
                                 @endif
                             </div>
                             <div class="flex-1">
-                                <p class="font-semibold text-gray-900 text-sm break-words">{{ $attachment->original_name }}</p>
+                                <p class="font-semibold text-gray-900 text-sm break-words truncate">{{ $attachment->file_name }}</p>
                                 <p class="text-xs text-gray-500 mt-1">{{ $attachment->file_size_kb }} KB</p>
+                                <p class="text-xs text-gray-500">{{ $attachment->created_at->format('M d, Y') }}</p>
                                 <a
-                                    href="{{ asset('storage/' . $attachment->file_path) }}"
-                                    download
-                                    class="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold hover:bg-blue-200"
+                                    href="{{ route('attachments.download', ['attachment' => $attachment->id]) }}"
+                                    target="_blank"
+                                    class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-colors"
                                 >
-                                    Download
+                                    Download →
                                 </a>
                             </div>
                         </div>
