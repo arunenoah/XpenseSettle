@@ -59,7 +59,140 @@ class PaymentController extends Controller
         ->latest()
         ->paginate(20);
 
-        return view('groups.payments.history', compact('group', 'payments'));
+        // Get settlement for this user in this group
+        $group->load('expenses.splits.user', 'expenses.payer', 'members');
+        $settlement = $this->calculateSettlement($group, $user);
+
+        return view('groups.payments.history', compact('group', 'payments', 'settlement'));
+    }
+
+    /**
+     * Calculate settlement for a user in a group.
+     * Returns net balance with each person (positive = user owes, negative = person owes user).
+     */
+    private function calculateSettlement(Group $group, $user)
+    {
+        // Maps to track amounts owed between user and each other person
+        $netBalances = [];  // User ID => [user_obj, net_amount, status]
+
+        foreach ($group->expenses as $expense) {
+            // Skip itemwise expenses - they don't create splits and don't affect settlement
+            if ($expense->split_type === 'itemwise') {
+                continue;
+            }
+
+            // Skip expenses where user is both payer and sole participant (self-payment)
+            if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $user->id) {
+                continue;
+            }
+
+            // Handle regular splits (equal, custom)
+            foreach ($expense->splits as $split) {
+                if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
+                    // User is a participant and is not the payer
+                    $payment = $split->payment;
+
+                    if (!$payment || $payment->status !== 'paid') {
+                        $payerId = $expense->payer_id;
+                        if (!isset($netBalances[$payerId])) {
+                            $netBalances[$payerId] = [
+                                'user' => $expense->payer,
+                                'net_amount' => 0,
+                                'status' => 'pending',
+                            ];
+                        }
+                        $netBalances[$payerId]['net_amount'] += $split->share_amount;
+                    }
+                } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
+                    // User is the payer, someone else is a participant
+                    $payment = $split->payment;
+
+                    if (!$payment || $payment->status !== 'paid') {
+                        $memberId = $split->user_id;
+                        if (!isset($netBalances[$memberId])) {
+                            $netBalances[$memberId] = [
+                                'user' => $split->user,
+                                'net_amount' => 0,
+                                'status' => 'pending',
+                            ];
+                        }
+                        $netBalances[$memberId]['net_amount'] -= $split->share_amount;
+                    }
+                }
+            }
+        }
+
+        // Account for advances
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
+            ->get();
+
+        foreach ($advances as $advance) {
+            // Check if user is a sender of this advance (using loaded collection)
+            if ($advance->senders->contains('id', $user->id)) {
+                // User sent this advance to someone
+                $recipientId = $advance->sent_to_user_id;
+                $advanceAmount = $advance->amount_per_person;
+
+                if (!isset($netBalances[$recipientId])) {
+                    $netBalances[$recipientId] = [
+                        'user' => $advance->sentTo,
+                        'net_amount' => 0,
+                        'status' => 'pending',
+                    ];
+                }
+
+                // Advance reduces what the user owes (positive amount = owes)
+                $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+            }
+
+            // Check if user received an advance from someone
+            if ($advance->sent_to_user_id === $user->id) {
+                // Someone sent this advance to the user
+                foreach ($advance->senders as $sender) {
+                    $senderId = $sender->id;
+                    $advanceAmount = $advance->amount_per_person;
+
+                    if (!isset($netBalances[$senderId])) {
+                        $netBalances[$senderId] = [
+                            'user' => $sender,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                        ];
+                    }
+
+                    // Advance reduces what they owe to user (negative amount = owed)
+                    $netBalances[$senderId]['net_amount'] += $advanceAmount;
+                }
+            }
+        }
+
+        // Convert to settlement array, filtering out zero balances
+        // Positive net_amount = user owes this person
+        // Negative net_amount = this person owes user (we show as positive amount they owe)
+        $settlements = [];
+        foreach ($netBalances as $personId => $data) {
+            if ($data['net_amount'] != 0) {
+                // Calculate advance amount for this person
+                $advanceAmount = 0;
+                foreach ($advances as $advance) {
+                    if ($advance->senders->contains('id', $user->id) && $advance->sent_to_user_id === $personId) {
+                        $advanceAmount = $advance->amount_per_person;
+                        break;
+                    }
+                }
+
+                $settlements[] = [
+                    'user' => $data['user'],
+                    'amount' => abs($data['net_amount']),
+                    'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
+                    'status' => $data['status'],
+                    'advance' => $advanceAmount,  // Amount of advance sent to this person
+                ];
+            }
+        }
+
+        return $settlements;
     }
 
     /**
