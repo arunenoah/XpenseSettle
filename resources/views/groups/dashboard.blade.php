@@ -169,6 +169,19 @@
                             </div>
                             <p class="font-black text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($item['amount'], 2) }}</p>
                         </div>
+
+                        <!-- Show advance details if applicable -->
+                        @if($isOwed && $item['advance'] > 0)
+                            <div class="mt-2 pt-2 border-t border-current border-opacity-20">
+                                <p class="text-xs {{ $textColor }} font-semibold">
+                                    💰 Advance Paid: -${{ number_format($item['advance'], 2) }}
+                                </p>
+                                <p class="text-xs text-gray-600 mt-1">
+                                    After advance, you owe: <span class="font-bold {{ $textColor }}">${{ number_format($item['amount'] - $item['advance'], 2) }}</span>
+                                </p>
+                            </div>
+                        @endif
+
                         <div class="mt-3 flex items-center justify-between">
                             @if($item['status'] === 'pending')
                                 <span class="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>

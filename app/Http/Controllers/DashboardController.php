@@ -207,13 +207,17 @@ class DashboardController extends Controller
         // Calculate advance amounts for each member
         $memberAdvances = $this->calculateMemberAdvances($group);
 
-        // Get payment history for this group, excluding self-payments (where user owes themselves)
+        // Get payment history for this group - only show payments relevant to current user
         $payments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
             $q->where('group_id', $group->id);
         })
-            ->whereHas('split', function ($q) {
+            ->whereHas('split', function ($q) use ($user) {
                 // Exclude payments where the split user is the same as the expense payer (self-payment)
-                $q->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)');
+                $q->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)')
+                // Filter to only show payments relevant to current user:
+                // 1. Payments where user is the one who owes (split.user_id = current user)
+                // 2. Payments where user is the payer (expense.payer_id = current user)
+                ->whereRaw('`expense_splits`.`user_id` = ' . $user->id . ' OR (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`) = ' . $user->id);
             })
             ->with([
                 'split.user',
@@ -391,11 +395,21 @@ class DashboardController extends Controller
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
             if ($data['net_amount'] != 0) {
+                // Calculate advance amount for this person
+                $advanceAmount = 0;
+                foreach ($advances as $advance) {
+                    if ($advance->senders->contains('id', $user->id) && $advance->sent_to_user_id === $personId) {
+                        $advanceAmount = $advance->amount_per_person;
+                        break;
+                    }
+                }
+
                 $settlements[] = [
                     'user' => $data['user'],
                     'amount' => abs($data['net_amount']),
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
+                    'advance' => $advanceAmount,  // Amount of advance sent to this person
                 ];
             }
         }
