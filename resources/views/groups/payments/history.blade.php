@@ -27,6 +27,7 @@
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Person</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance Paid</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Date</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Actions</th>
                         </tr>
@@ -70,6 +71,33 @@
                                     @endif
                                 </td>
 
+                                <!-- Advance Paid -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @php
+                                        $relatedAdvances = \App\Models\Advance::where('group_id', $group->id)
+                                            ->where('sent_to_user_id', $payment->split->user->id)
+                                            ->with('senders')
+                                            ->latest()
+                                            ->get();
+                                    @endphp
+                                    @if($relatedAdvances->count() > 0)
+                                        <div class="space-y-2">
+                                            @foreach($relatedAdvances as $advance)
+                                                <div class="flex items-center gap-1">
+                                                    <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold whitespace-nowrap">
+                                                        💰 ${{ number_format($advance->amount_per_person, 2) }}
+                                                    </span>
+                                                    <span class="text-xs text-gray-600 truncate">
+                                                        by {{ $advance->senders->pluck('name')->join(', ') }}
+                                                    </span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
                                 <!-- Date -->
                                 <td class="px-4 sm:px-6 py-4">
                                     <div class="flex flex-col">
@@ -97,7 +125,7 @@
                             <!-- Attachments Row -->
                             @if($payment->attachments->count() > 0)
                                 <tr id="attachments-{{ $payment->id }}" class="hidden bg-blue-50">
-                                    <td colspan="6" class="px-4 sm:px-6 py-4">
+                                    <td colspan="7" class="px-4 sm:px-6 py-4">
                                         <div class="space-y-2">
                                             <h4 class="font-bold text-gray-900 mb-3">📎 Attachments:</h4>
                                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
