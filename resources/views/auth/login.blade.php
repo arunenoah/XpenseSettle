@@ -17,7 +17,6 @@
 
             <!-- Card -->
             <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Sign In</h2>
 
                 @if($errors->any())
                     <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -28,37 +27,23 @@
                 <form action="{{ route('login.store') }}" method="POST" class="space-y-6">
                     @csrf
 
-                    <!-- Email -->
+                    <!-- PIN -->
                     <div>
-                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-                        <input
-                            type="email"
-                            id="email"
-                            name="email"
-                            value="{{ old('email') }}"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('email') ? 'border-red-500' : '' }}"
-                            placeholder="you@example.com"
-                            required
-                            autofocus
-                        />
-                        @error('email')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Password -->
-                    <div>
-                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                        <label for="pin" class="block text-sm font-semibold text-gray-700 mb-2 text-center">Enter Your 6-Digit PIN</label>
                         <input
                             type="password"
-                            id="password"
-                            name="password"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('password') ? 'border-red-500' : '' }}"
-                            placeholder="••••••••"
+                            id="pin"
+                            name="pin"
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                            class="w-full px-4 py-6 border-2 border-gray-300 rounded-lg text-center tracking-widest text-3xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 {{ $errors->has('pin') ? 'border-red-500' : '' }}"
+                            placeholder="••••••"
                             required
+                            autofocus
+                            inputmode="numeric"
                         />
-                        @error('password')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @error('pin')
+                            <p class="mt-2 text-sm text-red-600 text-center">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -73,34 +58,14 @@
                         <label for="remember" class="ml-2 block text-sm text-gray-700">Remember me</label>
                     </div>
 
-                    <!-- Sign In Button -->
+                    <!-- Enter Button -->
                     <button
                         type="submit"
-                        class="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                        class="w-full py-4 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold text-lg"
                     >
-                        Sign In
+                        Enter
                     </button>
                 </form>
-
-                <!-- Divider -->
-                <div class="mt-6">
-                    <div class="relative">
-                        <div class="absolute inset-0 flex items-center">
-                            <div class="w-full border-t border-gray-200"></div>
-                        </div>
-                        <div class="relative flex justify-center text-sm">
-                            <span class="px-2 bg-white text-gray-500">or</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sign Up Link -->
-                <p class="mt-6 text-center text-sm text-gray-600">
-                    Don't have an account?
-                    <a href="{{ route('register') }}" class="font-semibold text-blue-600 hover:text-blue-700">
-                        Sign up for free
-                    </a>
-                </p>
             </div>
 
             <!-- Footer -->

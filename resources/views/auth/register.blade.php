@@ -100,6 +100,45 @@
                         @enderror
                     </div>
 
+                    <!-- 6-Digit PIN -->
+                    <div>
+                        <label for="pin" class="block text-sm font-semibold text-gray-700 mb-2">6-Digit PIN</label>
+                        <input
+                            type="password"
+                            id="pin"
+                            name="pin"
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-center tracking-widest text-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('pin') ? 'border-red-500' : '' }}"
+                            placeholder="••••••"
+                            required
+                            inputmode="numeric"
+                        />
+                        @error('pin')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500">Create a 6-digit PIN for quick login</p>
+                    </div>
+
+                    <!-- Confirm PIN -->
+                    <div>
+                        <label for="pin_confirmation" class="block text-sm font-semibold text-gray-700 mb-2">Confirm PIN</label>
+                        <input
+                            type="password"
+                            id="pin_confirmation"
+                            name="pin_confirmation"
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-center tracking-widest text-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('pin_confirmation') ? 'border-red-500' : '' }}"
+                            placeholder="••••••"
+                            required
+                            inputmode="numeric"
+                        />
+                        @error('pin_confirmation')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Terms -->
                     <div class="flex items-center">
                         <input

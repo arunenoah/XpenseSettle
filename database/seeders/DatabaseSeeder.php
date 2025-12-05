@@ -49,8 +49,9 @@ class DatabaseSeeder extends Seeder
             $this->command->warn('⚠️  Running in production environment');
         }
 
-        // Users already exist, fetch them
-        $this->command->info('👥 Using existing users...');
+        // Create initial users if they don't exist
+        $this->command->info('👥 Creating/fetching users...');
+        $this->call(CreateInitialUsersSeeder::class);
 
         $arun = User::where('email', 'arun@example.com')->first();
         $velu = User::where('email', 'velu@example.com')->first();
@@ -64,7 +65,7 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        $this->command->info('✅ Found 6 existing users');
+        $this->command->info('✅ All 6 users ready');
 
         // Create groups
         $this->command->info('👥 Creating groups...');
