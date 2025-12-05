@@ -173,6 +173,12 @@ class PaymentController extends Controller
             if ($advance->senders->contains('id', $user->id)) {
                 // User sent this advance to someone
                 $recipientId = $advance->sent_to_user_id;
+
+                // Skip self-advances (user sending to themselves)
+                if ($recipientId === $user->id) {
+                    continue;
+                }
+
                 $advanceAmount = $advance->amount_per_person;
 
                 if (!isset($netBalances[$recipientId])) {
