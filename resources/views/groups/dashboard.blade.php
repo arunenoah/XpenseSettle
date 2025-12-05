@@ -442,7 +442,7 @@
             <div class="mb-4">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Upload Receipt (Optional)</label>
                 <input type="file" name="receipt" accept="image/png,image/jpeg" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500">
-                <p class="text-xs text-gray-500 mt-1">📸 PNG or JPEG only, max 50KB</p>
+                <p class="text-xs text-gray-500 mt-1">📸 PNG or JPEG, max 5MB (auto-compressed to 50KB)</p>
             </div>
 
             <div class="flex gap-3">
