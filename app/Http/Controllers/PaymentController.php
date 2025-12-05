@@ -175,29 +175,27 @@ class PaymentController extends Controller
                 $recipientId = $advance->sent_to_user_id;
 
                 // Skip self-advances (user sending to themselves)
-                if ($recipientId === $user->id) {
-                    continue;
-                }
+                if ($recipientId !== $user->id) {
+                    $advanceAmount = $advance->amount_per_person;
 
-                $advanceAmount = $advance->amount_per_person;
+                    if (!isset($netBalances[$recipientId])) {
+                        $netBalances[$recipientId] = [
+                            'user' => $advance->sentTo,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                            'expenses' => [],
+                        ];
+                    }
 
-                if (!isset($netBalances[$recipientId])) {
-                    $netBalances[$recipientId] = [
-                        'user' => $advance->sentTo,
-                        'net_amount' => 0,
-                        'status' => 'pending',
-                        'expenses' => [],
-                    ];
-                }
-
-                // Advance payment reduces what recipient owes
-                // If net_amount is positive (user owes recipient): subtract to reduce debt
-                // If net_amount is negative (recipient owes user): add to reduce their debt
-                if ($netBalances[$recipientId]['net_amount'] >= 0) {
-                    $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
-                } else {
-                    // Negative amount: adding makes it less negative (reduces what recipient owes)
-                    $netBalances[$recipientId]['net_amount'] += $advanceAmount;
+                    // Advance payment reduces what recipient owes
+                    // If net_amount is positive (user owes recipient): subtract to reduce debt
+                    // If net_amount is negative (recipient owes user): add to reduce their debt
+                    if ($netBalances[$recipientId]['net_amount'] >= 0) {
+                        $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+                    } else {
+                        // Negative amount: adding makes it less negative (reduces what recipient owes)
+                        $netBalances[$recipientId]['net_amount'] += $advanceAmount;
+                    }
                 }
             }
 
