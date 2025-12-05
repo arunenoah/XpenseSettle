@@ -352,25 +352,41 @@ class DashboardController extends Controller
             if ($advance->senders->contains('id', $user->id)) {
                 // User sent this advance to someone
                 $recipientId = $advance->sent_to_user_id;
-                $advanceAmount = $advance->amount_per_person;
 
-                if (!isset($netBalances[$recipientId])) {
-                    $netBalances[$recipientId] = [
-                        'user' => $advance->sentTo,
-                        'net_amount' => 0,
-                        'status' => 'pending',
-                        'expenses' => [],
-                    ];
+                // Skip self-advances (user sending to themselves)
+                if ($recipientId !== $user->id) {
+                    $advanceAmount = $advance->amount_per_person;
+
+                    if (!isset($netBalances[$recipientId])) {
+                        $netBalances[$recipientId] = [
+                            'user' => $advance->sentTo,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                            'expenses' => [],
+                        ];
+                    }
+
+                    // Advance payment reduces what recipient owes
+                    // If net_amount is positive (user owes recipient): subtract to reduce debt
+                    // If net_amount is negative (recipient owes user): add to reduce their debt
+                    if ($netBalances[$recipientId]['net_amount'] >= 0) {
+                        $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+                    } else {
+                        // Negative amount: adding makes it less negative (reduces what recipient owes)
+                        $netBalances[$recipientId]['net_amount'] += $advanceAmount;
+                    }
                 }
-
-                // Advance reduces what the user owes (positive amount = owes)
-                $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
             }
 
             // Check if user received an advance from someone
             if ($advance->sent_to_user_id === $user->id) {
                 // Someone sent this advance to the user
                 foreach ($advance->senders as $sender) {
+                    // Skip if sender is the user themselves
+                    if ($sender->id === $user->id) {
+                        continue;
+                    }
+
                     $senderId = $sender->id;
                     $advanceAmount = $advance->amount_per_person;
 
@@ -383,8 +399,15 @@ class DashboardController extends Controller
                         ];
                     }
 
-                    // Advance reduces what they owe to user (negative amount = owed)
-                    $netBalances[$senderId]['net_amount'] += $advanceAmount;
+                    // Sender paid advance to user - reduces what user owes to sender
+                    // If net_amount is positive (user owes sender): subtract to reduce debt
+                    // If net_amount is negative (sender owes user): add to reduce what sender owes
+                    if ($netBalances[$senderId]['net_amount'] >= 0) {
+                        $netBalances[$senderId]['net_amount'] -= $advanceAmount;
+                    } else {
+                        // Negative amount: adding makes it less negative (reduces what sender owes)
+                        $netBalances[$senderId]['net_amount'] += $advanceAmount;
+                    }
                 }
             }
         }
