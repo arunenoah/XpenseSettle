@@ -35,10 +35,8 @@ class AttachmentService
         // Store file
         $path = $file->store($directory, 'local');
 
-        // Create attachment record
-        return Attachment::create([
-            'attachable_id' => $model->id,
-            'attachable_type' => get_class($model),
+        // Create attachment record using the polymorphic relationship
+        return $model->attachments()->create([
             'file_path' => $path,
             'file_name' => $file->getClientOriginalName(),
             'mime_type' => $file->getMimeType(),
