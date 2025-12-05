@@ -37,13 +37,19 @@ class PaymentController extends Controller
             abort(403, 'You are not a member of this group');
         }
 
-        // Get all payments for this group, excluding self-payments (where user owes themselves)
+        $user = auth()->user();
+
+        // Get payments for this group - only show payments relevant to current user
         $payments = Payment::whereHas('split.expense', function ($q) use ($group) {
             $q->where('group_id', $group->id);
         })
-        ->whereHas('split', function ($q) {
+        ->whereHas('split', function ($q) use ($user) {
             // Exclude payments where the split user is the same as the expense payer (self-payment)
-            $q->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)');
+            $q->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)')
+            // Filter to only show payments relevant to current user:
+            // 1. Payments where user is the one who owes (split.user_id = current user)
+            // 2. Payments where user is the payer (expense.payer_id = current user)
+            ->whereRaw('`expense_splits`.`user_id` = ' . $user->id . ' OR (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`) = ' . $user->id);
         })
         ->with([
             'split.user',
