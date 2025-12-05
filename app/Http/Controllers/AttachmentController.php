@@ -88,7 +88,7 @@ class AttachmentController extends Controller
             if ($inline && $this->isImage($attachment)) {
                 // Display image inline
                 return response()->file(
-                    Storage::disk('public')->path($attachment->file_path),
+                    Storage::disk('local')->path($attachment->file_path),
                     ['Content-Type' => $attachment->mime_type]
                 );
             }

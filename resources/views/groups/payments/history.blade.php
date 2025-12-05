@@ -105,7 +105,7 @@
                                                     <div class="bg-white rounded-lg p-3 border-2 border-blue-200">
                                                         <div class="flex items-start gap-2">
                                                             @if(str_contains($attachment->mime_type, 'image'))
-                                                                <img src="{{ asset('storage/' . $attachment->path) }}" alt="Attachment" class="w-20 h-20 object-cover rounded">
+                                                                <img src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}" alt="Attachment" class="w-20 h-20 object-cover rounded">
                                                             @else
                                                                 <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
                                                                     <span class="text-2xl">📄</span>
@@ -115,7 +115,7 @@
                                                                 <p class="text-sm font-semibold text-gray-900 truncate">{{ $attachment->file_name }}</p>
                                                                 <p class="text-xs text-gray-500">{{ $attachment->file_size_kb }} KB</p>
                                                                 <p class="text-xs text-gray-500">{{ $attachment->created_at->format('M d, Y') }}</p>
-                                                                <a href="{{ asset('storage/' . $attachment->path) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 inline-block">
+                                                                <a href="{{ route('attachments.download', ['attachment' => $attachment->id]) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 inline-block">
                                                                     View File →
                                                                 </a>
                                                             </div>

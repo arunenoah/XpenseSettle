@@ -25,6 +25,14 @@ class Attachment extends Model
      */
     public function getUrlAttribute()
     {
-        return asset('storage/' . $this->file_path);
+        return route('attachments.download', ['attachment' => $this->id]);
+    }
+
+    /**
+     * Get file size in KB.
+     */
+    public function getFileSizeKbAttribute()
+    {
+        return round($this->file_size / 1024, 2);
     }
 }

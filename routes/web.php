@@ -6,6 +6,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\AttachmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -61,6 +62,10 @@ Route::middleware('auth')->group(function () {
     // Advances Management (nested under groups)
     Route::post('/groups/{group}/advances', [AdvanceController::class, 'store'])->name('groups.advances.store');
     Route::delete('/groups/{group}/advances/{advance}', [AdvanceController::class, 'destroy'])->name('groups.advances.destroy');
+
+    // Attachments Management
+    Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+    Route::get('/attachments/{attachment}/show', [AttachmentController::class, 'show'])->name('attachments.show');
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
