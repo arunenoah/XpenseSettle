@@ -137,7 +137,66 @@
         <div class="flex justify-center">
             {{ $payments->links() }}
         </div>
-    @else
+    @endif
+
+    <!-- Advances Section -->
+    @php
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with('senders', 'sentTo')
+            ->latest()
+            ->get();
+    @endphp
+
+    @if($advances->count() > 0)
+        <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-4 sm:px-6 py-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <span class="text-3xl">💰</span>
+                    <span>Advances Paid</span>
+                </h2>
+
+                <div class="space-y-4">
+                    @foreach($advances as $advance)
+                        <div class="bg-white rounded-xl p-5 border-2 border-cyan-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3 flex-1">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center flex-shrink-0">
+                                        <span class="text-sm font-bold text-white">{{ strtoupper(substr($advance->sentTo->name, 0, 1)) }}</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-bold text-gray-900">Advanced to {{ $advance->sentTo->name }}</p>
+                                        <p class="text-sm text-gray-600">💰 ${{ number_format($advance->amount_per_person, 2) }} per person</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-cyan-600">${{ number_format($advance->amount_per_person * $advance->senders->count(), 2) }}</p>
+                                    <p class="text-xs text-gray-500">{{ $advance->created_at->format('M d, Y') }}</p>
+                                </div>
+                            </div>
+
+                            <div class="pt-3 border-t border-gray-200">
+                                <p class="text-xs font-semibold text-gray-700 mb-2">Paid by:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($advance->senders as $sender)
+                                        <span class="inline-block px-3 py-1 bg-cyan-100 text-cyan-700 rounded-full text-xs font-bold">
+                                            {{ $sender->name }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            @if($advance->description)
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <p class="text-sm text-gray-600">📝 {{ $advance->description }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+    @if($payments->count() === 0 && $advances->count() === 0)
         <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-lg p-8 text-center">
             <p class="text-4xl mb-4">📭</p>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">No Payments Yet</h2>
