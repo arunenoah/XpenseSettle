@@ -207,17 +207,15 @@ class DashboardController extends Controller
         // Calculate advance amounts for each member
         $memberAdvances = $this->calculateMemberAdvances($group);
 
-        // Get payment history for this group - only show payments relevant to current user
+        // Get payment history for this group - only show payments where current user is the split user (person who owes)
         $payments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
             $q->where('group_id', $group->id);
         })
             ->whereHas('split', function ($q) use ($user) {
+                // Show only payments for splits belonging to current user
+                $q->where('user_id', $user->id)
                 // Exclude payments where the split user is the same as the expense payer (self-payment)
-                $q->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)')
-                // Filter to only show payments relevant to current user:
-                // 1. Payments where user is the one who owes (split.user_id = current user)
-                // 2. Payments where user is the payer (expense.payer_id = current user)
-                ->whereRaw('`expense_splits`.`user_id` = ' . $user->id . ' OR (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`) = ' . $user->id);
+                ->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)');
             })
             ->with([
                 'split.user',
