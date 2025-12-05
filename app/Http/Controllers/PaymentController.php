@@ -184,14 +184,26 @@ class PaymentController extends Controller
                     ];
                 }
 
-                // Advance reduces what the user owes (positive amount = owes)
-                $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+                // Advance payment reduces what recipient owes
+                // If net_amount is positive (user owes recipient): subtract to reduce debt
+                // If net_amount is negative (recipient owes user): add to reduce their debt
+                if ($netBalances[$recipientId]['net_amount'] >= 0) {
+                    $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+                } else {
+                    // Negative amount: adding makes it less negative (reduces what recipient owes)
+                    $netBalances[$recipientId]['net_amount'] += $advanceAmount;
+                }
             }
 
             // Check if user received an advance from someone
             if ($advance->sent_to_user_id === $user->id) {
                 // Someone sent this advance to the user
                 foreach ($advance->senders as $sender) {
+                    // Skip if sender is the user themselves
+                    if ($sender->id === $user->id) {
+                        continue;
+                    }
+
                     $senderId = $sender->id;
                     $advanceAmount = $advance->amount_per_person;
 
@@ -204,8 +216,15 @@ class PaymentController extends Controller
                         ];
                     }
 
-                    // Advance reduces what they owe to user (negative amount = owed)
-                    $netBalances[$senderId]['net_amount'] += $advanceAmount;
+                    // Sender paid advance to user - reduces what user owes to sender
+                    // If net_amount is positive (user owes sender): subtract to reduce debt
+                    // If net_amount is negative (sender owes user): add to reduce what sender owes
+                    if ($netBalances[$senderId]['net_amount'] >= 0) {
+                        $netBalances[$senderId]['net_amount'] -= $advanceAmount;
+                    } else {
+                        // Negative amount: adding makes it less negative (reduces what sender owes)
+                        $netBalances[$senderId]['net_amount'] += $advanceAmount;
+                    }
                 }
             }
         }
@@ -245,78 +264,40 @@ class PaymentController extends Controller
      */
     private function calculateGroupSettlementMatrix(Group $group)
     {
+        // Use personal settlement calculation for each member and build matrix
         $matrix = [];
-        $advances = \App\Models\Advance::where('group_id', $group->id)
-            ->with(['senders', 'sentTo'])
-            ->get();
 
-        // Initialize matrix for all members
+        // Initialize matrix
         foreach ($group->members as $member) {
             $matrix[$member->id] = [];
-            foreach ($group->members as $otherMember) {
-                if ($member->id !== $otherMember->id) {
-                    $matrix[$member->id][$otherMember->id] = 0;
+            foreach ($group->members as $other) {
+                if ($member->id !== $other->id) {
+                    $matrix[$member->id][$other->id] = 0;
                 }
             }
         }
 
-        // Fetch all expenses for this group (not relying on pre-loaded group.expenses)
-        $expenses = \App\Models\Expense::where('group_id', $group->id)
-            ->with([
-                'splits' => function ($q) {
-                    $q->with(['payment', 'user']);
-                },
-                'payer'
-            ])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // For each member, calculate their personal settlement
+        foreach ($group->members as $member) {
+            $settlement = $this->calculateSettlement($group, $member);
 
-        // Process expenses
-        foreach ($expenses as $expense) {
-            // Skip itemwise expenses
-            if ($expense->split_type === 'itemwise') {
-                continue;
-            }
+            // Convert settlement to matrix
+            foreach ($settlement as $item) {
+                $personId = $item['user']->id;
+                $amount = $item['net_amount']; // Positive = member owes, Negative = person owes member
 
-            // Skip self-payments
-            if ($expense->payer_id === $expense->user_id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $expense->payer_id) {
-                continue;
-            }
-
-            foreach ($expense->splits as $split) {
-                if ($split->user_id !== $expense->payer_id) {
-                    $payment = $split->payment;
-
-                    // Only count unpaid amounts
-                    if (!$payment || $payment->status !== 'paid') {
-                        // split user owes payer
-                        if (!isset($matrix[$split->user_id][$expense->payer_id])) {
-                            $matrix[$split->user_id][$expense->payer_id] = 0;
-                        }
-                        $matrix[$split->user_id][$expense->payer_id] += $split->share_amount;
-                    }
-                }
-            }
-        }
-
-        // Process advances
-        foreach ($advances as $advance) {
-            foreach ($advance->senders as $sender) {
-                $recipient = $advance->sent_to_user_id;
-                // Sender sent advance to recipient, so sender has paid money
-                // This reduces what recipient owes to sender
-                if (isset($matrix[$recipient][$sender->id])) {
-                    $matrix[$recipient][$sender->id] -= $advance->amount_per_person;
-                    // Ensure it doesn't go negative (recipient doesn't owe, sender owes)
-                    if ($matrix[$recipient][$sender->id] < 0) {
-                        $matrix[$sender->id][$recipient] = abs($matrix[$recipient][$sender->id]);
-                        $matrix[$recipient][$sender->id] = 0;
-                    }
+                if ($amount > 0) {
+                    // Member owes personId
+                    $matrix[$member->id][$personId] = $amount;
+                } else if ($amount < 0) {
+                    // PersonId owes member
+                    $matrix[$personId][$member->id] = abs($amount);
                 }
             }
         }
 
         // Convert to readable format with user data
+        // Only include positive amounts (actual debts)
         $result = [];
         foreach ($group->members as $fromUser) {
             $result[$fromUser->id] = [
@@ -329,7 +310,7 @@ class PaymentController extends Controller
                     $toUser = $group->members->find($toUserId);
                     $result[$fromUser->id]['owes'][$toUserId] = [
                         'user' => $toUser,
-                        'amount' => $amount,
+                        'amount' => round($amount, 2),
                     ];
                 }
             }
