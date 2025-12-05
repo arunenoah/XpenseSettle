@@ -17,57 +17,6 @@
         </div>
     </div>
 
-    <!-- Settlement Summary Cards -->
-    @php
-        $settlementCollection = collect($settlement);
-        $totalOwed = $settlementCollection->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
-        $totalOwe = $settlementCollection->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
-        $totalAdvances = $settlementCollection->sum('advance');
-        $netBalance = $totalOwe - $totalOwed;
-    @endphp
-
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <!-- You Owe -->
-        <div class="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 shadow-sm">
-            <p class="text-sm font-bold text-red-700 flex items-center gap-2 mb-2">
-                <span class="text-xl">😬</span>
-                <span>You Owe</span>
-            </p>
-            <p class="text-3xl font-black text-red-600">${{ number_format($totalOwed, 2) }}</p>
-        </div>
-
-        <!-- They Owe You -->
-        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200 shadow-sm">
-            <p class="text-sm font-bold text-green-700 flex items-center gap-2 mb-2">
-                <span class="text-xl">🤑</span>
-                <span>They Owe You</span>
-            </p>
-            <p class="text-3xl font-black text-green-600">${{ number_format($totalOwe, 2) }}</p>
-        </div>
-
-        <!-- Advances Paid -->
-        <div class="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-5 border-2 border-cyan-200 shadow-sm">
-            <p class="text-sm font-bold text-cyan-700 flex items-center gap-2 mb-2">
-                <span class="text-xl">💰</span>
-                <span>Advances Paid</span>
-            </p>
-            <p class="text-3xl font-black text-cyan-600">${{ number_format($totalAdvances, 2) }}</p>
-        </div>
-
-        <!-- Net Balance -->
-        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border-2 border-purple-200 shadow-sm">
-            <p class="text-sm font-bold text-purple-700 flex items-center gap-2 mb-2">
-                <span class="text-xl">⚖️</span>
-                <span>Net Balance</span>
-            </p>
-            <p class="text-3xl font-black {{ $netBalance > 0 ? 'text-green-600' : ($netBalance < 0 ? 'text-red-600' : 'text-gray-600') }}">
-                {{ $netBalance > 0 ? '✓ +' : ($netBalance < 0 ? '✗ ' : '') }}${{ number_format(abs($netBalance), 2) }}
-            </p>
-            <p class="text-xs text-gray-600 mt-1">
-                {{ $netBalance > 0 ? 'you will receive' : ($netBalance < 0 ? 'you will owe' : 'settled') }}
-            </p>
-        </div>
-    </div>
 
     <!-- Settlement Breakdown Table -->
     @if(count($settlement) > 0)
@@ -149,9 +98,11 @@
                                 <!-- Action -->
                                 <td class="px-4 sm:px-6 py-4">
                                     @if($isOwed)
-                                        <span class="text-xs text-gray-600 font-semibold">Mark as paid</span>
+                                        <button onclick="openPaymentModal('{{ $item['user']->id }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                            💳 Mark as paid
+                                        </button>
                                     @else
-                                        <span class="text-xs text-gray-500">No action required</span>
+                                        <span class="text-xs text-gray-500">—</span>
                                     @endif
                                 </td>
 
@@ -270,6 +221,21 @@ function closeImageModal() {
     modal.classList.remove('flex');
 }
 
+function openPaymentModal(userId, userName, amount) {
+    document.getElementById('paymentUserName').textContent = userName;
+    document.getElementById('paymentAmount').textContent = '$' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('paymentForm').action = '/splits/' + userId + '/mark-paid';
+    document.getElementById('paymentModal').classList.remove('hidden');
+    document.getElementById('paymentModal').classList.add('flex');
+}
+
+function closePaymentModal(event) {
+    if (!event || event.target.id === 'paymentModal') {
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('paymentModal').classList.remove('flex');
+    }
+}
+
 // Close modal when clicking outside the image
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('imageModal');
@@ -282,6 +248,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Mark as Paid Modal -->
+<div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closePaymentModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+        <div class="px-6 py-4 border-b-2 border-gray-200">
+            <h3 class="text-xl font-bold text-gray-900">Mark as Paid</h3>
+        </div>
+
+        <form id="paymentForm" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
+            @csrf
+
+            <div>
+                <p class="text-sm text-gray-600">Amount to pay</p>
+                <p id="paymentAmount" class="text-3xl font-bold text-blue-600">$0.00</p>
+                <p class="text-sm text-gray-600 mt-1">to <span id="paymentUserName" class="font-bold">—</span></p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Paid Date (Optional)</label>
+                <input type="date" name="paid_date" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Notes (Optional)</label>
+                <textarea name="notes" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none" rows="3" placeholder="Add any notes..."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Upload Receipt (Optional)</label>
+                <input type="file" name="receipt" accept="image/png,image/jpeg" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:outline-none">
+                <p class="text-xs text-gray-500 mt-1">📸 PNG or JPEG, max 5MB (auto-compressed to 50KB)</p>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closePaymentModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
+                    ✓ Mark as Paid
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Image Modal -->
 <div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onclick="closeImageModal()">
