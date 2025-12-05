@@ -19,9 +19,10 @@
 
     <!-- Settlement Summary Cards -->
     @php
-        $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
-        $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
-        $totalAdvances = collect($settlement)->sum('advance');
+        $settlementCollection = collect($settlement);
+        $totalOwed = $settlementCollection->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
+        $totalOwe = $settlementCollection->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
+        $totalAdvances = $settlementCollection->sum('advance');
         $netBalance = $totalOwe - $totalOwed;
     @endphp
 
@@ -68,68 +69,100 @@
         </div>
     </div>
 
-    <!-- Settlement Breakdown -->
-    @if($settlement->count() > 0)
+    <!-- Settlement Breakdown Table -->
+    @if(count($settlement) > 0)
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div class="px-4 sm:px-6 py-6 border-b-2 border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    <span class="text-3xl">💳</span>
-                    <span>Who Owes What</span>
-                </h2>
-            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount you owe</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance sent</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Balance</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Action</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Attachment</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach($settlement as $item)
+                            @php
+                                $isOwed = $item['net_amount'] > 0;
+                                $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
+                            @endphp
+                            <tr class="hover:bg-gray-50 transition-all">
+                                <!-- Expense Name -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <p class="font-semibold text-gray-900">Settlement</p>
+                                </td>
 
-            <div class="divide-y divide-gray-200">
-                @foreach($settlement as $item)
-                    @php
-                        $isOwed = $item['net_amount'] > 0;
-                        $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
-                    @endphp
-                    <div class="p-6 hover:bg-gray-50 transition-all">
-                        <div class="flex items-center justify-between gap-4 flex-wrap">
-                            <!-- Person Info -->
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-full {{ $isOwed ? 'bg-gradient-to-br from-red-400 to-pink-400' : 'bg-gradient-to-br from-green-400 to-emerald-400' }} flex items-center justify-center flex-shrink-0">
-                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-900 text-lg">{{ $item['user']->name }}</p>
-                                    <p class="text-sm text-gray-600">
-                                        @if($isOwed)
-                                            You owe them
-                                        @else
-                                            They owe you
-                                        @endif
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Amount -->
-                            <div class="text-right">
-                                <!-- Final Amount -->
-                                <p class="text-3xl font-black {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
-                                    ${{ number_format($finalAmount, 2) }}
-                                </p>
-
-                                <!-- Advance Details -->
-                                @if($item['advance'] > 0)
-                                    <div class="mt-2 space-y-1">
-                                        <p class="text-xs {{ $isOwed ? 'text-red-600' : 'text-green-600' }} font-semibold">
-                                            💰 Advance: -${{ number_format($item['advance'], 2) }}
-                                        </p>
-                                        <p class="text-xs text-gray-600">
-                                            Original: ${{ number_format($item['amount'], 2) }}
-                                        </p>
+                                <!-- Bill by (Person Name) -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">{{ $item['user']->name }}</span>
                                     </div>
-                                @endif
+                                </td>
+
+                                <!-- Amount you owe -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <p class="font-bold {{ $isOwed ? 'text-red-600' : 'text-gray-600' }}">
+                                        {{ $isOwed ? '$' : '-' }}{{ number_format($item['amount'], 2) }}
+                                    </p>
+                                </td>
+
+                                <!-- Advance sent -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($item['advance'] > 0)
+                                        <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold">
+                                            💰 ${{ number_format($item['advance'], 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <!-- Balance (Final Amount) -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <p class="font-black text-lg {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
+                                        {{ $isOwed ? '$' : '-$' }}{{ number_format(abs($finalAmount), 2) }}
+                                    </p>
+                                </td>
 
                                 <!-- Status Badge -->
-                                <span class="inline-block mt-2 px-3 py-1 {{ $isOwed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} text-xs font-bold rounded-full">
-                                    {{ $isOwed ? '😬 You Owe' : '🤑 They Owe' }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($isOwed)
+                                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">
+                                            😬 Pending
+                                        </span>
+                                    @else
+                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
+                                            ✓ Advance paid
+                                        </span>
+                                    @endif
+                                </td>
+
+                                <!-- Action -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($isOwed)
+                                        <span class="text-xs text-gray-600 font-semibold">Mark as paid</span>
+                                    @else
+                                        <span class="text-xs text-gray-500">No action required</span>
+                                    @endif
+                                </td>
+
+                                <!-- Attachment -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <span class="text-xs text-gray-500">if any</span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     @else
