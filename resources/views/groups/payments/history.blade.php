@@ -18,8 +18,12 @@
     </div>
 
 
-    <!-- Settlement Breakdown Table -->
-    @if(count($settlement) > 0)
+    <!-- Admin View: Show Both Personal and Overall Settlements -->
+    @if($isAdmin)
+        <!-- Admin's Personal Settlement -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
+            @if(count($personalSettlement) > 0)
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -38,10 +42,11 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        @foreach($settlement as $item)
+                        @foreach($personalSettlement as $item)
                             @php
                                 $isOwed = $item['net_amount'] > 0;
-                                $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
+                                // net_amount already includes advance reductions, don't double-subtract
+                                $finalAmount = abs($item['net_amount']);
                                 // Show row if user owes money OR if there's an advance involved
                                 $shouldShow = $isOwed || $item['advance'] > 0;
 
@@ -161,13 +166,238 @@
                 </table>
             </div>
         </div>
-    @else
-        <!-- No Settlement -->
-        <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
-            <p class="text-6xl mb-4">✨</p>
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">All Settled!</h2>
-            <p class="text-gray-600">You have no outstanding balances in {{ $group->name }}.</p>
+            @else
+                <!-- No Personal Settlement -->
+                <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+                    <p class="text-6xl mb-4">✨</p>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-2">You're All Settled!</h2>
+                    <p class="text-gray-600">You have no outstanding balances in {{ $group->name }}.</p>
+                </div>
+            @endif
         </div>
+
+        <!-- Overall Settlement Matrix for Admin -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Overall Group Settlement</h2>
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b-2 border-gray-200">
+                                <th class="px-4 sm:px-6 py-4 text-left font-bold text-gray-700">Person</th>
+                                @foreach($group->members as $member)
+                                    <th class="px-4 sm:px-6 py-4 text-center font-bold text-gray-700 whitespace-nowrap">
+                                        {{ substr($member->name, 0, 3) }}
+                                    </th>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($group->members as $fromUser)
+                                <tr class="hover:bg-gray-50 transition-all">
+                                    <td class="px-4 sm:px-6 py-4 font-semibold text-gray-900">
+                                        {{ $fromUser->name }}
+                                    </td>
+                                    @foreach($group->members as $toUser)
+                                        <td class="px-4 sm:px-6 py-4 text-center">
+                                            @if($fromUser->id === $toUser->id)
+                                                <span class="text-gray-400">—</span>
+                                            @else
+                                                @php
+                                                    $amount = 0;
+                                                    $isDebt = false; // true if toUser owes fromUser
+
+                                                    // Check if fromUser owes toUser
+                                                    if (isset($overallSettlement[$fromUser->id]['owes'][$toUser->id])) {
+                                                        $amount = $overallSettlement[$fromUser->id]['owes'][$toUser->id]['amount'];
+                                                        $isDebt = false;
+                                                    }
+                                                    // Check if toUser owes fromUser
+                                                    elseif (isset($overallSettlement[$toUser->id]['owes'][$fromUser->id])) {
+                                                        $amount = $overallSettlement[$toUser->id]['owes'][$fromUser->id]['amount'];
+                                                        $isDebt = true; // toUser owes fromUser
+                                                    }
+                                                @endphp
+
+                                                @if($amount > 0)
+                                                    @if($isDebt)
+                                                        <!-- Green: This person owes the row person -->
+                                                        <span class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-xs">
+                                                            {{ number_format($amount, 2) }}
+                                                        </span>
+                                                    @else
+                                                        <!-- Red: Row person owes this person -->
+                                                        <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-xs">
+                                                            {{ number_format($amount, 2) }}
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-gray-400">—</span>
+                                                @endif
+                                            @endif
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    @else
+        <!-- Non-Admin Settlement View -->
+        @if(count($personalSettlement) > 0)
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">They spent for me</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">I spent for them</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance sent</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Final Balance</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Details</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Action</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Attachment</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach($personalSettlement as $item)
+                            @php
+                                $isOwed = $item['net_amount'] > 0;
+                                // net_amount already includes advance reductions, don't double-subtract
+                                $finalAmount = abs($item['net_amount']);
+                                // Show row if user owes money OR if there's an advance involved
+                                $shouldShow = $isOwed || $item['advance'] > 0;
+
+                                // Calculate they spent for me vs I spent for them
+                                $theySpentForMe = 0;
+                                $iSpentForThem = 0;
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $expense) {
+                                        if ($expense['type'] === 'you_owe') {
+                                            $theySpentForMe += $expense['amount'];
+                                        } else {
+                                            $iSpentForThem += $expense['amount'];
+                                        }
+                                    }
+                                }
+                            @endphp
+                            @if($shouldShow)
+                            <tr class="hover:bg-gray-50 transition-all">
+                                <!-- Expense Name -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex flex-col gap-1">
+                                        @if(count($item['expenses']) > 0)
+                                            @foreach($item['expenses'] as $expense)
+                                                <p class="font-semibold text-gray-900 text-sm">{{ $expense['title'] }}</p>
+                                            @endforeach
+                                        @else
+                                            <p class="font-semibold text-gray-900">Settlement</p>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                <!-- Bill by (Person Name) -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-900">{{ $item['user']->name }}</span>
+                                    </div>
+                                </td>
+
+                                <!-- They spent for me -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($theySpentForMe > 0)
+                                        <span class="font-bold text-red-600">${{ number_format($theySpentForMe, 2) }}</span>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <!-- I spent for them -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($iSpentForThem > 0)
+                                        <span class="font-bold text-green-600">${{ number_format($iSpentForThem, 2) }}</span>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <!-- Advance sent -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($item['advance'] > 0)
+                                        <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold">
+                                            💰 ${{ number_format($item['advance'], 2) }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <!-- Balance (Final Amount) -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <p class="font-black text-lg {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
+                                        {{ $isOwed ? '$' : '-$' }}{{ number_format(abs($finalAmount), 2) }}
+                                    </p>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($isOwed)
+                                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">
+                                            😬 Pending
+                                        </span>
+                                    @else
+                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
+                                            ✓ Advance paid
+                                        </span>
+                                    @endif
+                                </td>
+
+                                <!-- Details -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <button onclick="openBreakdownModal('{{ $item['user']->name }}', {{ json_encode($item) }})" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">
+                                        👁️ View
+                                    </button>
+                                </td>
+
+                                <!-- Action -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($isOwed)
+                                        <button onclick="openPaymentModal('{{ $item['user']->id }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                            💳 Mark as paid
+                                        </button>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <!-- Attachment -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <span class="text-xs text-gray-500">if any</span>
+                                </td>
+                            </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @else
+            <!-- No Settlement -->
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+                <p class="text-6xl mb-4">✨</p>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">All Settled!</h2>
+                <p class="text-gray-600">You have no outstanding balances in {{ $group->name }}.</p>
+            </div>
+        @endif
     @endif
 
     <!-- Advances Section -->

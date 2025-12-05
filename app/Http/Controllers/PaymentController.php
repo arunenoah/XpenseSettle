@@ -60,10 +60,28 @@ class PaymentController extends Controller
         ->paginate(20);
 
         // Get settlement for this user in this group
-        $group->load('expenses.splits.user', 'expenses.payer', 'members');
-        $settlement = $this->calculateSettlement($group, $user);
+        // Load all necessary relationships including payments for accurate settlement calculation
+        // Use whereNull('deleted_at') to explicitly include only non-deleted expenses
+        $group->load([
+            'expenses' => function ($query) {
+                $query->whereNull('deleted_at')->latest();
+            },
+            'expenses.splits.user',
+            'expenses.splits.payment',
+            'expenses.payer',
+            'members'
+        ]);
 
-        return view('groups.payments.history', compact('group', 'payments', 'settlement'));
+        // Check if user is admin
+        $isAdmin = $group->isAdmin($user);
+
+        // Always calculate user's personal settlement
+        $personalSettlement = $this->calculateSettlement($group, $user);
+
+        // For admins, also calculate overall settlement matrix
+        $overallSettlement = $isAdmin ? $this->calculateGroupSettlementMatrix($group) : [];
+
+        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin'));
     }
 
     /**
@@ -75,7 +93,13 @@ class PaymentController extends Controller
         // Maps to track amounts owed between user and each other person
         $netBalances = [];  // User ID => [user_obj, net_amount, status, expenses]
 
-        foreach ($group->expenses as $expense) {
+        // Ensure all expenses are loaded (including those from earlier queries)
+        $expenses = \App\Models\Expense::where('group_id', $group->id)
+            ->whereNull('deleted_at')
+            ->with(['splits.payment', 'splits.user', 'payer'])
+            ->get();
+
+        foreach ($expenses as $expense) {
             // Skip itemwise expenses - they don't create splits and don't affect settlement
             if ($expense->split_type === 'itemwise') {
                 continue;
@@ -208,6 +232,100 @@ class PaymentController extends Controller
         }
 
         return $settlements;
+    }
+
+    /**
+     * Calculate settlement matrix for all members in a group.
+     * Returns array with structure: [$fromUserId][$toUserId] = amount owed
+     */
+    private function calculateGroupSettlementMatrix(Group $group)
+    {
+        $matrix = [];
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
+            ->get();
+
+        // Initialize matrix for all members
+        foreach ($group->members as $member) {
+            $matrix[$member->id] = [];
+            foreach ($group->members as $otherMember) {
+                if ($member->id !== $otherMember->id) {
+                    $matrix[$member->id][$otherMember->id] = 0;
+                }
+            }
+        }
+
+        // Fetch all expenses for this group (not relying on pre-loaded group.expenses)
+        $expenses = \App\Models\Expense::where('group_id', $group->id)
+            ->whereNull('deleted_at')
+            ->with(['splits.payment', 'splits.user', 'payer'])
+            ->get();
+
+        // Process expenses
+        foreach ($expenses as $expense) {
+            // Skip itemwise expenses
+            if ($expense->split_type === 'itemwise') {
+                continue;
+            }
+
+            // Skip self-payments
+            if ($expense->payer_id === $expense->user_id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $expense->payer_id) {
+                continue;
+            }
+
+            foreach ($expense->splits as $split) {
+                if ($split->user_id !== $expense->payer_id) {
+                    $payment = $split->payment;
+
+                    // Only count unpaid amounts
+                    if (!$payment || $payment->status !== 'paid') {
+                        // split user owes payer
+                        if (!isset($matrix[$split->user_id][$expense->payer_id])) {
+                            $matrix[$split->user_id][$expense->payer_id] = 0;
+                        }
+                        $matrix[$split->user_id][$expense->payer_id] += $split->share_amount;
+                    }
+                }
+            }
+        }
+
+        // Process advances
+        foreach ($advances as $advance) {
+            foreach ($advance->senders as $sender) {
+                $recipient = $advance->sent_to_user_id;
+                // Sender sent advance to recipient, so sender has paid money
+                // This reduces what recipient owes to sender
+                if (isset($matrix[$recipient][$sender->id])) {
+                    $matrix[$recipient][$sender->id] -= $advance->amount_per_person;
+                    // Ensure it doesn't go negative (recipient doesn't owe, sender owes)
+                    if ($matrix[$recipient][$sender->id] < 0) {
+                        $matrix[$sender->id][$recipient] = abs($matrix[$recipient][$sender->id]);
+                        $matrix[$recipient][$sender->id] = 0;
+                    }
+                }
+            }
+        }
+
+        // Convert to readable format with user data
+        $result = [];
+        foreach ($group->members as $fromUser) {
+            $result[$fromUser->id] = [
+                'user' => $fromUser,
+                'owes' => []
+            ];
+
+            foreach ($matrix[$fromUser->id] as $toUserId => $amount) {
+                if ($amount > 0) {
+                    $toUser = $group->members->find($toUserId);
+                    $result[$fromUser->id]['owes'][$toUserId] = [
+                        'user' => $toUser,
+                        'amount' => $amount,
+                    ];
+                }
+            }
+        }
+
+        return $result;
     }
 
     /**
