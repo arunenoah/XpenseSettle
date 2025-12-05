@@ -23,6 +23,10 @@
             <span class="text-xl">📋</span>
             <span>Payment History</span>
         </a>
+        <a href="#" onclick="showExpensesModal(); return false;" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all text-base">
+            <span class="text-xl">📜</span>
+            <span>Expenses</span>
+        </a>
         @if($group->isAdmin(auth()->user()))
             <a href="{{ route('groups.edit', $group) }}" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all text-base">
                 <span class="text-xl">✏️</span>
@@ -555,6 +559,48 @@
     </div>
 </div>
 
+<!-- Expenses Modal -->
+<div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeExpensesModal(event)">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-2xl font-black text-gray-900">📜 Expenses</h3>
+            <button onclick="closeExpensesModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+
+        @if($expenses->count() > 0)
+            <div class="space-y-3 max-h-96 overflow-y-auto">
+                @foreach($expenses as $expense)
+                    <a href="{{ route('groups.expenses.show', ['group' => $group, 'expense' => $expense]) }}" class="block p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-bold text-gray-900 truncate">{{ $expense->title }}</h4>
+                                <p class="text-sm text-gray-600 mt-1">💰 {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($expense->amount, 2) }}</p>
+                                <p class="text-xs text-gray-500 mt-1">📅 {{ $expense->date->format('M d, Y') }} • 👤 {{ $expense->payer->name }}</p>
+                            </div>
+                            <span class="inline-block px-2 py-1 rounded text-xs font-semibold flex-shrink-0 {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }}">
+                                {{ ucfirst(str_replace('_', ' ', $expense->status)) }}
+                            </span>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        @else
+            <div class="text-center py-8">
+                <p class="text-gray-600">No expenses yet. <a href="{{ route('groups.expenses.create', $group) }}" class="text-blue-600 hover:text-blue-700 font-bold">Create one →</a></p>
+            </div>
+        @endif
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeImageModal(event)">
+    <div class="relative max-w-3xl max-h-96 bg-white rounded-2xl overflow-hidden" onclick="event.stopPropagation()">
+        <button onclick="closeImageModal()" class="absolute top-3 right-3 bg-white rounded-full p-2 hover:bg-gray-100 z-10 text-gray-700 font-bold">✕</button>
+        <img id="modalImage" src="" alt="Image" class="w-full h-full object-contain">
+        <p id="modalImageName" class="absolute bottom-3 left-3 bg-black bg-opacity-50 text-white text-sm px-3 py-1 rounded truncate max-w-xs"></p>
+    </div>
+</div>
+
 <!-- Payment Modal -->
 <div id="groupPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeGroupPaymentModal(event)">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" onclick="event.stopPropagation()">
@@ -615,6 +661,32 @@ function toggleAttachments(paymentId) {
         row.classList.remove('hidden');
     } else {
         row.classList.add('hidden');
+    }
+}
+
+function showExpensesModal() {
+    document.getElementById('expensesModal').classList.remove('hidden');
+    document.getElementById('expensesModal').classList.add('flex');
+}
+
+function closeExpensesModal(event) {
+    if (!event || event.target.id === 'expensesModal') {
+        document.getElementById('expensesModal').classList.add('hidden');
+        document.getElementById('expensesModal').classList.remove('flex');
+    }
+}
+
+function openImageModal(imageUrl, imageName) {
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('modalImageName').textContent = imageName;
+    document.getElementById('imageModal').classList.remove('hidden');
+    document.getElementById('imageModal').classList.add('flex');
+}
+
+function closeImageModal(event) {
+    if (!event || event.target.id === 'imageModal') {
+        document.getElementById('imageModal').classList.add('hidden');
+        document.getElementById('imageModal').classList.remove('flex');
     }
 }
 </script>
