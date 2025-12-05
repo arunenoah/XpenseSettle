@@ -532,6 +532,55 @@
         @endif
     </div>
 
+    <!-- Advances Section -->
+    @php
+        $groupAdvances = \App\Models\Advance::where('group_id', $group->id)
+            ->with('senders', 'sentTo')
+            ->latest()
+            ->limit(5)
+            ->get();
+    @endphp
+
+    @if($groupAdvances->count() > 0)
+        <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 rounded-2xl shadow-lg p-6">
+            <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                <span class="text-3xl">💰</span>
+                <span>Recent Advances</span>
+            </h2>
+
+            <div class="space-y-3">
+                @foreach($groupAdvances as $advance)
+                    <div class="bg-white rounded-xl p-4 border-2 border-cyan-200 shadow-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start gap-3 flex-1">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center flex-shrink-0 mt-1">
+                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($advance->sentTo->name, 0, 1)) }}</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="font-bold text-gray-900">Advanced to {{ $advance->sentTo->name }}</p>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        Paid by: <span class="font-semibold">{{ $advance->senders->pluck('name')->join(', ') }}</span>
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ $advance->created_at->format('M d, Y') }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <p class="text-xl font-bold text-cyan-600">${{ number_format($advance->amount_per_person, 2) }}</p>
+                                <p class="text-xs text-gray-500 mt-1">per person</p>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="mt-4 text-center">
+                <a href="{{ route('groups.payments.history', $group) }}" class="text-sm font-bold text-cyan-600 hover:text-cyan-700">
+                    View All Advances →
+                </a>
+            </div>
+        </div>
+    @endif
+
     <!-- Recent Expenses -->
     <div class="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl shadow-lg p-6">
         <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
