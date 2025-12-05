@@ -14,7 +14,8 @@ class AttachmentService
         'image/png',
     ];
 
-    private const MAX_FILE_SIZE = 50 * 1024; // 50KB
+    private const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB (upload limit)
+    private const MAX_STORED_SIZE = 50 * 1024; // 50KB (target compressed size)
 
     /**
      * Upload and attach a file to a model.
@@ -30,15 +31,23 @@ class AttachmentService
         // Validate file
         $this->validateFile($file);
 
-        // Store file
-        $path = $file->store($directory, 'local');
+        // Compress image to reduce file size
+        $compressedContent = $this->compressImage($file);
+
+        // Generate unique filename
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $filename = $originalName . '_' . time() . '.jpg';
+        $path = $directory . '/' . $filename;
+
+        // Store compressed image
+        Storage::disk('local')->put($path, $compressedContent);
 
         // Create attachment record using the polymorphic relationship
         return $model->attachments()->create([
             'file_path' => $path,
             'file_name' => $file->getClientOriginalName(),
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'mime_type' => 'image/jpeg',
+            'file_size' => strlen($compressedContent),
         ]);
     }
 
@@ -54,9 +63,64 @@ class AttachmentService
             throw new \Exception('File type not allowed. Please upload PNG or JPEG images only.');
         }
 
-        if ($file->getSize() > self::MAX_FILE_SIZE) {
-            throw new \Exception('File size exceeds maximum allowed size of 50KB. Please use a smaller image.');
+        if ($file->getSize() > self::MAX_UPLOAD_SIZE) {
+            throw new \Exception('File size exceeds maximum upload size of 5MB. Please use a smaller image.');
         }
+    }
+
+    /**
+     * Compress image to reduce file size to approximately 50KB.
+     *
+     * @param UploadedFile $file
+     * @return string Compressed image binary content
+     * @throws \Exception
+     */
+    private function compressImage(UploadedFile $file): string
+    {
+        // Get temporary file path
+        $tempPath = $file->getPathname();
+
+        // Determine image type
+        $imageInfo = @getimagesize($tempPath);
+        if ($imageInfo === false) {
+            throw new \Exception('Unable to process image. Please ensure it is a valid PNG or JPEG file.');
+        }
+
+        // Create image resource from file
+        if ($file->getMimeType() === 'image/jpeg') {
+            $image = @imagecreatefromjpeg($tempPath);
+        } elseif ($file->getMimeType() === 'image/png') {
+            $image = @imagecreatefrompng($tempPath);
+        } else {
+            throw new \Exception('Unsupported image format.');
+        }
+
+        if ($image === false) {
+            throw new \Exception('Unable to read image file.');
+        }
+
+        // Start with 80% quality and reduce if needed
+        $quality = 80;
+        $compressed = ob_get_clean() ?: '';
+
+        // Compress iteratively until we reach target size
+        do {
+            ob_start();
+            imagejpeg($image, null, $quality);
+            $compressed = ob_get_clean();
+
+            // If file is still too large and quality is above 20%, reduce quality
+            if (strlen($compressed) > self::MAX_STORED_SIZE && $quality > 20) {
+                $quality -= 5;
+            } else {
+                break;
+            }
+        } while (strlen($compressed) > self::MAX_STORED_SIZE);
+
+        // Destroy image resource
+        imagedestroy($image);
+
+        return $compressed;
     }
 
     /**
