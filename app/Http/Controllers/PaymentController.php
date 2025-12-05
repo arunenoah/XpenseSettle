@@ -73,7 +73,7 @@ class PaymentController extends Controller
     private function calculateSettlement(Group $group, $user)
     {
         // Maps to track amounts owed between user and each other person
-        $netBalances = [];  // User ID => [user_obj, net_amount, status]
+        $netBalances = [];  // User ID => [user_obj, net_amount, status, expenses]
 
         foreach ($group->expenses as $expense) {
             // Skip itemwise expenses - they don't create splits and don't affect settlement
@@ -99,9 +99,15 @@ class PaymentController extends Controller
                                 'user' => $expense->payer,
                                 'net_amount' => 0,
                                 'status' => 'pending',
+                                'expenses' => [],
                             ];
                         }
                         $netBalances[$payerId]['net_amount'] += $split->share_amount;
+                        $netBalances[$payerId]['expenses'][] = [
+                            'title' => $expense->title,
+                            'amount' => $split->share_amount,
+                            'type' => 'you_owe',  // User owes the payer
+                        ];
                     }
                 } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
                     // User is the payer, someone else is a participant
@@ -114,9 +120,15 @@ class PaymentController extends Controller
                                 'user' => $split->user,
                                 'net_amount' => 0,
                                 'status' => 'pending',
+                                'expenses' => [],
                             ];
                         }
                         $netBalances[$memberId]['net_amount'] -= $split->share_amount;
+                        $netBalances[$memberId]['expenses'][] = [
+                            'title' => $expense->title,
+                            'amount' => $split->share_amount,
+                            'type' => 'they_owe',  // Member owes the user (who paid)
+                        ];
                     }
                 }
             }
@@ -139,6 +151,7 @@ class PaymentController extends Controller
                         'user' => $advance->sentTo,
                         'net_amount' => 0,
                         'status' => 'pending',
+                        'expenses' => [],
                     ];
                 }
 
@@ -158,6 +171,7 @@ class PaymentController extends Controller
                             'user' => $sender,
                             'net_amount' => 0,
                             'status' => 'pending',
+                            'expenses' => [],
                         ];
                     }
 
@@ -188,6 +202,7 @@ class PaymentController extends Controller
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
                     'advance' => $advanceAmount,  // Amount of advance sent to this person
+                    'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
                 ];
             }
         }

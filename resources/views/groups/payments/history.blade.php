@@ -27,10 +27,12 @@
                         <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount you owe</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">They spent for me</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">I spent for them</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance sent</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Balance</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Final Balance</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Details</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Action</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Attachment</th>
                         </tr>
@@ -42,6 +44,19 @@
                                 $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
                                 // Show row if user owes money OR if there's an advance involved
                                 $shouldShow = $isOwed || $item['advance'] > 0;
+
+                                // Calculate they spent for me vs I spent for them
+                                $theySpentForMe = 0;
+                                $iSpentForThem = 0;
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $expense) {
+                                        if ($expense['type'] === 'you_owe') {
+                                            $theySpentForMe += $expense['amount'];
+                                        } else {
+                                            $iSpentForThem += $expense['amount'];
+                                        }
+                                    }
+                                }
                             @endphp
                             @if($shouldShow)
                             <tr class="hover:bg-gray-50 transition-all">
@@ -68,11 +83,22 @@
                                     </div>
                                 </td>
 
-                                <!-- Amount you owe -->
+                                <!-- They spent for me -->
                                 <td class="px-4 sm:px-6 py-4">
-                                    <p class="font-bold {{ $isOwed ? 'text-red-600' : 'text-gray-600' }}">
-                                        {{ $isOwed ? '$' : '-' }}{{ number_format($item['amount'], 2) }}
-                                    </p>
+                                    @if($theySpentForMe > 0)
+                                        <span class="font-bold text-red-600">${{ number_format($theySpentForMe, 2) }}</span>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
+                                </td>
+
+                                <!-- I spent for them -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    @if($iSpentForThem > 0)
+                                        <span class="font-bold text-green-600">${{ number_format($iSpentForThem, 2) }}</span>
+                                    @else
+                                        <span class="text-xs text-gray-500">—</span>
+                                    @endif
                                 </td>
 
                                 <!-- Advance sent -->
@@ -104,6 +130,13 @@
                                             ✓ Advance paid
                                         </span>
                                     @endif
+                                </td>
+
+                                <!-- Details -->
+                                <td class="px-4 sm:px-6 py-4">
+                                    <button onclick="openBreakdownModal('{{ $item['user']->name }}', {{ json_encode($item) }})" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">
+                                        👁️ View
+                                    </button>
                                 </td>
 
                                 <!-- Action -->
@@ -248,6 +281,81 @@ function closePaymentModal(event) {
     }
 }
 
+function openBreakdownModal(personName, itemData) {
+    const modal = document.getElementById('breakdownModal');
+    const title = document.getElementById('breakdownTitle');
+    const details = document.getElementById('breakdownDetails');
+
+    title.textContent = `Breakdown with ${personName}`;
+
+    let html = '<div class="space-y-3">';
+
+    // Calculate they spent for me vs I spent for them
+    let theySpentForMe = 0;
+    let iSpentForThem = 0;
+
+    if (itemData.expenses && itemData.expenses.length > 0) {
+        itemData.expenses.forEach(exp => {
+            if (exp.type === 'you_owe') {
+                // They paid it, you need to reimburse them
+                theySpentForMe += parseFloat(exp.amount);
+            } else {
+                // You paid it for them
+                iSpentForThem += parseFloat(exp.amount);
+            }
+        });
+    }
+
+    // Show "They spent for me"
+    if (theySpentForMe > 0) {
+        html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                    <span class="text-gray-700 font-semibold">${personName} spent for me</span>
+                    <span class="font-bold text-red-600">$${theySpentForMe.toFixed(2)}</span>
+                 </div>`;
+    }
+
+    // Show "I spent for them"
+    if (iSpentForThem > 0) {
+        html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                    <span class="text-gray-700 font-semibold">I spent for ${personName}</span>
+                    <span class="font-bold text-green-600">-$${iSpentForThem.toFixed(2)}</span>
+                 </div>`;
+    }
+
+    // Show advance if any
+    if (itemData.advance > 0) {
+        html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
+                    <span class="text-gray-700 font-semibold">💰 Advance paid</span>
+                    <span class="font-bold text-blue-600">-$${parseFloat(itemData.advance).toFixed(2)}</span>
+                 </div>`;
+    }
+
+    // Show final balance calculation
+    const finalAmount = theySpentForMe - iSpentForThem - itemData.advance;
+    const finalLabel = finalAmount > 0 ? `You owe ${personName}` : `${personName} owes you`;
+    const finalColor = finalAmount > 0 ? 'text-red-600' : 'text-green-600';
+
+    html += `<div class="flex flex-col items-start pt-3 border-t-2 border-gray-300">
+                <span class="font-bold text-gray-900 mb-2">${finalLabel}</span>
+                <span class="font-black text-4xl ${finalColor}">
+                    $${Math.abs(finalAmount).toFixed(2)}
+                </span>
+             </div>`;
+
+    html += '</div>';
+    details.innerHTML = html;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeBreakdownModal(event) {
+    if (!event || event.target.id === 'breakdownModal') {
+        document.getElementById('breakdownModal').classList.add('hidden');
+        document.getElementById('breakdownModal').classList.remove('flex');
+    }
+}
+
 // Close modal when clicking outside the image
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('imageModal');
@@ -302,6 +410,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Breakdown Modal -->
+<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeBreakdownModal(event)">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+        <div class="px-6 py-4 border-b-2 border-gray-200">
+            <h3 id="breakdownTitle" class="text-xl font-bold text-gray-900">Breakdown Details</h3>
+        </div>
+
+        <div id="breakdownDetails" class="p-6">
+            <!-- Details will be inserted here by JavaScript -->
+        </div>
+
+        <div class="px-6 py-4 border-t-2 border-gray-200 flex justify-end">
+            <button onclick="closeBreakdownModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
+                Close
+            </button>
+        </div>
     </div>
 </div>
 
