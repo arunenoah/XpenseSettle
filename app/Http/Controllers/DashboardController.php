@@ -210,6 +210,21 @@ class DashboardController extends Controller
         // Calculate advance amounts for each member
         $memberAdvances = $this->calculateMemberAdvances($group);
 
+        // Get payment history for this group
+        $payments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
+            $q->where('group_id', $group->id);
+        })
+            ->with([
+                'split.user',
+                'split.expense.payer',
+                'split.expense.group',
+                'paidBy',
+                'attachments'
+            ])
+            ->latest()
+            ->limit(10)
+            ->get();
+
         return view('groups.dashboard', [
             'group' => $group,
             'balances' => $balances,
@@ -218,6 +233,7 @@ class DashboardController extends Controller
             'pendingPayments' => $pendingPayments,
             'settlement' => $settlement,
             'memberAdvances' => $memberAdvances,
+            'payments' => $payments,
         ]);
     }
 
@@ -277,6 +293,11 @@ class DashboardController extends Controller
         $netBalances = [];  // User ID => [user_obj, net_amount, status]
 
         foreach ($group->expenses as $expense) {
+            // Skip expenses where user is both payer and sole participant (self-payment)
+            if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $user->id) {
+                continue;
+            }
+
             // Handle itemwise expenses (no splits, full amount)
             if ($expense->split_type === 'itemwise') {
                 if ($user->id !== $expense->payer_id) {
