@@ -151,6 +151,9 @@ class ExpenseController extends Controller
             ->pluck('share_amount', 'user_id')
             ->toArray();
 
+        // Load attachments
+        $expense->load('attachments');
+
         return view('expenses.edit', compact('expense', 'group', 'members', 'currentSplits'));
     }
 
@@ -182,6 +185,8 @@ class ExpenseController extends Controller
             'split_type' => 'required|in:equal,custom',
             'splits' => 'nullable|array',
             'splits.*' => 'nullable|numeric|min:0',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|mimes:png,jpeg,jpg,pdf|max:5120',
         ]);
 
         try {
@@ -194,6 +199,23 @@ class ExpenseController extends Controller
             );
 
             $expense = $this->expenseService->updateExpense($expense, $validated);
+
+            // Handle attachments if uploaded
+            if ($request->hasFile('attachments')) {
+                $attachmentService = app('App\Services\AttachmentService');
+                foreach ($request->file('attachments') as $file) {
+                    try {
+                        $attachmentService->uploadAttachment(
+                            $file,
+                            $expense,
+                            'expenses'
+                        );
+                    } catch (\Exception $e) {
+                        // Log attachment error but don't fail the whole operation
+                        \Log::warning('Failed to upload attachment for expense ' . $expense->id . ': ' . $e->getMessage());
+                    }
+                }
+            }
 
             return redirect()
                 ->route('groups.expenses.show', ['group' => $group, 'expense' => $expense])
