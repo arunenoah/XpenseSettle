@@ -11,159 +11,132 @@
                 ← Back to Group
             </a>
             <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Payment History
+                Settlement Summary
             </h1>
-            <p class="mt-2 text-gray-600">{{ $group->name }}</p>
+            <p class="mt-2 text-gray-600">{{ $group->name }} • {{ auth()->user()->name }}</p>
         </div>
     </div>
 
-    @if($payments->count() > 0)
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Person</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Advance Paid</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Date</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @foreach($payments as $payment)
-                            <tr class="hover:bg-gray-50 transition-all">
-                                <!-- Expense Title -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <div class="flex flex-col">
-                                        <p class="font-semibold text-gray-900">{{ $payment->split->expense->title }}</p>
-                                        <p class="text-xs text-gray-500">ID: {{ $payment->id }}</p>
-                                    </div>
-                                </td>
+    <!-- Settlement Summary Cards -->
+    @php
+        $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
+        $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
+        $totalAdvances = collect($settlement)->sum('advance');
+        $netBalance = $totalOwe - $totalOwed;
+    @endphp
 
-                                <!-- Person -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
-                                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($payment->split->user->name, 0, 1)) }}</span>
-                                        </div>
-                                        <span class="text-sm font-medium text-gray-900">{{ $payment->split->user->name }}</span>
-                                    </div>
-                                </td>
-
-                                <!-- Amount -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <p class="font-bold text-gray-900">${{ number_format($payment->split->share_amount, 2) }}</p>
-                                </td>
-
-                                <!-- Status Badge -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($payment->status === 'pending')
-                                        <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">⏳ Pending</span>
-                                    @elseif($payment->status === 'paid')
-                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">✓ Paid</span>
-                                    @elseif($payment->status === 'approved')
-                                        <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">✓ Approved</span>
-                                    @elseif($payment->status === 'rejected')
-                                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">✗ Rejected</span>
-                                    @endif
-                                </td>
-
-                                <!-- Advance Paid -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @php
-                                        $relatedAdvances = \App\Models\Advance::where('group_id', $group->id)
-                                            ->where('sent_to_user_id', $payment->split->user->id)
-                                            ->with('senders')
-                                            ->latest()
-                                            ->get();
-                                    @endphp
-                                    @if($relatedAdvances->count() > 0)
-                                        <div class="space-y-2">
-                                            @foreach($relatedAdvances as $advance)
-                                                <div class="flex items-center gap-1">
-                                                    <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold whitespace-nowrap">
-                                                        💰 ${{ number_format($advance->amount_per_person, 2) }}
-                                                    </span>
-                                                    <span class="text-xs text-gray-600 truncate">
-                                                        by {{ $advance->senders->pluck('name')->join(', ') }}
-                                                    </span>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <span class="text-xs text-gray-500">—</span>
-                                    @endif
-                                </td>
-
-                                <!-- Date -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <div class="flex flex-col">
-                                        @if($payment->paid_date)
-                                            <p class="text-sm text-gray-900 font-medium">{{ $payment->paid_date->format('M d, Y') }}</p>
-                                        @else
-                                            <p class="text-sm text-gray-500 italic">—</p>
-                                        @endif
-                                        <p class="text-xs text-gray-500">{{ $payment->created_at->diffForHumans() }}</p>
-                                    </div>
-                                </td>
-
-                                <!-- Actions -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($payment->attachments->count() > 0)
-                                        <button onclick="toggleAttachments({{ $payment->id }})" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
-                                            📎 {{ $payment->attachments->count() }}
-                                        </button>
-                                    @else
-                                        <span class="text-xs text-gray-500">No attachments</span>
-                                    @endif
-                                </td>
-                            </tr>
-
-                            <!-- Attachments Row -->
-                            @if($payment->attachments->count() > 0)
-                                <tr id="attachments-{{ $payment->id }}" class="hidden bg-blue-50">
-                                    <td colspan="7" class="px-4 sm:px-6 py-4">
-                                        <div class="space-y-2">
-                                            <h4 class="font-bold text-gray-900 mb-3">📎 Attachments:</h4>
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                @foreach($payment->attachments as $attachment)
-                                                    <div class="bg-white rounded-lg p-3 border-2 border-blue-200">
-                                                        <div class="flex items-start gap-2">
-                                                            @if(str_contains($attachment->mime_type, 'image'))
-                                                                <img src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}" alt="Attachment" class="w-20 h-20 object-cover rounded cursor-pointer hover:opacity-75 transition-opacity" onclick="openImageModal('{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}', '{{ addslashes($attachment->file_name) }}')">
-                                                            @else
-                                                                <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
-                                                                    <span class="text-2xl">📄</span>
-                                                                </div>
-                                                            @endif
-                                                            <div class="flex-1">
-                                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $attachment->file_name }}</p>
-                                                                <p class="text-xs text-gray-500">{{ $attachment->file_size_kb }} KB</p>
-                                                                <p class="text-xs text-gray-500">{{ $attachment->created_at->format('M d, Y') }}</p>
-                                                                <a href="{{ route('attachments.download', ['attachment' => $attachment->id]) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 inline-block">
-                                                                    Download →
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endif
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
+    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <!-- You Owe -->
+        <div class="bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 shadow-sm">
+            <p class="text-sm font-bold text-red-700 flex items-center gap-2 mb-2">
+                <span class="text-xl">😬</span>
+                <span>You Owe</span>
+            </p>
+            <p class="text-3xl font-black text-red-600">${{ number_format($totalOwed, 2) }}</p>
         </div>
 
-        <!-- Pagination -->
-        <div class="flex justify-center">
-            {{ $payments->links() }}
+        <!-- They Owe You -->
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200 shadow-sm">
+            <p class="text-sm font-bold text-green-700 flex items-center gap-2 mb-2">
+                <span class="text-xl">🤑</span>
+                <span>They Owe You</span>
+            </p>
+            <p class="text-3xl font-black text-green-600">${{ number_format($totalOwe, 2) }}</p>
+        </div>
+
+        <!-- Advances Paid -->
+        <div class="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-5 border-2 border-cyan-200 shadow-sm">
+            <p class="text-sm font-bold text-cyan-700 flex items-center gap-2 mb-2">
+                <span class="text-xl">💰</span>
+                <span>Advances Paid</span>
+            </p>
+            <p class="text-3xl font-black text-cyan-600">${{ number_format($totalAdvances, 2) }}</p>
+        </div>
+
+        <!-- Net Balance -->
+        <div class="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border-2 border-purple-200 shadow-sm">
+            <p class="text-sm font-bold text-purple-700 flex items-center gap-2 mb-2">
+                <span class="text-xl">⚖️</span>
+                <span>Net Balance</span>
+            </p>
+            <p class="text-3xl font-black {{ $netBalance > 0 ? 'text-green-600' : ($netBalance < 0 ? 'text-red-600' : 'text-gray-600') }}">
+                {{ $netBalance > 0 ? '✓ +' : ($netBalance < 0 ? '✗ ' : '') }}${{ number_format(abs($netBalance), 2) }}
+            </p>
+            <p class="text-xs text-gray-600 mt-1">
+                {{ $netBalance > 0 ? 'you will receive' : ($netBalance < 0 ? 'you will owe' : 'settled') }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Settlement Breakdown -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="px-4 sm:px-6 py-6 border-b-2 border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <span class="text-3xl">💳</span>
+                <span>Who Owes What</span>
+            </h2>
+        </div>
+
+        <div class="divide-y divide-gray-200">
+            @foreach($settlement as $item)
+                @php
+                    $isOwed = $item['net_amount'] > 0;
+                    $finalAmount = $isOwed ? ($item['amount'] - $item['advance']) : $item['amount'];
+                @endphp
+                <div class="p-6 hover:bg-gray-50 transition-all">
+                    <div class="flex items-center justify-between gap-4 flex-wrap">
+                        <!-- Person Info -->
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 rounded-full {{ $isOwed ? 'bg-gradient-to-br from-red-400 to-pink-400' : 'bg-gradient-to-br from-green-400 to-emerald-400' }} flex items-center justify-center flex-shrink-0">
+                                <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900 text-lg">{{ $item['user']->name }}</p>
+                                <p class="text-sm text-gray-600">
+                                    @if($isOwed)
+                                        You owe them
+                                    @else
+                                        They owe you
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Amount -->
+                        <div class="text-right">
+                            <!-- Final Amount -->
+                            <p class="text-3xl font-black {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
+                                ${{ number_format($finalAmount, 2) }}
+                            </p>
+
+                            <!-- Advance Details -->
+                            @if($item['advance'] > 0)
+                                <div class="mt-2 space-y-1">
+                                    <p class="text-xs {{ $isOwed ? 'text-red-600' : 'text-green-600' }} font-semibold">
+                                        💰 Advance: -${{ number_format($item['advance'], 2) }}
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        Original: ${{ number_format($item['amount'], 2) }}
+                                    </p>
+                                </div>
+                            @endif
+
+                            <!-- Status Badge -->
+                            <span class="inline-block mt-2 px-3 py-1 {{ $isOwed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800' }} text-xs font-bold rounded-full">
+                                {{ $isOwed ? '😬 You Owe' : '🤑 They Owe' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @else
+        <!-- No Settlement -->
+        <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+            <p class="text-6xl mb-4">✨</p>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">All Settled!</h2>
+            <p class="text-gray-600">You have no outstanding balances in {{ $group->name }}.</p>
         </div>
     @endif
 
