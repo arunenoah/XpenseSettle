@@ -239,21 +239,11 @@ class PaymentController extends Controller
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
             if ($data['net_amount'] != 0) {
-                // Calculate advance amount for this person
-                $advanceAmount = 0;
-                foreach ($advances as $advance) {
-                    if ($advance->senders->contains('id', $user->id) && $advance->sent_to_user_id === $personId) {
-                        $advanceAmount = $advance->amount_per_person;
-                        break;
-                    }
-                }
-
                 $settlements[] = [
                     'user' => $data['user'],
-                    'amount' => abs($data['net_amount']),
+                    'amount' => abs($data['net_amount']),  // Final amount after all calculations including advances
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
-                    'advance' => $advanceAmount,  // Amount of advance sent to this person
                     'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
                 ];
             }
