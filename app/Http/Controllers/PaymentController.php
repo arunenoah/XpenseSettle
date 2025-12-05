@@ -86,6 +86,16 @@ class PaymentController extends Controller
     }
 
     /**
+     * Mark a payment as paid (entry point for Payment model binding).
+     */
+    public function markPayment(Request $request, Payment $payment)
+    {
+        // Get the split from the payment
+        $split = $payment->split;
+        return $this->markPaid($request, $split);
+    }
+
+    /**
      * Mark a payment as paid.
      */
     public function markPaid(Request $request, ExpenseSplit $split)
