@@ -138,7 +138,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'paid_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
-            'receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf,gif|max:10240',
+            'receipt' => 'nullable|file|mimes:jpg,jpeg,png|max:50',
         ]);
 
         try {
