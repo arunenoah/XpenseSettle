@@ -205,31 +205,33 @@
                                             @else
                                                 @php
                                                     $amount = 0;
-                                                    $isDebt = false; // true if toUser owes fromUser
+                                                    $color = 'gray'; // 'red' if fromUser owes toUser, 'green' if toUser owes fromUser
 
-                                                    // Check if fromUser owes toUser
+                                                    // Check if fromUser owes toUser (Row owes Column)
                                                     if (isset($overallSettlement[$fromUser->id]['owes'][$toUser->id])) {
                                                         $amount = $overallSettlement[$fromUser->id]['owes'][$toUser->id]['amount'];
-                                                        $isDebt = false;
+                                                        $color = 'red'; // Row person owes column person
                                                     }
-                                                    // Check if toUser owes fromUser
+                                                    // Otherwise check if toUser owes fromUser (Column owes Row)
                                                     elseif (isset($overallSettlement[$toUser->id]['owes'][$fromUser->id])) {
                                                         $amount = $overallSettlement[$toUser->id]['owes'][$fromUser->id]['amount'];
-                                                        $isDebt = true; // toUser owes fromUser
+                                                        $color = 'green'; // Column person owes row person
                                                     }
                                                 @endphp
 
                                                 @if($amount > 0)
-                                                    @if($isDebt)
-                                                        <!-- Green: This person owes the row person -->
+                                                    @if($color === 'red')
+                                                        <!-- Red: Row person owes column person -->
+                                                        <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-xs">
+                                                            {{ number_format($amount, 2) }}
+                                                        </span>
+                                                    @elseif($color === 'green')
+                                                        <!-- Green: Column person owes row person -->
                                                         <span class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-xs">
                                                             {{ number_format($amount, 2) }}
                                                         </span>
                                                     @else
-                                                        <!-- Red: Row person owes this person -->
-                                                        <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-xs">
-                                                            {{ number_format($amount, 2) }}
-                                                        </span>
+                                                        <span class="text-gray-400">—</span>
                                                     @endif
                                                 @else
                                                     <span class="text-gray-400">—</span>
