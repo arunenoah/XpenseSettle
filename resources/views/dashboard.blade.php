@@ -12,11 +12,17 @@
             </h1>
             <p class="mt-2 text-gray-600">Let's see who owes you money 💰</p>
         </div>
-        <a href="{{ route('groups.create') }}" class="inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 font-semibold shadow-lg">
+        <!-- Desktop Create Squad Button -->
+        <a href="{{ route('groups.create') }}" class="hidden sm:inline-flex justify-center items-center px-4 py-2 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 font-semibold shadow-lg">
             <span class="text-xl mr-2">➕</span>
             Create Squad
         </a>
     </div>
+
+    <!-- Mobile Floating Action Button for Create Squad -->
+    <a href="{{ route('groups.create') }}" class="fixed bottom-6 right-6 inline-flex justify-center items-center sm:hidden w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-110 font-bold shadow-lg z-40" title="Create Squad">
+        <span class="text-2xl">➕</span>
+    </a>
 
     <!-- Summary Cards - Mobile Optimized -->
     @php
