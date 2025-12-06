@@ -11,7 +11,26 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Security headers middleware
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+
+        // Caching headers middleware
+        $middleware->append(\App\Http\Middleware\CacheHeaders::class);
+
+        // Prevent request during maintenance mode
+        $middleware->preventRequestsDuringMaintenance(
+            skip: [
+                // Add IP addresses that should bypass maintenance mode if needed
+            ]
+        );
+
+        // Trust proxies if behind a reverse proxy (important for production)
+        $middleware->trustProxies(at: [
+            // Add trusted proxy IPs here if needed
+            // '10.0.0.0/8',
+            // '172.16.0.0/12',
+            // '192.168.0.0/16',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
