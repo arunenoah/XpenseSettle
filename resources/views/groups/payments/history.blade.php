@@ -239,6 +239,92 @@
             </div>
         </div>
 
+    <!-- Transaction History Section -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">📜 All Group Transactions</h2>
+        @if(count($transactionHistory) > 0)
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-gray-200">
+                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Date</th>
+                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Type</th>
+                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">From</th>
+                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Description</th>
+                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @foreach($transactionHistory as $transaction)
+                                @php
+                                    $isExpense = $transaction['type'] === 'expense';
+                                @endphp
+                                <tr class="hover:bg-gray-50 transition-all">
+                                    <!-- Date -->
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <span class="text-sm text-gray-600 font-medium">
+                                            {{ $transaction['timestamp']->format('M d, Y') }}
+                                        </span>
+                                        <span class="text-xs text-gray-500 block">
+                                            {{ $transaction['timestamp']->format('h:i A') }}
+                                        </span>
+                                    </td>
+
+                                    <!-- Type Badge -->
+                                    <td class="px-4 sm:px-6 py-4">
+                                        @if($isExpense)
+                                            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
+                                                💰 Expense
+                                            </span>
+                                        @else
+                                            <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
+                                                ✓ Payment
+                                            </span>
+                                        @endif
+                                    </td>
+
+                                    <!-- From -->
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
+                                                <span class="text-sm font-bold text-white">{{ strtoupper(substr($transaction['payer']->name, 0, 1)) }}</span>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-900">{{ $transaction['payer']->name }}</span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Description -->
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <div class="flex flex-col gap-1">
+                                            <p class="text-sm font-semibold text-gray-900">{{ $transaction['title'] }}</p>
+                                            @if(!$isExpense && isset($transaction['recipient']))
+                                                <p class="text-xs text-gray-600">→ to {{ $transaction['recipient']->name }}</p>
+                                            @endif
+                                        </div>
+                                    </td>
+
+                                    <!-- Amount -->
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <p class="text-sm font-bold {{ $isExpense ? 'text-blue-600' : 'text-green-600' }}">
+                                            ${{ number_format($transaction['amount'], 2) }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @else
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-8 text-center border-2 border-purple-200">
+                <p class="text-6xl mb-4">📭</p>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">No Transactions Yet</h2>
+                <p class="text-gray-600">No expenses or payments have been recorded in {{ $group->name }} yet.</p>
+            </div>
+        @endif
+    </div>
+
     <!-- Advances Section -->
     @php
         $advances = \App\Models\Advance::where('group_id', $group->id)
