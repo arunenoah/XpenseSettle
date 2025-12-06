@@ -239,13 +239,13 @@ class PaymentController extends Controller
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
             if ($data['net_amount'] != 0) {
-                // Find the payment ID if this is user owing money to someone
-                $paymentId = null;
+                // Find all payment IDs if this is user owing money to someone
+                $paymentIds = [];
                 if ($data['net_amount'] > 0) {
-                    // User owes this person money - find payment for first expense in the list
-                    if (!empty($data['expenses'][0])) {
-                        $firstExpenseTitle = $data['expenses'][0]['title'];
-                        $expense = Expense::where('title', $firstExpenseTitle)
+                    // User owes this person money - find payments for all expenses in the list
+                    foreach ($data['expenses'] as $expenseData) {
+                        $expenseTitle = $expenseData['title'];
+                        $expense = Expense::where('title', $expenseTitle)
                             ->where('group_id', $group->id)
                             ->first();
 
@@ -256,7 +256,7 @@ class PaymentController extends Controller
                             })->first();
 
                             if ($payment) {
-                                $paymentId = $payment->id;
+                                $paymentIds[] = $payment->id;
                             }
                         }
                     }
@@ -268,7 +268,7 @@ class PaymentController extends Controller
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
                     'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
-                    'payment_id' => $paymentId,  // Payment ID for the first expense in this settlement
+                    'payment_ids' => $paymentIds,  // Payment IDs for all expenses in this settlement
                 ];
             }
         }

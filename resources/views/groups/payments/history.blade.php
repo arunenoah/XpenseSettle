@@ -135,8 +135,8 @@
 
                                 <!-- Action -->
                                 <td class="px-4 sm:px-6 py-4">
-                                    @if($isOwed && isset($item['payment_id']) && $item['payment_id'])
-                                        <button onclick="openPaymentModal('{{ $item['payment_id'] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                    @if($isOwed && isset($item['payment_ids']) && count($item['payment_ids']) > 0)
+                                        <button onclick="openPaymentModal('{{ $item['payment_ids'][0] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
                                             💳 Mark as paid
                                         </button>
                                     @elseif($isOwed)
@@ -354,8 +354,8 @@
 
                                 <!-- Action -->
                                 <td class="px-4 sm:px-6 py-4">
-                                    @if($isOwed && isset($item['payment_id']) && $item['payment_id'])
-                                        <button onclick="openPaymentModal('{{ $item['payment_id'] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                    @if($isOwed && isset($item['payment_ids']) && count($item['payment_ids']) > 0)
+                                        <button onclick="openPaymentModal('{{ $item['payment_ids'][0] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
                                             💳 Mark as paid
                                         </button>
                                     @elseif($isOwed)
