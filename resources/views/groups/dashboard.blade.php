@@ -115,7 +115,8 @@
         </div>
     </div>
 
-    <!-- Quick Analytics -->
+    <!-- Quick Analytics - HIDDEN -->
+    {{--
     <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 rounded-2xl shadow-lg p-4">
         <h2 class="text-lg font-black text-gray-900 mb-3 flex items-center gap-2">
             <span class="text-2xl">📊</span>
@@ -138,6 +139,66 @@
                 <p class="text-xs font-bold text-blue-600 mb-1">📝 Expenses</p>
                 <p class="text-xl font-black text-blue-600">{{ $expenses->count() }}</p>
             </div>
+        </div>
+    </div>
+    --}}
+
+    <!-- Squad Members -->
+    <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
+        <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+            <span class="text-3xl">👥</span>
+            <span>Squad Members</span>
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach($balances as $balance)
+                <div class="bg-white rounded-xl p-5 shadow-md border-2 {{ $balance['net_balance'] >= 0 ? 'border-green-300' : 'border-red-300' }} hover:shadow-xl transition-all transform hover:scale-105">
+                    <div class="flex items-start gap-3 mb-3">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
+                            <span class="text-xl font-black text-white">{{ strtoupper(substr($balance['user']->name, 0, 1)) }}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-lg font-bold text-gray-900 truncate">{{ $balance['user']->name }}</p>
+                            @if($balance['user']->id === auth()->id())
+                                <span class="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">That's You! 👋</span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-gray-600">💸 Paid</span>
+                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_paid'], 2) }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-semibold text-gray-600">💰 Share</span>
+                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_owed'], 2) }}</span>
+                        </div>
+                        @if(isset($memberAdvances[$balance['user']->id]) && $memberAdvances[$balance['user']->id] > 0)
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs font-semibold text-blue-600">🚀 Advanced</span>
+                                <span class="text-sm font-bold text-blue-600">${{ number_format($memberAdvances[$balance['user']->id], 2) }}</span>
+                            </div>
+                        @endif
+                        <div class="pt-2 border-t-2 border-gray-100">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-bold {{ $balance['net_balance'] >= 0 ? 'text-green-700' : 'text-red-700' }}">
+                                    {{ $balance['net_balance'] >= 0 ? '🤑 Gets Back' : '😬 Owes' }}
+                                </span>
+                                <span class="text-xl font-black {{ $balance['net_balance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ $balance['net_balance'] >= 0 ? '+' : '' }}${{ number_format(abs($balance['net_balance']), 2) }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        <div class="mt-6 p-4 bg-white rounded-xl border-2 border-indigo-200 text-center">
+            <p class="text-sm font-semibold text-gray-700">
+                <span class="text-lg">💡</span>
+                <span class="text-green-600">Green</span> = Gets money back •
+                <span class="text-red-600">Red</span> = Needs to pay
+            </p>
         </div>
     </div>
 
@@ -307,65 +368,6 @@
                 <p class="text-sm text-gray-500 mt-1">Use the form above to add an advance</p>
             </div>
         @endif
-    </div>
-
-    <!-- Squad Members -->
-    <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
-        <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-            <span class="text-3xl">👥</span>
-            <span>Squad Members</span>
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            @foreach($balances as $balance)
-                <div class="bg-white rounded-xl p-5 shadow-md border-2 {{ $balance['net_balance'] >= 0 ? 'border-green-300' : 'border-red-300' }} hover:shadow-xl transition-all transform hover:scale-105">
-                    <div class="flex items-start gap-3 mb-3">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
-                            <span class="text-xl font-black text-white">{{ strtoupper(substr($balance['user']->name, 0, 1)) }}</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-lg font-bold text-gray-900 truncate">{{ $balance['user']->name }}</p>
-                            @if($balance['user']->id === auth()->id())
-                                <span class="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">That's You! 👋</span>
-                            @endif
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-gray-600">💸 Paid</span>
-                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_paid'], 2) }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-gray-600">💰 Share</span>
-                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_owed'], 2) }}</span>
-                        </div>
-                        @if(isset($memberAdvances[$balance['user']->id]) && $memberAdvances[$balance['user']->id] > 0)
-                            <div class="flex justify-between items-center">
-                                <span class="text-xs font-semibold text-blue-600">🚀 Advanced</span>
-                                <span class="text-sm font-bold text-blue-600">${{ number_format($memberAdvances[$balance['user']->id], 2) }}</span>
-                            </div>
-                        @endif
-                        <div class="pt-2 border-t-2 border-gray-100">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm font-bold {{ $balance['net_balance'] >= 0 ? 'text-green-700' : 'text-red-700' }}">
-                                    {{ $balance['net_balance'] >= 0 ? '🤑 Gets Back' : '😬 Owes' }}
-                                </span>
-                                <span class="text-xl font-black {{ $balance['net_balance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $balance['net_balance'] >= 0 ? '+' : '' }}${{ number_format(abs($balance['net_balance']), 2) }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-        <div class="mt-6 p-4 bg-white rounded-xl border-2 border-indigo-200 text-center">
-            <p class="text-sm font-semibold text-gray-700">
-                <span class="text-lg">💡</span> 
-                <span class="text-green-600">Green</span> = Gets money back • 
-                <span class="text-red-600">Red</span> = Needs to pay
-            </p>
-        </div>
     </div>
 
     <!-- Payment History -->
