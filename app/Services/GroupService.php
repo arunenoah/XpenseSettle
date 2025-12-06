@@ -151,13 +151,26 @@ class GroupService
                 }
             }
 
-            // Get amount paid by this member (for non-itemwise only)
+            // Get amount paid by this member as payer of expenses (for non-itemwise only)
             if ($totalPaid === 0) {
                 $totalPaid = $member->paidExpenses()
                     ->where('group_id', $group->id)
                     ->where('split_type', '!=', 'itemwise')
                     ->sum('amount');
             }
+
+            // Add amount this member has paid back (marked as paid in Payment records)
+            $paidBackAmount = \App\Models\Payment::whereHas('split', function ($q) use ($member, $group) {
+                $q->where('user_id', $member->id)
+                  ->whereHas('expense', function ($q2) use ($group) {
+                      $q2->where('group_id', $group->id);
+                  });
+            })
+            ->where('status', 'paid')
+            ->join('expense_splits', 'payments.split_id', '=', 'expense_splits.id')
+            ->sum('expense_splits.share_amount');
+
+            $totalPaid += $paidBackAmount;
 
             $balances[$member->id] = [
                 'user' => $member,
