@@ -135,10 +135,14 @@
 
                                 <!-- Action -->
                                 <td class="px-4 sm:px-6 py-4">
-                                    @if($isOwed)
-                                        <button onclick="openPaymentModal('{{ $item['user']->id }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                    @if($isOwed && isset($item['payment_id']) && $item['payment_id'])
+                                        <button onclick="openPaymentModal('{{ $item['payment_id'] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
                                             💳 Mark as paid
                                         </button>
+                                    @elseif($isOwed)
+                                        <span class="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold cursor-not-allowed" title="No payment record found">
+                                            💳 Unable
+                                        </span>
                                     @else
                                         <span class="text-xs text-gray-500">—</span>
                                     @endif
@@ -350,10 +354,14 @@
 
                                 <!-- Action -->
                                 <td class="px-4 sm:px-6 py-4">
-                                    @if($isOwed)
-                                        <button onclick="openPaymentModal('{{ $item['user']->id }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                    @if($isOwed && isset($item['payment_id']) && $item['payment_id'])
+                                        <button onclick="openPaymentModal('{{ $item['payment_id'] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
                                             💳 Mark as paid
                                         </button>
+                                    @elseif($isOwed)
+                                        <span class="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold cursor-not-allowed" title="No payment record found">
+                                            💳 Unable
+                                        </span>
                                     @else
                                         <span class="text-xs text-gray-500">—</span>
                                     @endif
@@ -476,10 +484,10 @@ function closeImageModal() {
     modal.classList.remove('flex');
 }
 
-function openPaymentModal(userId, userName, amount) {
+function openPaymentModal(paymentId, userName, amount) {
     document.getElementById('paymentUserName').textContent = userName;
     document.getElementById('paymentAmount').textContent = '$' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('paymentForm').action = '/splits/' + userId + '/mark-paid';
+    document.getElementById('paymentForm').action = '/payments/' + paymentId + '/mark-paid';
     document.getElementById('paymentModal').classList.remove('hidden');
     document.getElementById('paymentModal').classList.add('flex');
 }

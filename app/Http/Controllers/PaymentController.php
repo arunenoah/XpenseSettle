@@ -239,12 +239,36 @@ class PaymentController extends Controller
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
             if ($data['net_amount'] != 0) {
+                // Find the payment ID if this is user owing money to someone
+                $paymentId = null;
+                if ($data['net_amount'] > 0) {
+                    // User owes this person money - find payment for first expense in the list
+                    if (!empty($data['expenses'][0])) {
+                        $firstExpenseTitle = $data['expenses'][0]['title'];
+                        $expense = Expense::where('title', $firstExpenseTitle)
+                            ->where('group_id', $group->id)
+                            ->first();
+
+                        if ($expense) {
+                            $payment = Payment::whereHas('split', function ($q) use ($user, $expense) {
+                                $q->where('user_id', $user->id)
+                                  ->where('expense_id', $expense->id);
+                            })->first();
+
+                            if ($payment) {
+                                $paymentId = $payment->id;
+                            }
+                        }
+                    }
+                }
+
                 $settlements[] = [
                     'user' => $data['user'],
                     'amount' => abs($data['net_amount']),  // Final amount after all calculations including advances
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
                     'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
+                    'payment_id' => $paymentId,  // Payment ID for the first expense in this settlement
                 ];
             }
         }
