@@ -115,11 +115,11 @@
                                 <td class="px-4 sm:px-6 py-4">
                                     @if($isOwed)
                                         <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">
-                                            😬 Pending
+                                            😬 Pending Payment
                                         </span>
                                     @else
                                         <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
-                                            ✓ Advance paid
+                                            ✓ They Owe You
                                         </span>
                                     @endif
                                 </td>
