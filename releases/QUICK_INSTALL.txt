@@ -1,0 +1,104 @@
+╔════════════════════════════════════════════════════════════════╗
+║              EXPENSESETTLE - QUICK INSTALL GUIDE              ║
+╚════════════════════════════════════════════════════════════════╝
+
+WHAT IS THIS?
+─────────────
+This is the ExpenseSettle Android app - an expense sharing app.
+Download it to test on your phone!
+
+
+INSTALLATION - PICK ONE METHOD
+───────────────────────────────
+
+METHOD 1: Using ADB (Computer + USB Cable - FASTEST)
+──────────────────────────────────────────────────────
+1. Connect phone to Mac/Windows computer via USB
+2. Enable USB Debugging on phone:
+   - Settings > Developer Options > USB Debugging (turn ON)
+   - Tap "Allow" for USB debugging permission
+3. On computer, open terminal and run:
+
+   adb devices              (to verify phone is connected)
+   adb install ExpenseSettle-v1.0.0-debug.apk
+
+4. Done! Open the app on your phone
+
+
+METHOD 2: Manual Download (NO COMPUTER NEEDED - EASIEST)
+─────────────────────────────────────────────────────────
+1. Share this folder with your phone (email, cloud, USB, etc.)
+2. Download ExpenseSettle-v1.0.0-debug.apk on your phone
+3. Open Downloads folder on phone
+4. Tap the APK file
+5. If asked: allow installation from unknown sources
+   - Settings > Apps > Special app access > Install unknown apps
+   - Toggle ON your file manager
+6. Tap "Install"
+7. Done!
+
+
+LAUNCH THE APP
+───────────────
+1. Find "ExpenseSettle" in your app drawer
+2. Tap to open
+3. Wait 2-5 seconds to load
+4. Your expense sharing app loads! 🎉
+
+
+WHAT TO EXPECT
+───────────────
+✅ App loads fast (2-5 seconds)
+✅ Dashboard shows your expense data
+✅ Can see balances and pending payments
+✅ Can create groups and add expenses
+✅ Works with WiFi or mobile data
+
+
+PROBLEMS?
+──────────
+
+"Installation failed"
+→ Try Method 2 (manual download)
+→ Check phone has 100 MB free storage
+
+"Blank white screen"
+→ Check internet on phone (open Chrome browser)
+→ App needs internet to load
+
+"App won't launch"
+→ Settings > Apps > ExpenseSettle
+→ Grant any requested permissions
+
+"Unrecognized app warning"
+→ This is expected for test/debug APK
+→ Tap "Install anyway"
+
+
+NEED HELP?
+───────────
+Read the full guide: README.md
+
+
+VERSION INFO
+──────────────
+- Name: ExpenseSettle
+- Version: 1.0.0 (Debug)
+- File: ExpenseSettle-v1.0.0-debug.apk
+- Size: ~7 MB
+- Platform: Android only (for now)
+
+
+SHARE YOUR FEEDBACK!
+─────────────────────
+After testing:
+- Does app load properly?
+- Is it fast enough?
+- What features work?
+- Any bugs or issues?
+
+Tell the developer! 🚀
+
+
+═══════════════════════════════════════════════════════════════════
+Ready? Pick a method above and start testing!
