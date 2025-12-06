@@ -392,15 +392,16 @@ function openBreakdownModal(personName, itemData) {
     }
 
     // Show advance if any
-    if (itemData.advance > 0) {
+    const advance = itemData.advance || 0;
+    if (advance > 0) {
         html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
                     <span class="text-gray-700 font-semibold">💰 Advance paid</span>
-                    <span class="font-bold text-blue-600">-$${parseFloat(itemData.advance).toFixed(2)}</span>
+                    <span class="font-bold text-blue-600">-$${parseFloat(advance).toFixed(2)}</span>
                  </div>`;
     }
 
     // Show final balance calculation
-    const finalAmount = theySpentForMe - iSpentForThem - itemData.advance;
+    const finalAmount = theySpentForMe - iSpentForThem - advance;
     const finalLabel = finalAmount > 0 ? `You owe ${personName}` : `${personName} owes you`;
     const finalColor = finalAmount > 0 ? 'text-red-600' : 'text-green-600';
 
