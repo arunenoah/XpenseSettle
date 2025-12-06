@@ -5,8 +5,10 @@ const config: CapacitorConfig = {
   appName: 'ExpenseSettle',
   webDir: 'public',
   server: {
+    // Point to your production URL
+    url: 'https://xpensesettle.on-forge.com',
     androidScheme: 'https',
-    cleartext: true, // Allow local development
+    cleartext: false, // Production only uses HTTPS
   },
   ios: {
     scheme: 'ExpenseSettle',
