@@ -173,9 +173,8 @@
                         <div class="mt-3 flex items-center justify-between">
                             @if($item['status'] === 'pending')
                                 <span class="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
-                                <!-- DEBUG: net_amount={{ $item['net_amount'] }}, payment_ids_count={{ count($item['payment_ids'] ?? []) }} -->
-                                @if($item['net_amount'] > 0 && count($item['payment_ids'] ?? []) > 0)
-                                    <button onclick="openGroupPaymentModal({{ $item['payment_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
+                                @if($item['net_amount'] > 0 && isset($item['split_ids']) && count($item['split_ids']) > 0)
+                                    <button onclick="openGroupPaymentModal({{ $item['split_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
                                             class="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs">
                                         ✓ Mark Paid
                                     </button>
@@ -690,10 +689,10 @@
 </div>
 
 <script>
-function openGroupPaymentModal(paymentId, payeeName, amount, expenseTitle) {
+function openGroupPaymentModal(splitId, payeeName, amount, expenseTitle) {
     document.getElementById('groupPayeeName').textContent = payeeName;
     document.getElementById('groupPaymentAmount').textContent = '$' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('groupPaymentForm').action = '/payments/' + paymentId + '/mark-paid';
+    document.getElementById('groupPaymentForm').action = '/splits/' + splitId + '/mark-paid';
     document.getElementById('groupPaymentModal').classList.remove('hidden');
     document.getElementById('groupPaymentModal').classList.add('flex');
 }

@@ -239,10 +239,10 @@ class PaymentController extends Controller
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
             if ($data['net_amount'] != 0) {
-                // Find all payment IDs if this is user owing money to someone
-                $paymentIds = [];
+                // Find all split IDs if this is user owing money to someone
+                $splitIds = [];
                 if ($data['net_amount'] > 0) {
-                    // User owes this person money - find payments for all expenses in the list
+                    // User owes this person money - find splits for all expenses in the list
                     foreach ($data['expenses'] as $expenseData) {
                         $expenseTitle = $expenseData['title'];
                         $expense = Expense::where('title', $expenseTitle)
@@ -250,13 +250,12 @@ class PaymentController extends Controller
                             ->first();
 
                         if ($expense) {
-                            $payment = Payment::whereHas('split', function ($q) use ($user, $expense) {
-                                $q->where('user_id', $user->id)
-                                  ->where('expense_id', $expense->id);
-                            })->first();
+                            $split = ExpenseSplit::where('expense_id', $expense->id)
+                                ->where('user_id', $user->id)
+                                ->first();
 
-                            if ($payment) {
-                                $paymentIds[] = $payment->id;
+                            if ($split) {
+                                $splitIds[] = $split->id;
                             }
                         }
                     }
@@ -268,7 +267,7 @@ class PaymentController extends Controller
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
                     'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
-                    'payment_ids' => $paymentIds,  // Payment IDs for all expenses in this settlement
+                    'split_ids' => $splitIds,  // Split IDs for all expenses in this settlement (used for marking as paid)
                 ];
             }
         }
