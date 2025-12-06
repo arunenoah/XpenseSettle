@@ -87,6 +87,40 @@
         @endif
     </div>
 
+    <!-- Extracted Line Items (OCR) -->
+    @if($expense->items->count() > 0)
+        <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">📦 Line Items (from Receipt)</h2>
+
+            <div class="space-y-3">
+                @foreach($expense->items as $item)
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-900">{{ $item->name }}</p>
+                            <p class="text-sm text-gray-600 mt-1">
+                                Qty: {{ $item->quantity }} × {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($item->unit_price, 2) }}
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold text-blue-600">
+                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($item->total_price, 2) }}
+                            </div>
+                            @if($item->user_id)
+                                <p class="text-xs text-gray-600 mt-2 font-semibold">
+                                    👤 {{ $item->assignedTo->name ?? 'Unknown' }}
+                                </p>
+                            @else
+                                <p class="text-xs text-orange-600 mt-2 font-semibold">
+                                    ⚠️ Not assigned
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <!-- Expense Splits -->
     <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8 mb-6">
         <h2 class="text-xl font-bold text-gray-900 mb-4">Who Pays What</h2>

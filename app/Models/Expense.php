@@ -58,4 +58,12 @@ class Expense extends Model
     {
         return $this->morphMany(Attachment::class, 'attachable');
     }
+
+    /**
+     * Get line items from receipt for this expense.
+     */
+    public function items()
+    {
+        return $this->hasMany(ExpenseItem::class);
+    }
 }
