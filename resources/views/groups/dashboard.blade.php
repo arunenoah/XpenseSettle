@@ -370,239 +370,156 @@
         @endif
     </div>
 
-    <!-- Payment History -->
-    <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200 px-6 py-4">
-            <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
-                <span class="text-3xl">📋</span>
-                <span>Payment History</span>
-            </h2>
-        </div>
 
-        @if($payments->count() > 0)
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
-                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
-                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-700">Person</th>
-                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-700">Amount</th>
-                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
-                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-700">Date</th>
-                            <th class="px-6 py-4 text-left text-sm font-bold text-gray-700">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @foreach($payments as $payment)
-                            <tr class="hover:bg-gray-50 transition-all">
-                                <!-- Expense Title -->
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col">
-                                        <p class="font-semibold text-gray-900">{{ $payment->split->expense->title }}</p>
-                                        <p class="text-xs text-gray-500">ID: {{ $payment->id }}</p>
-                                    </div>
-                                </td>
-
-                                <!-- Person -->
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
-                                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($payment->split->user->name, 0, 1)) }}</span>
-                                        </div>
-                                        <span class="text-sm font-medium text-gray-900">{{ $payment->split->user->name }}</span>
-                                    </div>
-                                </td>
-
-                                <!-- Amount -->
-                                <td class="px-6 py-4">
-                                    <p class="font-bold text-gray-900">${{ number_format($payment->split->share_amount, 2) }}</p>
-                                </td>
-
-                                <!-- Status Badge -->
-                                <td class="px-6 py-4">
-                                    @if($payment->status === 'pending')
-                                        <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">⏳ Pending</span>
-                                    @elseif($payment->status === 'paid')
-                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">✓ Paid</span>
-                                    @elseif($payment->status === 'approved')
-                                        <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">✓ Approved</span>
-                                    @elseif($payment->status === 'rejected')
-                                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">✗ Rejected</span>
-                                    @endif
-                                </td>
-
-                                <!-- Date -->
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col">
-                                        @if($payment->paid_date)
-                                            <p class="text-sm text-gray-900 font-medium">{{ $payment->paid_date->format('M d, Y') }}</p>
-                                        @else
-                                            <p class="text-sm text-gray-500 italic">—</p>
-                                        @endif
-                                        <p class="text-xs text-gray-500">{{ $payment->created_at->diffForHumans() }}</p>
-                                    </div>
-                                </td>
-
-                                <!-- Actions -->
-                                <td class="px-6 py-4">
-                                    @if($payment->attachments->count() > 0)
-                                        <button onclick="toggleAttachments({{ $payment->id }})" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
-                                            📎 {{ $payment->attachments->count() }}
-                                        </button>
-                                    @else
-                                        <span class="text-xs text-gray-500">No attachments</span>
-                                    @endif
-                                </td>
-                            </tr>
-
-                            <!-- Attachments Row -->
-                            @if($payment->attachments->count() > 0)
-                                <tr id="attachments-{{ $payment->id }}" class="hidden bg-blue-50">
-                                    <td colspan="6" class="px-6 py-4">
-                                        <div class="space-y-2">
-                                            <h4 class="font-bold text-gray-900 mb-3">📎 Attachments:</h4>
-                                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                @foreach($payment->attachments as $attachment)
-                                                    <div class="bg-white rounded-lg p-3 border-2 border-blue-200">
-                                                        <div class="flex items-start gap-2">
-                                                            @if(str_contains($attachment->mime_type, 'image'))
-                                                                <img src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}" alt="Attachment" class="w-20 h-20 object-cover rounded cursor-pointer hover:opacity-75 transition-opacity" onclick="openImageModal('{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}', '{{ addslashes($attachment->file_name) }}')">
-                                                            @else
-                                                                <div class="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
-                                                                    <span class="text-2xl">📄</span>
-                                                                </div>
-                                                            @endif
-                                                            <div class="flex-1">
-                                                                <p class="text-sm font-semibold text-gray-900 truncate">{{ $attachment->file_name }}</p>
-                                                                <p class="text-xs text-gray-500">{{ $attachment->file_size_kb }} KB</p>
-                                                                <p class="text-xs text-gray-500">{{ $attachment->created_at->format('M d, Y') }}</p>
-                                                                <a href="{{ route('attachments.download', ['attachment' => $attachment->id]) }}" target="_blank" class="text-xs text-blue-600 hover:text-blue-700 font-bold mt-1 inline-block">
-                                                                    Download →
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endif
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 text-center">
-                <a href="{{ route('groups.payments.history', $group) }}" class="text-sm font-bold text-blue-600 hover:text-blue-700">
-                    View All Payments →
-                </a>
-            </div>
-        @else
-            <div class="px-6 py-8 text-center">
-                <div class="text-4xl mb-3">📭</div>
-                <p class="text-gray-600 font-semibold">No payments yet</p>
-            </div>
-        @endif
-    </div>
-
-    <!-- Advances Section -->
-    @php
-        $groupAdvances = \App\Models\Advance::where('group_id', $group->id)
-            ->with('senders', 'sentTo')
-            ->latest()
-            ->limit(5)
-            ->get();
-    @endphp
-
-    @if($groupAdvances->count() > 0)
-        <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 rounded-2xl shadow-lg p-6">
-            <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-                <span class="text-3xl">💰</span>
-                <span>Recent Advances</span>
-            </h2>
-
-            <div class="space-y-3">
-                @foreach($groupAdvances as $advance)
-                    <div class="bg-white rounded-xl p-4 border-2 border-cyan-200 shadow-sm">
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="flex items-start gap-3 flex-1">
-                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center flex-shrink-0 mt-1">
-                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($advance->sentTo->name, 0, 1)) }}</span>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="font-bold text-gray-900">Advanced to {{ $advance->sentTo->name }}</p>
-                                    <p class="text-xs text-gray-600 mt-1">
-                                        Paid by: <span class="font-semibold">{{ $advance->senders->pluck('name')->join(', ') }}</span>
-                                    </p>
-                                    <p class="text-xs text-gray-500 mt-1">{{ $advance->created_at->format('M d, Y') }}</p>
-                                </div>
-                            </div>
-                            <div class="text-right flex-shrink-0">
-                                <p class="text-xl font-bold text-cyan-600">${{ number_format($advance->amount_per_person, 2) }}</p>
-                                <p class="text-xs text-gray-500 mt-1">per person</p>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <div class="mt-4 text-center">
-                <a href="{{ route('groups.payments.history', $group) }}" class="text-sm font-bold text-cyan-600 hover:text-cyan-700">
-                    View All Advances →
-                </a>
-            </div>
-        </div>
-    @endif
-
-    <!-- Recent Expenses -->
+    <!-- Recent Activity (Expenses, Payments, Advances) -->
     <div class="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl shadow-lg p-6">
         <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
             <span class="text-3xl">📜</span>
             <span>Recent Activity</span>
         </h2>
-        @if(count($expenses) > 0)
+        @php
+            // Combine expenses, payments, and advances into one array for chronological display
+            $allActivities = [];
+
+            // Add expenses
+            foreach ($expenses as $expense) {
+                $allActivities[] = [
+                    'type' => 'expense',
+                    'timestamp' => $expense->created_at,
+                    'data' => $expense
+                ];
+            }
+
+            // Add payments
+            foreach ($recentPayments as $payment) {
+                $allActivities[] = [
+                    'type' => 'payment',
+                    'timestamp' => $payment->created_at,
+                    'data' => $payment
+                ];
+            }
+
+            // Add advances
+            foreach ($recentAdvances as $advance) {
+                $allActivities[] = [
+                    'type' => 'advance',
+                    'timestamp' => $advance->created_at,
+                    'data' => $advance
+                ];
+            }
+
+            // Sort by timestamp descending (newest first)
+            usort($allActivities, function($a, $b) {
+                return $b['timestamp']->timestamp <=> $a['timestamp']->timestamp;
+            });
+        @endphp
+
+        @if(count($allActivities) > 0)
             <div class="space-y-3 overflow-y-auto max-h-screen pr-2" style="max-height: 600px;">
-                @foreach($expenses as $expense)
-                    <div class="bg-white p-5 rounded-xl border-2 border-orange-200 hover:shadow-lg hover:border-orange-400 transition-all transform hover:scale-102">
-                        <div class="flex items-start justify-between gap-3 mb-3">
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
-                                    <span>💰</span>
-                                    {{ $expense->title }}
-                                </h3>
-                                <div class="flex items-center gap-2 mt-2">
-                                    <span class="text-sm font-semibold text-gray-700">
-                                        👤 {{ $expense->payer->name }} paid
-                                    </span>
-                                    <span class="text-gray-400">•</span>
-                                    <span class="text-xs font-semibold text-gray-500">
-                                        👥 {{ $expense->splits->count() }} people
+                @foreach($allActivities as $activity)
+                    @if($activity['type'] === 'expense')
+                        @php $expense = $activity['data']; @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 border-orange-200 hover:shadow-lg hover:border-orange-400 transition-all transform hover:scale-102">
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
+                                        <span>💰</span>
+                                        {{ $expense->title }}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <span class="text-sm font-semibold text-gray-700">
+                                            👤 {{ $expense->payer->name }} paid
+                                        </span>
+                                        <span class="text-gray-400">•</span>
+                                        <span class="text-xs font-semibold text-gray-500">
+                                            👥 {{ $expense->splits->count() }} people
+                                        </span>
+                                    </div>
+                                    <p class="text-xs font-semibold text-gray-500 mt-1">
+                                        📅 {{ $expense->date->format('M d, Y') }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0 text-right">
+                                    <p class="text-2xl font-black text-orange-600">${{ number_format($expense->amount, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 text-xs font-bold rounded-full">
+                                        {{ ucfirst(str_replace('_', ' ', $expense->split_type)) }} split
                                     </span>
                                 </div>
-                                <p class="text-xs font-semibold text-gray-500 mt-1">
-                                    📅 {{ $expense->date->format('M d, Y') }}
-                                </p>
                             </div>
-                            <div class="flex-shrink-0 text-right">
-                                <p class="text-2xl font-black text-orange-600">${{ number_format($expense->amount, 2) }}</p>
-                                <span class="inline-block mt-1 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 text-xs font-bold rounded-full">
-                                    {{ ucfirst(str_replace('_', ' ', $expense->split_type)) }} split
-                                </span>
+                            @if($expense->description)
+                                <div class="pt-3 border-t border-gray-200">
+                                    <p class="text-sm text-gray-600 italic">💬 "{{ $expense->description }}"</p>
+                                </div>
+                            @endif
+                        </div>
+                    @elseif($activity['type'] === 'payment')
+                        @php $payment = $activity['data']; @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 border-green-200 hover:shadow-lg hover:border-green-400 transition-all transform hover:scale-102">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
+                                        <span>✓</span>
+                                        {{ $payment->split->expense->title }}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <span class="text-sm font-semibold text-gray-700">
+                                            👤 {{ $payment->split->user->name }} paid
+                                        </span>
+                                        <span class="text-gray-400">→</span>
+                                        <span class="text-sm font-semibold text-gray-700">
+                                            {{ $payment->split->expense->payer->name }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs font-semibold text-gray-500 mt-1">
+                                        📅 {{ $payment->paid_date->format('M d, Y') ?? $payment->created_at->format('M d, Y') }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0 text-right">
+                                    <p class="text-2xl font-black text-green-600">${{ number_format($payment->split->share_amount, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                                        💳 Paid
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        @if($expense->description)
-                            <div class="pt-3 border-t border-gray-200">
-                                <p class="text-sm text-gray-600 italic">💬 "{{ $expense->description }}"</p>
+                    @elseif($activity['type'] === 'advance')
+                        @php $advance = $activity['data']; @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 border-cyan-200 hover:shadow-lg hover:border-cyan-400 transition-all transform hover:scale-102">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
+                                        <span>💰</span>
+                                        Advance to {{ $advance->sentTo->name }}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <span class="text-sm font-semibold text-gray-700">
+                                            Paid by: {{ $advance->senders->pluck('name')->join(', ') }}
+                                        </span>
+                                    </div>
+                                    <p class="text-xs font-semibold text-gray-500 mt-1">
+                                        📅 {{ $advance->date->format('M d, Y') }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0 text-right">
+                                    <p class="text-2xl font-black text-cyan-600">${{ number_format($advance->amount_per_person, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">
+                                        🚀 Advance
+                                    </span>
+                                </div>
                             </div>
-                        @endif
-                    </div>
+                            @if($advance->description)
+                                <div class="pt-3 border-t border-gray-200">
+                                    <p class="text-sm text-gray-600 italic">💬 "{{ $advance->description }}"</p>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 @endforeach
             </div>
         @else
             <div class="bg-white rounded-xl p-8 text-center border-2 border-dashed border-orange-300">
                 <div class="text-6xl mb-4">🤷</div>
-                <p class="text-lg font-bold text-gray-700 mb-2">No expenses yet!</p>
+                <p class="text-lg font-bold text-gray-700 mb-2">No activity yet!</p>
                 <p class="text-sm text-gray-600">Click "Add Expense" to get started 🚀</p>
             </div>
         @endif

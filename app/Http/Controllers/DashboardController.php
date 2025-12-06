@@ -207,16 +207,11 @@ class DashboardController extends Controller
         // Calculate advance amounts for each member
         $memberAdvances = $this->calculateMemberAdvances($group);
 
-        // Get payment history for this group - only show payments where current user is the split user (person who owes)
-        $payments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
+        // Get recent paid payments for this group (for recent activity)
+        $recentPayments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
             $q->where('group_id', $group->id);
         })
-            ->whereHas('split', function ($q) use ($user) {
-                // Show only payments for splits belonging to current user
-                $q->where('user_id', $user->id)
-                // Exclude payments where the split user is the same as the expense payer (self-payment)
-                ->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)');
-            })
+            ->where('status', 'paid')
             ->with([
                 'split.user',
                 'split.expense.payer',
@@ -224,6 +219,13 @@ class DashboardController extends Controller
                 'paidBy',
                 'attachments'
             ])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        // Get recent advances for this group (for recent activity)
+        $recentAdvances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
             ->latest()
             ->limit(10)
             ->get();
@@ -236,7 +238,8 @@ class DashboardController extends Controller
             'pendingPayments' => $pendingPayments,
             'settlement' => $settlement,
             'memberAdvances' => $memberAdvances,
-            'payments' => $payments,
+            'recentPayments' => $recentPayments,
+            'recentAdvances' => $recentAdvances,
         ]);
     }
 
