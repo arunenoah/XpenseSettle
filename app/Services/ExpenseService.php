@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Expense;
+use App\Models\ExpenseItem;
 use App\Models\ExpenseSplit;
 use App\Models\Group;
 use App\Models\User;
@@ -197,8 +198,43 @@ class ExpenseService
         $expense->splits()->delete();
         $expense->comments()->delete();
         $expense->attachments()->delete();
+        $expense->items()->delete();
 
         return $expense->delete();
+    }
+
+    /**
+     * Create expense items from OCR extraction.
+     *
+     * @param Expense $expense
+     * @param string $itemsJson JSON string of items
+     */
+    public function createExpenseItems(Expense $expense, string $itemsJson): void
+    {
+        try {
+            $items = json_decode($itemsJson, true);
+
+            if (empty($items) || !is_array($items)) {
+                return;
+            }
+
+            foreach ($items as $item) {
+                ExpenseItem::create([
+                    'expense_id' => $expense->id,
+                    'user_id' => $item['assigned_to'] ?? null,
+                    'name' => $item['name'] ?? '',
+                    'quantity' => $item['quantity'] ?? 1,
+                    'unit_price' => $item['unit_price'] ?? 0,
+                    'total_price' => $item['total_price'] ?? 0,
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log the error but don't fail the expense creation
+            \Log::warning('Failed to create expense items from OCR', [
+                'expense_id' => $expense->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

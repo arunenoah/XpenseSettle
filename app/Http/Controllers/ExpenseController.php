@@ -52,6 +52,7 @@ class ExpenseController extends Controller
             'splits.*' => 'nullable|numeric|min:0',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|mimes:png,jpeg,jpg,pdf|max:5120',
+            'items_json' => 'nullable|json',
         ]);
 
         try {
@@ -68,6 +69,11 @@ class ExpenseController extends Controller
                 auth()->user(),
                 $validated
             );
+
+            // Handle OCR extracted items if provided
+            if (!empty($validated['items_json'])) {
+                $this->expenseService->createExpenseItems($expense, $validated['items_json']);
+            }
 
             // Handle attachments if uploaded
             if ($request->hasFile('attachments')) {
@@ -112,7 +118,7 @@ class ExpenseController extends Controller
         }
 
         // Load relationships
-        $expense->load('payer', 'splits.user', 'comments.user', 'attachments');
+        $expense->load('payer', 'splits.user', 'comments.user', 'attachments', 'items.assignedTo');
 
         // Calculate settlement
         $settlement = $this->expenseService->getExpenseSettlement($expense);
