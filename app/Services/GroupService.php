@@ -167,7 +167,7 @@ class GroupService
                   });
             })
             ->where('status', 'paid')
-            ->join('expense_splits', 'payments.split_id', '=', 'expense_splits.id')
+            ->join('expense_splits', 'payments.expense_split_id', '=', 'expense_splits.id')
             ->sum('expense_splits.share_amount');
 
             $totalPaid += $paidBackAmount;
