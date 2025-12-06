@@ -3,144 +3,95 @@
 @section('title', $group->name)
 
 @section('content')
-<div class="w-full px-4 sm:px-6 lg:px-8">
-    <div class="space-y-6 sm:space-y-8">
-        <!-- Navigation Menu -->
-        <div class="bg-white rounded-xl shadow-md p-2 flex gap-2 overflow-x-auto">
-        <!-- Dashboard -->
-        <a href="{{ route('groups.dashboard', $group) }}" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold whitespace-nowrap text-base shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all" title="Dashboard">
-            <span class="text-xl">📊</span>
-            <span class="hidden sm:inline">Dashboard</span>
-        </a>
-        <!-- Members -->
-        <a href="{{ route('groups.members', $group) }}" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="Members">
-            <span class="text-xl">👥</span>
-            <span class="hidden sm:inline">Members</span>
-        </a>
-        <!-- Payment History -->
-        <a href="{{ route('groups.payments.history', $group) }}" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="Payment History">
-            <span class="text-xl">📜</span>
-            <span class="hidden sm:inline">History</span>
-        </a>
-        <!-- Expenses Modal -->
-        <a href="#" onclick="showExpensesModal(); return false;" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="All Expenses">
-            <span class="text-xl">📋</span>
-            <span class="hidden sm:inline">Expenses</span>
-        </a>
-        <!-- Settings (Admin Only) -->
-        @if($group->isAdmin(auth()->user()))
-            <a href="{{ route('groups.edit', $group) }}" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="Settings">
-                <span class="text-xl">⚙️</span>
-                <span class="hidden sm:inline">Settings</span>
-            </a>
-        @endif
-    </div>
-
-    <!-- Header -->
-    <div class="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 rounded-3xl shadow-xl p-4 sm:p-8">
-        <div class="flex flex-col gap-4">
-            <!-- Group Title Row -->
-            <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <span class="text-4xl sm:text-6xl flex-shrink-0">{{ $group->icon ?? '🎉' }}</span>
-                    <div class="flex-1 min-w-0">
-                        <h1 class="text-2xl sm:text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent truncate">{{ $group->name }}</h1>
+<div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
+    <!-- Header Section -->
+    <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto">
+            <!-- Group Title -->
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-5xl">{{ $group->icon ?? '👥' }}</span>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">{{ $group->name }}</h1>
                         @if($group->description)
-                            <p class="mt-1 text-gray-700 font-medium text-sm truncate">{{ $group->description }}</p>
+                            <p class="text-gray-600 mt-1">{{ $group->description }}</p>
                         @endif
                     </div>
                 </div>
 
                 <!-- Desktop Action Buttons -->
-                <div class="hidden sm:flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                    <a href="{{ route('groups.expenses.create', $group) }}" class="inline-flex justify-center items-center px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold shadow-lg text-sm" title="Add Expense">
-                        <span class="text-lg">💸</span>
+                <div class="hidden sm:flex gap-2 flex-shrink-0">
+                    <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
+                        Add Expense
                     </a>
                     @if($group->isAdmin(auth()->user()))
-                        <a href="{{ route('groups.edit', $group) }}" class="inline-flex justify-center items-center px-3 py-2 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-lg hover:from-orange-500 hover:to-pink-500 transition-all font-bold shadow-lg text-sm" title="Edit Group">
-                            <span class="text-lg">✏️</span>
-                        </a>
-                        <a href="{{ route('groups.members', $group) }}" class="inline-flex justify-center items-center px-3 py-2 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-lg hover:from-blue-500 hover:to-cyan-500 transition-all font-bold shadow-lg text-sm" title="Manage Members">
-                            <span class="text-lg">👥</span>
+                        <a href="{{ route('groups.edit', $group) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold text-sm">
+                            Settings
                         </a>
                     @endif
                 </div>
             </div>
 
-            <!-- Group Info Row -->
-            <div class="flex items-center gap-2 flex-wrap">
-                <span class="px-3 py-1 bg-white rounded-full text-xs sm:text-sm font-bold text-purple-600 shadow-sm">
-                    💰 {{ $group->currency }}
-                </span>
-
-                <!-- Member Avatars -->
-                <div class="flex items-center gap-1">
-                    <span class="text-xs font-semibold text-gray-700 mr-2">Members:</span>
+            <!-- Member Avatars and Info -->
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-semibold text-gray-600 uppercase">{{ $group->members->count() }} Members</span>
+                <div class="flex items-center gap-2">
                     @foreach($group->members->take(5) as $member)
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $member->name }}">
-                            <span class="text-xs font-bold text-white">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $member->name }}">
+                            <span class="text-xs font-bold text-blue-700">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
                         </div>
                     @endforeach
                     @if($group->members->count() > 5)
-                        <span class="text-xs font-bold text-gray-700 ml-1">+{{ $group->members->count() - 5 }}</span>
+                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $group->members->count() - 5 }}</span>
                     @endif
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Mobile Floating Action Buttons -->
-    <div class="fixed bottom-6 right-6 flex flex-col gap-3 sm:hidden z-40">
-        <a href="{{ route('groups.expenses.create', $group) }}" class="inline-flex justify-center items-center w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full hover:from-green-600 hover:to-emerald-600 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Expense">
-            <span class="text-2xl">💸</span>
-        </a>
-        @if($group->isAdmin(auth()->user()))
-            <a href="{{ route('groups.edit', $group) }}" class="inline-flex justify-center items-center w-12 h-12 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-full hover:from-orange-500 hover:to-pink-500 transition-all transform hover:scale-110 font-bold shadow-lg text-sm" title="Edit Group">
-                <span class="text-lg">✏️</span>
-            </a>
-            <a href="{{ route('groups.members', $group) }}" class="inline-flex justify-center items-center w-12 h-12 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-full hover:from-blue-500 hover:to-cyan-500 transition-all transform hover:scale-110 font-bold shadow-lg text-sm" title="Manage Members">
-                <span class="text-lg">👥</span>
-            </a>
-        @endif
-    </div>
-
-    <!-- User's Balance Card -->
-    <div class="bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 rounded-2xl shadow-lg p-6">
-        <h2 class="text-xl sm:text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-            <span class="text-3xl">💰</span>
-            <span>Your Money Situation</span>
-        </h2>
-        @php
-            $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
-            $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
-            $netBalance = $totalOwe - $totalOwed;
-        @endphp
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div class="bg-white rounded-xl p-4 shadow-md border-2 border-red-200">
-                <p class="text-sm font-bold text-red-700 flex items-center gap-2 mb-2">
-                    <span class="text-xl">😬</span>
-                    <span>You Owe</span>
-                </p>
-                <p class="text-3xl sm:text-4xl font-black text-red-600">${{ number_format($totalOwed, 2) }}</p>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-md border-2 border-green-200">
-                <p class="text-sm font-bold text-green-700 flex items-center gap-2 mb-2">
-                    <span class="text-xl">🤑</span>
-                    <span>They Owe You</span>
-                </p>
-                <p class="text-3xl sm:text-4xl font-black text-green-600">${{ number_format($totalOwe, 2) }}</p>
-            </div>
-            <div class="bg-white rounded-xl p-4 shadow-md border-2 {{ $netBalance >= 0 ? 'border-green-200' : 'border-orange-200' }}">
-                <p class="text-sm font-bold {{ $netBalance >= 0 ? 'text-green-700' : 'text-orange-700' }} flex items-center gap-2 mb-2">
-                    <span class="text-xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
-                    <span>Net Balance</span>
-                </p>
-                <p class="text-3xl sm:text-4xl font-black {{ $netBalance >= 0 ? 'text-green-600' : 'text-orange-600' }}">
-                    {{ $netBalance >= 0 ? '+' : '' }}${{ number_format($netBalance, 2) }}
-                </p>
-            </div>
+    <!-- Navigation Tabs -->
+    <div class="px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto flex gap-8 overflow-x-auto">
+            <a href="{{ route('groups.dashboard', $group) }}" class="px-2 py-4 border-b-2 border-blue-600 text-blue-600 font-semibold text-sm whitespace-nowrap">Dashboard</a>
+            <a href="{{ route('groups.members', $group) }}" class="px-2 py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-semibold text-sm whitespace-nowrap">Members</a>
+            <a href="{{ route('groups.payments.history', $group) }}" class="px-2 py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-semibold text-sm whitespace-nowrap">History</a>
+            <a href="#" onclick="showExpensesModal(); return false;" class="px-2 py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-semibold text-sm whitespace-nowrap">All Expenses</a>
         </div>
     </div>
+
+    <!-- Main Content -->
+    <div class="px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto space-y-8">
+            <!-- User's Balance Summary -->
+            @php
+                $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
+                $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
+                $netBalance = $totalOwe - $totalOwed;
+            @endphp
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- You Owe -->
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-6">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2">You Owe</h3>
+                    <p class="text-3xl font-bold text-red-600">{{ $group->currency }}{{ number_format($totalOwed, 2) }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Amount owed in this group</p>
+                </div>
+
+                <!-- They Owe You -->
+                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-6">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2">They Owe You</h3>
+                    <p class="text-3xl font-bold text-green-600">{{ $group->currency }}{{ number_format($totalOwe, 2) }}</p>
+                    <p class="text-xs text-gray-500 mt-2">Amount owed to you</p>
+                </div>
+
+                <!-- Net Balance -->
+                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-6">
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Your Balance</h3>
+                    <p class="text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        {{ $netBalance >= 0 ? '+' : '' }}{{ $group->currency }}{{ number_format(abs($netBalance), 2) }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-2">{{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}</p>
+                </div>
+            </div>
 
     <!-- Quick Analytics - HIDDEN -->
     {{--
@@ -550,7 +501,14 @@
                 <p class="text-sm text-gray-600">Click "Add Expense" to get started 🚀</p>
             </div>
         @endif
+        </div>
     </div>
+
+    <!-- Mobile Floating Action Button -->
+    <div class="fixed bottom-6 right-6 sm:hidden z-40">
+        <a href="{{ route('groups.expenses.create', $group) }}" class="inline-flex justify-center items-center w-14 h-14 bg-green-600 text-white rounded-full hover:bg-green-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Expense">
+            <span class="text-2xl">+</span>
+        </a>
     </div>
 </div>
 
