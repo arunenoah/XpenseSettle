@@ -80,7 +80,10 @@ class PaymentController extends Controller
         // Calculate overall settlement matrix for all group members (visible to everyone)
         $overallSettlement = $this->calculateGroupSettlementMatrix($group);
 
-        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin'));
+        // Get complete transaction history for the group
+        $transactionHistory = $this->getGroupTransactionHistory($group);
+
+        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin', 'transactionHistory'));
     }
 
     /**
@@ -273,6 +276,69 @@ class PaymentController extends Controller
         }
 
         return $settlements;
+    }
+
+    /**
+     * Get complete transaction history for a group (all expenses and payments).
+     * Returns chronologically sorted array of all transactions.
+     */
+    private function getGroupTransactionHistory(Group $group)
+    {
+        $transactions = [];
+
+        // Get all expenses in the group
+        $expenses = Expense::where('group_id', $group->id)
+            ->with(['payer', 'splits.user', 'splits.payment'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($expenses as $expense) {
+            $transactions[] = [
+                'type' => 'expense',
+                'timestamp' => $expense->created_at,
+                'payer' => $expense->payer,
+                'payer_id' => $expense->payer_id,
+                'title' => $expense->title,
+                'amount' => $expense->amount,
+                'description' => "Paid $" . $expense->amount . " for " . $expense->title,
+                'participants_count' => $expense->splits->count(),
+                'split_type' => $expense->split_type,
+                'expense_id' => $expense->id,
+            ];
+        }
+
+        // Get all payments marked as paid in the group
+        $payments = Payment::whereHas('split.expense', function ($q) use ($group) {
+            $q->where('group_id', $group->id);
+        })
+        ->where('status', 'paid')
+        ->with(['split.user', 'split.expense.payer', 'paidBy'])
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        foreach ($payments as $payment) {
+            $transactions[] = [
+                'type' => 'payment',
+                'timestamp' => $payment->created_at,
+                'payer' => $payment->split->user,
+                'payer_id' => $payment->split->user_id,
+                'recipient' => $payment->split->expense->payer,
+                'recipient_id' => $payment->split->expense->payer_id,
+                'title' => $payment->split->expense->title,
+                'amount' => $payment->split->share_amount,
+                'description' => $payment->split->user->name . " paid " . $payment->split->expense->payer->name . " $" . number_format($payment->split->share_amount, 2),
+                'paid_by' => $payment->paidBy,
+                'paid_date' => $payment->paid_date,
+                'payment_id' => $payment->id,
+            ];
+        }
+
+        // Sort all transactions by timestamp (newest first)
+        usort($transactions, function ($a, $b) {
+            return $b['timestamp']->timestamp <=> $a['timestamp']->timestamp;
+        });
+
+        return $transactions;
     }
 
     /**
