@@ -241,8 +241,8 @@ class DashboardController extends Controller
     }
 
     /**
-     * Calculate settlement for a user in a group with payment details.
-     * Returns net balance with each person plus associated payment IDs.
+     * Calculate settlement for a user in a group with split details.
+     * Returns net balance with each person plus associated split IDs for marking as paid.
      */
     private function calculateSettlementWithPayments(Group $group, $user, $expenses = null)
     {
@@ -253,33 +253,28 @@ class DashboardController extends Controller
             $expenses = $group->expenses()->with('payer', 'splits.payment', 'splits.user')->get();
         }
 
-        // Enrich settlement with payment IDs
+        // Enrich settlement with split IDs
         $enrichedSettlement = [];
         foreach ($settlement as $item) {
-            $paymentIds = [];
+            $splitIds = [];
             $otherUserId = $item['user']->id;
 
-            // Find all relevant payments for this settlement
+            // Find all relevant splits for this settlement
             foreach ($expenses as $expense) {
                 if ($item['net_amount'] > 0) {
                     // User owes this person (item['user']) - they are the payer
                     if ($expense->payer_id === $otherUserId) {
                         foreach ($expense->splits as $split) {
                             if ($split->user_id === $user->id) {
-                                $payment = $split->payment;
-                                if ($payment) {
-                                    // Include payment ID if it's pending
-                                    if ($payment->status === 'pending') {
-                                        $paymentIds[] = $payment->id;
-                                    }
-                                }
+                                // Include split ID for marking as paid
+                                $splitIds[] = $split->id;
                             }
                         }
                     }
                 }
             }
 
-            $item['payment_ids'] = $paymentIds;
+            $item['split_ids'] = $splitIds;
             $enrichedSettlement[] = $item;
         }
 
