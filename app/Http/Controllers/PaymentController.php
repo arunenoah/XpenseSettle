@@ -77,8 +77,8 @@ class PaymentController extends Controller
         // Always calculate user's personal settlement
         $personalSettlement = $this->calculateSettlement($group, $user);
 
-        // For admins, also calculate overall settlement matrix
-        $overallSettlement = $isAdmin ? $this->calculateGroupSettlementMatrix($group) : [];
+        // Calculate overall settlement matrix for all group members (visible to everyone)
+        $overallSettlement = $this->calculateGroupSettlementMatrix($group);
 
         return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin'));
     }
