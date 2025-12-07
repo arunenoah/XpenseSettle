@@ -4,6 +4,9 @@
 
 @section('content')
 <div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
+    <!-- Group Breadcrumb -->
+    <x-group-breadcrumb :group="$group" />
+
     <!-- Header Section -->
     <div class="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 border-b border-gray-200">
         <div class="max-w-7xl mx-auto">
@@ -597,4 +600,8 @@ document.addEventListener('keydown', function(e) {
         }
     }
 </style>
+
+<!-- Mobile Floating Action Buttons -->
+<x-group-fabs :group="$group" />
+
 @endsection
