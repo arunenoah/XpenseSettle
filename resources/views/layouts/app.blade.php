@@ -30,9 +30,13 @@
                         <span class="text-xl">📊</span>
                         <span>Dashboard</span>
                     </a>
-                    <a href="{{ route('groups.index') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('groups.*') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-bold transition-all text-base">
+                    <a href="{{ route('groups.index') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-bold transition-all text-base">
                         <span class="text-xl">👥</span>
                         <span>Groups</span>
+                    </a>
+                    <a href="{{ route('groups.summary', request()->route('group') ?? '') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('groups.summary') ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-bold transition-all text-base{{ !request()->route('group') ? ' hidden' : '' }}" title="Trip Summary">
+                        <span class="text-xl">📋</span>
+                        <span>Summary</span>
                     </a>
                 </div>
 

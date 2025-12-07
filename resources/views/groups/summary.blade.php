@@ -28,7 +28,7 @@
         <div class="max-w-7xl mx-auto space-y-8">
 
             <!-- Key Metrics -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Total Spent -->
                 <div class="bg-white rounded-lg shadow-sm border border-blue-200 p-6">
                     <h3 class="text-sm font-semibold text-gray-600 mb-2">Total Spent</h3>
@@ -41,20 +41,6 @@
                     <h3 class="text-sm font-semibold text-gray-600 mb-2">Members</h3>
                     <p class="text-3xl font-bold text-purple-600">{{ $group->members->count() }}</p>
                     <p class="text-xs text-gray-500 mt-2">People in this trip</p>
-                </div>
-
-                <!-- Settled Payments -->
-                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-6">
-                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Settled Payments</h3>
-                    <p class="text-3xl font-bold text-green-600">{{ $paidPayments->count() }}</p>
-                    <p class="text-xs text-gray-500 mt-2">Confirmed transactions</p>
-                </div>
-
-                <!-- Pending Settlements -->
-                <div class="bg-white rounded-lg shadow-sm border border-orange-200 p-6">
-                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Pending</h3>
-                    <p class="text-3xl font-bold text-orange-600">{{ count($settlement) }}</p>
-                    <p class="text-xs text-gray-500 mt-2">Transactions needed</p>
                 </div>
             </div>
 
