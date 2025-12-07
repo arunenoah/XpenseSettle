@@ -17,6 +17,12 @@ class CacheHeaders
     {
         $response = $next($request);
 
+        // Don't modify headers for file downloads/streams (BinaryFileResponse, StreamedResponse)
+        // These responses handle their own headers and can't use the header() method safely
+        if ($this->isFileResponse($response)) {
+            return $response;
+        }
+
         // Cache static assets for a long time (1 year)
         if ($this->isStaticAsset($request->getPathInfo())) {
             $response->header('Cache-Control', 'public, max-age=31536000, immutable');
@@ -39,18 +45,37 @@ class CacheHeaders
             $response->header('Pragma', 'no-cache');
         }
 
-        // Add ETag for client-side caching validation
-        if ($response->getContent()) {
-            $etag = '"' . hash('sha256', $response->getContent()) . '"';
-            $response->header('ETag', $etag);
+        // Add ETag for client-side caching validation (only for responses with content)
+        try {
+            if ($response->getContent()) {
+                $etag = '"' . hash('sha256', $response->getContent()) . '"';
+                $response->header('ETag', $etag);
 
-            // Return 304 Not Modified if ETag matches
-            if ($request->header('If-None-Match') === $etag) {
-                return response('', 304);
+                // Return 304 Not Modified if ETag matches
+                if ($request->header('If-None-Match') === $etag) {
+                    return response('', 304);
+                }
             }
+        } catch (\Exception $e) {
+            // Ignore errors when getting content (some responses don't support it)
         }
 
         return $response;
+    }
+
+    /**
+     * Check if the response is a file response (binary file or stream).
+     * These responses shouldn't have cache headers modified.
+     */
+    private function isFileResponse(Response $response): bool
+    {
+        $responseClass = get_class($response);
+
+        // Check if it's a BinaryFileResponse or StreamedResponse
+        return $responseClass === 'Symfony\Component\HttpFoundation\BinaryFileResponse' ||
+               $responseClass === 'Symfony\Component\HttpFoundation\StreamedResponse' ||
+               strpos($responseClass, 'BinaryFileResponse') !== false ||
+               strpos($responseClass, 'StreamedResponse') !== false;
     }
 
     /**
