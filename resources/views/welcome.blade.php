@@ -144,7 +144,7 @@
     <footer class="bg-gray-900 text-gray-400 py-8 sm:py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
-                <p>&copy; 2024 ExpenseSettle. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} ExpenseSettle. All rights reserved.</p>
                 <p class="text-sm mt-2">Track shared expenses. Split fairly. Settle up.</p>
             </div>
         </div>
