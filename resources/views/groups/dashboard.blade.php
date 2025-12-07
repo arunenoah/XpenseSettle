@@ -4,6 +4,18 @@
 
 @section('content')
 <div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
+    <!-- Breadcrumb Navigation -->
+    <div class="px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 text-sm">
+            <a href="{{ route('groups.index') }}" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                <span>👥</span>
+                <span>All Groups</span>
+            </a>
+            <span class="text-gray-400">/</span>
+            <span class="text-gray-700 font-medium">{{ $group->name }}</span>
+        </div>
+    </div>
+
     <!-- Header Section -->
     <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
         <div class="max-w-7xl mx-auto">
@@ -239,6 +251,9 @@
         <h2 class="text-2xl font-black text-gray-900 mb-2 flex items-center gap-2">
             <span class="text-3xl">💰</span>
             <span>Advances (Large Upfront Contributions)</span>
+            <button onclick="openAdvancesInfoModal()" class="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-700 hover:bg-amber-300 transition-colors" title="What is an Advance?">
+                <span class="text-sm font-bold">ⓘ</span>
+            </button>
         </h2>
 
         <!-- Help Text -->
@@ -661,5 +676,59 @@ function closeImageModal(event) {
         document.getElementById('imageModal').classList.remove('flex');
     }
 }
+
+function openAdvancesInfoModal() {
+    document.getElementById('advancesInfoModal').classList.remove('hidden');
+    document.getElementById('advancesInfoModal').classList.add('flex');
+}
+
+function closeAdvancesInfoModal(event) {
+    if (!event || event.target.id === 'advancesInfoModal') {
+        document.getElementById('advancesInfoModal').classList.add('hidden');
+        document.getElementById('advancesInfoModal').classList.remove('flex');
+    }
+}
 </script>
+
+<!-- Advances Info Modal -->
+<div id="advancesInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeAdvancesInfoModal(event)">
+    <div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="text-3xl">💰</span>
+            <h3 class="text-xl font-bold text-gray-900">What is an Advance?</h3>
+        </div>
+
+        <div class="space-y-4">
+            <p class="text-gray-700">
+                An <strong>Advance</strong> is when someone pays a large amount upfront that benefits the whole group.
+            </p>
+
+            <div>
+                <p class="font-semibold text-green-600 mb-2">✅ Examples of Advances:</p>
+                <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
+                    <li>Hotel booking paid by one person</li>
+                    <li>Rental car paid upfront</li>
+                    <li>Group activity/tour ticket purchased by one person</li>
+                    <li>Gas/travel costs paid in advance</li>
+                </ul>
+            </div>
+
+            <div>
+                <p class="font-semibold text-red-600 mb-2">❌ NOT an Advance:</p>
+                <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
+                    <li>Dinner split between friends (use "Add Expense")</li>
+                    <li>Coffee for one person (use "Add Expense")</li>
+                </ul>
+            </div>
+
+            <p class="text-sm bg-amber-50 border-l-4 border-amber-500 p-3 text-amber-800">
+                <strong>💡 Note:</strong> Advances automatically reduce what each person owes in the settlement calculation.
+            </p>
+        </div>
+
+        <button onclick="closeAdvancesInfoModal()" class="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+            Got it!
+        </button>
+    </div>
+</div>
 @endsection
