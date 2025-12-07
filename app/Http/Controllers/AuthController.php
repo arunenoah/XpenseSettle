@@ -108,6 +108,65 @@ class AuthController extends Controller
     }
 
     /**
+     * Show the PIN update form.
+     */
+    public function showUpdatePin()
+    {
+        return view('auth.update-pin');
+    }
+
+    /**
+     * Handle PIN update request.
+     */
+    public function updatePin(Request $request)
+    {
+        $user = auth()->user();
+
+        // Validate current PIN and new PIN
+        $validated = $request->validate([
+            'current_pin' => [
+                'required',
+                'string',
+                'digits:6',
+                function ($attribute, $value, $fail) use ($user) {
+                    // Verify current PIN matches
+                    if ($value !== $user->pin) {
+                        $fail('The current PIN is incorrect.');
+                    }
+                },
+            ],
+            'new_pin' => [
+                'required',
+                'string',
+                'digits:6',
+                'different:current_pin',
+                function ($attribute, $value, $fail) {
+                    // Ensure new PIN is unique
+                    if (User::where('pin', $value)->where('id', '!=', auth()->id())->exists()) {
+                        $fail('This PIN is already taken by another user.');
+                    }
+                },
+            ],
+            'new_pin_confirmation' => 'required|string|digits:6|same:new_pin',
+        ], [
+            'current_pin.digits' => 'Current PIN must be exactly 6 digits.',
+            'current_pin.required' => 'Current PIN is required.',
+            'new_pin.digits' => 'New PIN must be exactly 6 digits.',
+            'new_pin.required' => 'New PIN is required.',
+            'new_pin.different' => 'New PIN must be different from your current PIN.',
+            'new_pin_confirmation.same' => 'The PIN confirmation does not match the new PIN.',
+            'new_pin_confirmation.required' => 'PIN confirmation is required.',
+        ]);
+
+        // Update the user's PIN
+        $user->update([
+            'pin' => $validated['new_pin'],
+        ]);
+
+        return redirect()->route('dashboard')->with('success', 'Your PIN has been updated successfully!');
+    }
+
+    /**
      * Handle logout request.
      */
     public function logout(Request $request)

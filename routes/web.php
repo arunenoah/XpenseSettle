@@ -71,6 +71,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
     Route::get('/attachments/{attachment}/show', [AttachmentController::class, 'show'])->name('attachments.show');
 
+    // PIN Management
+    Route::get('/auth/update-pin', [AuthController::class, 'showUpdatePin'])->name('auth.show-update-pin');
+    Route::put('/auth/update-pin', [AuthController::class, 'updatePin'])->name('auth.update-pin');
+
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
