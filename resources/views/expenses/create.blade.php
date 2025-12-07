@@ -426,13 +426,29 @@ function removeFile(index) {
 document.addEventListener('DOMContentLoaded', toggleCustomSplits);
 </script>
 
-<!-- Tesseract.js for OCR -->
-<script async src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<!-- Tesseract.js for OCR - Load without async to ensure proper initialization -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 
 <script>
 const members = {!! json_encode($members->map(fn($m) => ['id' => $m->id, 'name' => $m->name])->values()) !!};
 let extractedItems = [];
 let currentFile = null;
+
+// Check if Tesseract is loaded
+function waitForTesseract(maxAttempts = 50) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const checkInterval = setInterval(() => {
+            if (typeof Tesseract !== 'undefined') {
+                clearInterval(checkInterval);
+                resolve();
+            } else if (attempts++ > maxAttempts) {
+                clearInterval(checkInterval);
+                reject(new Error('Tesseract.js failed to load after ' + maxAttempts + ' attempts'));
+            }
+        }, 100);
+    });
+}
 
 // Enhanced file handling
 function handleFileSelect() {
@@ -468,11 +484,9 @@ document.getElementById('process-ocr-btn').addEventListener('click', async funct
 
         console.log('Starting OCR for file:', file.name);
 
-        // Check if Tesseract is loaded
-        if (typeof Tesseract === 'undefined') {
-            throw new Error('Tesseract.js library not loaded. Please refresh the page.');
-        }
-
+        // Wait for Tesseract to load
+        console.log('Waiting for Tesseract.js library to load...');
+        await waitForTesseract();
         console.log('Tesseract library loaded successfully');
 
         // Initialize Tesseract worker with correct v5 API
@@ -507,8 +521,20 @@ document.getElementById('process-ocr-btn').addEventListener('click', async funct
 
     } catch (error) {
         console.error('OCR Error:', error);
-        console.error('Error details:', error.message);
-        alert('Error processing receipt: ' + error.message + '\n\nPlease check browser console for details.');
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+
+        let errorMsg = error.message || 'Unknown error occurred';
+
+        // Provide helpful messages for common errors
+        if (error.message && error.message.includes('Tesseract')) {
+            errorMsg = 'OCR Library loading issue. Please:\n1. Refresh the page\n2. Check your internet connection\n3. Try again';
+        } else if (error.message && error.message.includes('blob:')) {
+            errorMsg = 'Could not read image file. Please ensure the image file is valid (PNG, JPG, or PDF).';
+        }
+
+        alert('Error processing receipt:\n\n' + errorMsg);
     } finally {
         btn.disabled = false;
         btnText.textContent = '🔍 Extract Line Items from Receipt';
