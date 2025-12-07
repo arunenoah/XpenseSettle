@@ -63,7 +63,42 @@
                             <p class="text-gray-600 text-lg font-semibold">✅ Everyone is settled! No transactions needed.</p>
                         </div>
                     @else
-                        <div class="overflow-x-auto">
+                        <!-- Mobile: Card Layout -->
+                        <div class="md:hidden space-y-3 p-4">
+                            @foreach($settlement as $transaction)
+                            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow" data-from="{{ $transaction['from']->id }}" data-to="{{ $transaction['to']->id }}">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                                <span class="text-xs font-bold text-red-700">{{ strtoupper(substr($transaction['from']->name, 0, 1)) }}</span>
+                                            </div>
+                                            <span class="text-sm font-semibold text-gray-900 truncate">{{ $transaction['from']->name }}</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                                <span class="text-xs font-bold text-green-700">{{ strtoupper(substr($transaction['to']->name, 0, 1)) }}</span>
+                                            </div>
+                                            <span class="text-sm font-semibold text-gray-900 truncate">{{ $transaction['to']->name }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right flex-shrink-0">
+                                        <p class="text-base font-bold text-gray-900">₹{{ number_format($transaction['amount'], 0) }}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onclick="openPaymentModal('{{ $transaction['from']->id }}', '{{ $transaction['to']->id }}', {{ $transaction['amount'] }})"
+                                    class="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-orange-100 text-orange-800 hover:bg-orange-200 transition-colors cursor-pointer"
+                                >
+                                    ⏳ Mark Paid
+                                </button>
+                            </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Desktop: Table Layout -->
+                        <div class="hidden md:block overflow-x-auto">
                             <table class="w-full">
                                 <thead>
                                     <tr class="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
