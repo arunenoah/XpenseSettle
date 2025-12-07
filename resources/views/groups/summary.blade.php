@@ -116,7 +116,7 @@
             <!-- Member Breakdown -->
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">👥 Member Summary</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                     @foreach($memberSummary as $memberId => $summary)
                     @php
                         $isPositive = $summary['balance'] > 0;
@@ -124,40 +124,38 @@
                         $bgColor = $isPositive ? 'bg-green-50' : 'bg-red-50';
                         $textColor = $isPositive ? 'text-green-600' : 'text-red-600';
                     @endphp
-                    <div class="bg-white rounded-lg shadow-sm border {{ $borderColor }} p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
-                                    <span class="text-white font-bold text-lg">{{ strtoupper(substr($summary['user']->name, 0, 1)) }}</span>
-                                </div>
-                                <div>
-                                    <p class="font-bold text-gray-900">{{ $summary['user']->name }}</p>
-                                    <p class="text-sm text-gray-600">{{ $summary['user']->email }}</p>
-                                </div>
+                    <div class="bg-white rounded-lg shadow-sm border {{ $borderColor }} p-3 md:p-6">
+                        <div class="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
+                            <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                                <span class="text-white font-bold text-base md:text-lg">{{ strtoupper(substr($summary['user']->name, 0, 1)) }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-bold text-gray-900 text-xs md:text-base truncate">{{ $summary['user']->name }}</p>
+                                <p class="text-xs text-gray-600 hidden md:block truncate">{{ $summary['user']->email }}</p>
                             </div>
                         </div>
 
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center">
+                        <div class="space-y-1 md:space-y-3">
+                            <div class="flex justify-between items-center text-xs md:text-base">
                                 <span class="text-gray-600">Paid:</span>
                                 <span class="font-bold text-gray-900">₹{{ number_format($summary['paid'], 0) }}</span>
                             </div>
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-600">Should pay:</span>
+                            <div class="flex justify-between items-center text-xs md:text-base">
+                                <span class="text-gray-600">Owes:</span>
                                 <span class="font-bold text-gray-900">₹{{ number_format($summary['owes'], 0) }}</span>
                             </div>
-                            <div class="border-t pt-3 flex justify-between items-center">
-                                <span class="font-semibold text-gray-900">Balance:</span>
-                                <span class="text-lg font-bold {{ $textColor }}">
-                                    {{ $isPositive ? '✅ +' : '❌ -' }}₹{{ number_format(abs($summary['balance']), 0) }}
+                            <div class="border-t pt-1 md:pt-3 flex justify-between items-center">
+                                <span class="font-semibold text-gray-900 text-xs md:text-base">{{ $isPositive ? '💰' : '💳' }}</span>
+                                <span class="text-base md:text-lg font-bold {{ $textColor }}">
+                                    {{ $isPositive ? '+' : '-' }}₹{{ number_format(abs($summary['balance']), 0) }}
                                 </span>
                             </div>
                         </div>
 
                         @if($isPositive)
-                            <p class="text-sm text-green-700 mt-4">💰 They should receive this amount</p>
+                            <p class="text-xs md:text-sm text-green-700 mt-2 md:mt-4">💰 Receives</p>
                         @else
-                            <p class="text-sm text-red-700 mt-4">💳 They should pay this amount</p>
+                            <p class="text-xs md:text-sm text-red-700 mt-2 md:mt-4">💳 Pays</p>
                         @endif
                     </div>
                     @endforeach
