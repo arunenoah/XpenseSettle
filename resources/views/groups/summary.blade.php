@@ -53,7 +53,7 @@
                 <!-- Pending Settlements -->
                 <div class="bg-white rounded-lg shadow-sm border border-orange-200 p-6">
                     <h3 class="text-sm font-semibold text-gray-600 mb-2">Pending</h3>
-                    <p class="text-3xl font-bold text-orange-600">{{ $settlement->count() }}</p>
+                    <p class="text-3xl font-bold text-orange-600">{{ count($settlement) }}</p>
                     <p class="text-xs text-gray-500 mt-2">Transactions needed</p>
                 </div>
             </div>
@@ -69,7 +69,7 @@
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">💳 Who Pays Whom (Minimum Transactions)</h2>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    @if($settlement->isEmpty())
+                    @if(empty($settlement))
                         <div class="p-8 text-center">
                             <p class="text-gray-600 text-lg font-semibold">✅ Everyone is settled! No transactions needed.</p>
                         </div>
