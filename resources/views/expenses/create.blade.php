@@ -443,20 +443,42 @@ function updateFileList() {
         ocrSection.classList.remove('hidden');
         Array.from(files).forEach((file, index) => {
             const li = document.createElement('li');
-            li.className = 'flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors';
-            li.innerHTML = `
-                <span class="flex items-center gap-2 text-sm flex-1">
-                    <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
-                        <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0015.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/>
-                    </svg>
-                    <div class="min-w-0 flex-1">
-                        <div class="font-medium text-gray-900 truncate">${file.name}</div>
-                        <div class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</div>
-                    </div>
-                </span>
-                <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0" onclick="removeFile(${index})">✕</button>
-            `;
+            const isImage = file.type.startsWith('image/');
+
+            if (isImage) {
+                // Image file - show thumbnail preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    li.className = 'flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors';
+                    li.innerHTML = `
+                        <span class="flex items-center gap-3 text-sm flex-1 min-w-0">
+                            <img src="${e.target.result}" alt="${file.name}" class="w-16 h-16 rounded object-cover flex-shrink-0 border border-blue-300 shadow-sm" />
+                            <div class="min-w-0 flex-1">
+                                <div class="font-medium text-gray-900 truncate">${file.name}</div>
+                                <div class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</div>
+                            </div>
+                        </span>
+                        <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0" onclick="removeFile(${index})">✕</button>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // Non-image file - show file icon
+                li.className = 'flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors';
+                li.innerHTML = `
+                    <span class="flex items-center gap-2 text-sm flex-1">
+                        <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0015.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/>
+                        </svg>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium text-gray-900 truncate">${file.name}</div>
+                            <div class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                    </span>
+                    <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0" onclick="removeFile(${index})">✕</button>
+                `;
+            }
             fileListUl.appendChild(li);
         });
     } else {
