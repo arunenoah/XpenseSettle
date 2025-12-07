@@ -3,10 +3,47 @@
 @section('title', 'Add Expense to ' . $group->name)
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="w-full bg-gradient-to-b from-blue-50 via-white to-white min-h-screen">
+    <div class="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div class="max-w-4xl mx-auto">
+            <!-- Header -->
+            <div class="mb-8">
+                <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-2">
+                    💳 Add Expense
+                </h1>
+                <p class="text-lg text-gray-600">
+                    to <strong>{{ $group->name }}</strong> · {{ $group->members->count() }} members
+                </p>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="mb-8 bg-white rounded-lg shadow-sm p-6 border border-blue-200">
+                <h3 class="text-sm font-bold text-gray-600 uppercase mb-4">Quick Add Expense Flow</h3>
+                <div class="flex items-center justify-between">
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm mb-1">1</div>
+                        <span class="text-xs font-semibold text-gray-700">Scan Receipt</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-gray-300 mx-2 mb-6"></div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-sm mb-1">2</div>
+                        <span class="text-xs font-semibold text-gray-700">Assign Items</span>
+                    </div>
+                    <div class="flex-1 h-1 bg-gray-300 mx-2 mb-6"></div>
+                    <div class="flex flex-col items-center">
+                        <div class="w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-sm mb-1">3</div>
+                        <span class="text-xs font-semibold text-gray-700">Review & Save</span>
+                    </div>
+                </div>
+            </div>
+
     <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Add Expense</h1>
-        <p class="text-gray-600 mb-6">Create a new expense for <strong>{{ $group->name }}</strong></p>
+            <!-- Recommended Path Banner -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded">
+                <p class="text-blue-900 text-sm">
+                    <strong>💡 Pro Tip:</strong> Upload a receipt photo for the fastest way to add expenses. Our OCR will extract items automatically!
+                </p>
+            </div>
 
         <form action="{{ route('groups.expenses.store', $group) }}" method="POST" enctype="multipart/form-data" class="space-y-6">
             @csrf
@@ -180,11 +217,15 @@
                 </div>
 
                 <!-- OCR Processing Button -->
-                <div id="ocr-section" class="mt-4 hidden">
+                <div id="ocr-section" class="mt-6 hidden bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-6">
+                    <div class="mb-4">
+                        <h4 class="font-bold text-gray-900 mb-2">✨ Smart Receipt Scanning (Our Superpower!)</h4>
+                        <p class="text-sm text-gray-600">Let our OCR extract all line items automatically and assign them to group members. Much faster than manual entry!</p>
+                    </div>
                     <button
                         type="button"
                         id="process-ocr-btn"
-                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center gap-2"
+                        class="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-colors font-bold flex items-center justify-center gap-2 text-lg"
                     >
                         <span id="ocr-btn-text">🔍 Extract Line Items from Receipt</span>
                         <span id="ocr-spinner" class="hidden">
@@ -198,9 +239,11 @@
 
                 <!-- Extracted Items Section -->
                 <div id="items-section" class="mt-6 hidden">
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                        <h3 class="font-semibold text-green-900 mb-3">📦 Extracted Line Items</h3>
-                        <p class="text-sm text-green-800 mb-4">Select items to assign to specific members. Unselected items will be split equally.</p>
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6 mb-6">
+                        <h3 class="font-bold text-green-900 mb-2 text-lg">✅ Line Items Extracted</h3>
+                        <p class="text-sm text-green-800 mb-4">
+                            <strong>Step 2:</strong> Assign items to group members. Items without an assignee will be split equally.
+                        </p>
 
                         <!-- Items Display -->
                         <div id="items-list" class="space-y-3 mb-4">
