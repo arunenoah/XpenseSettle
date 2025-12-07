@@ -1,0 +1,114 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║            BUILD iOS IPA APP - START HERE (30 MINUTES)                    ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+XCODE SHOULD NOW BE OPEN ↓
+Check your screen for the Capacitor iOS project
+
+
+FOLLOW THESE STEPS IN ORDER
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP 1: ADD YOUR APPLE ID (5 min)
+─────────────────────────────────────────────────────────────────────────────
+
+☐ In Xcode menu → "Xcode" → "Preferences"
+☐ Click "Accounts" tab
+☐ Click "+" button
+☐ Select "Apple ID"
+☐ Sign in with your Apple ID (any Apple ID - iCloud works!)
+☐ Close Preferences
+
+
+STEP 2: CONFIGURE SIGNING (5 min)
+─────────────────────────────────────────────────────────────────────────────
+
+☐ Left panel → Click "App" (blue folder)
+☐ Top tabs → Click "Signing & Capabilities"
+☐ Under "Signing" section:
+   ☐ Check "Automatically manage signing" ✓
+   ☐ Team dropdown → Select your name
+
+
+STEP 3: SELECT DEVICE (1 min)
+─────────────────────────────────────────────────────────────────────────────
+
+☐ Top of Xcode → Device dropdown (currently shows simulator name)
+☐ Change to: "Any iOS Device (arm64)"
+
+
+STEP 4: BUILD ARCHIVE (10 min)
+─────────────────────────────────────────────────────────────────────────────
+
+☐ Xcode menu → "Product" → "Archive"
+☐ Wait for build (watch bottom status bar)
+☐ Should complete with: "Archive Successful!"
+☐ A dialog window will appear
+
+
+STEP 5: EXPORT IPA (5 min)
+─────────────────────────────────────────────────────────────────────────────
+
+After archive completes:
+
+☐ Click "Distribute App" button
+☐ Select "Custom" → Click "Next"
+☐ Select "Export IPA" → Click "Next"
+☐ Keep defaults, click "Next"
+☐ Choose save location (Desktop is fine)
+☐ Click "Export"
+☐ Wait for processing
+☐ IPA file is saved! ✅
+
+
+STEP 6: UPLOAD TO GOOGLE DRIVE (3 min)
+─────────────────────────────────────────────────────────────────────────────
+
+☐ Open browser: drive.google.com
+☐ Click "New" → "Folder Upload"
+☐ Select ExpenseSettle.ipa from your Desktop
+☐ Wait for upload
+☐ Right-click file → "Share"
+☐ Change from "Restricted" to "Anyone with the link"
+☐ Click "Copy link"
+☐ Save the link (you'll send this to friends)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHAT YOU'LL GET
+───────────────
+
+✅ ExpenseSettle.ipa file (30-50 MB)
+✅ Google Drive shareable link
+✅ Ready to share with unlimited iOS friends
+
+
+WHAT FRIENDS DO
+───────────────
+
+They get the link and:
+1. Download AltStore app (altstore.io)
+2. Download your ExpenseSettle.ipa
+3. Open AltStore → "+" → Select file
+4. Enter Apple ID password
+5. App installs to home screen! 🍎
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+ESTIMATED TIME: 25-30 MINUTES
+
+You're already 1/3 done (web build + sync is complete!)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Need detailed help? Read:
+  - iOS_BUILD_IPA_STEPS.md (step-by-step with explanations)
+  - XCODE_CHECKLIST.txt (visual checklist)
+  - ALTSTORE_INSTALLATION_GUIDE.md (for your friends)
+
+
+READY? Start with STEP 1 above!
+Go to Xcode and follow the checklist. 🍎

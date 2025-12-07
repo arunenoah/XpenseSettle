@@ -1,0 +1,100 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║               XCODE IPA BUILD CHECKLIST - VISUAL GUIDE                    ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+STEP 1: XCODE PREFERENCES - ADD APPLE ID
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ Xcode menu (top left) → Preferences
+☐ Click "Accounts" tab
+☐ Click "+" button
+☐ Select "Apple ID"
+☐ Sign in with your Apple ID (any iCloud account)
+☐ Close Preferences
+
+
+STEP 2: XCODE APP SIGNING - CONFIGURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ Left panel: Click "App" (blue folder)
+☐ Top tabs: Click "Signing & Capabilities"
+☐ Check "Automatically manage signing" ✓
+☐ Team dropdown: Select your name
+☐ Verify Bundle ID: com.expensesettle.app
+
+
+STEP 3: SELECT DEVICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ Top of Xcode: Device dropdown
+☐ Change from "iPhone 16 Pro" → "Any iOS Device (arm64)"
+☐ Click elsewhere to confirm
+
+
+STEP 4: BUILD ARCHIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ Xcode menu → "Product" → "Archive"
+☐ Wait for build to complete (3-5 minutes)
+☐ Watch bottom status bar:
+   "Compiling..." → "Linking..." → "Archive Successful!"
+☐ A window pops up with your archive
+
+
+STEP 5: EXPORT IPA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ Click "Distribute App" button
+☐ Select "Custom" → Next
+☐ Select "Export IPA" → Next
+☐ Keep defaults, click Next
+☐ Choose save location (Desktop is fine)
+☐ Click "Export"
+☐ Wait for processing...
+☐ Message: "Archive was successfully exported"
+☐ ExpenseSettle.ipa is now on your computer!
+
+
+STEP 6: UPLOAD TO GOOGLE DRIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☐ Open browser: drive.google.com
+☐ Click "New" → "Folder Upload"
+☐ Select ExpenseSettle.ipa
+☐ Wait for upload (2-3 min)
+☐ Right-click file → Share
+☐ Change from "Restricted" to "Anyone with the link"
+☐ Copy the link
+
+
+STEP 7: SHARE WITH iOS FRIENDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Send your friends:
+
+   Hey! 🎉 Test my iOS app!
+
+   1. Get AltStore: altstore.io
+   2. Download my app: [PASTE GOOGLE DRIVE LINK]
+   3. Open AltStore → "+" → Select file
+   4. Enter Apple ID password
+   5. Done! 🍎
+
+   Let me know what you think!
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+TIME ESTIMATE:
+  Signing & Archive:    10-15 minutes
+  Export IPA:           5 minutes
+  Upload to Google Drive: 2-3 minutes
+  ─────────────────────────────────
+  TOTAL:                20-25 minutes
+
+
+EXPECTED FILE SIZE:
+  ExpenseSettle.ipa:    30-50 MB
+
+
+═══════════════════════════════════════════════════════════════════════════════
