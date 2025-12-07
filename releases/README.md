@@ -2,6 +2,17 @@
 
 Download and install the ExpenseSettle app on your Android phone.
 
+## 📌 Important: Use the RELEASE APK (Not Debug)
+
+We provide two types of APK files:
+
+| Version | File | Size | Recommended | Notes |
+|---------|------|------|-------------|-------|
+| **Release** (Signed) | `ExpenseSettle-v1.2.0-release.apk` | 5.9 MB | ✅ **USE THIS** | Signed with certificate, safer for sharing, no "virus" warnings |
+| Debug | `ExpenseSettle-v1.2.0-debug.apk` | 11 MB | ❌ Avoid | Test builds, may trigger security warnings |
+
+**Use the Release APK** - it's properly signed and Google Drive won't flag it as a virus!
+
 ---
 
 ## 📱 Installation Instructions
