@@ -235,15 +235,37 @@
     @endif
 
     <!-- Advances Section -->
-    <div class="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-2xl shadow-lg p-6">
-        <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+    <div class="bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl shadow-lg p-6 border-2 border-amber-300">
+        <h2 class="text-2xl font-black text-gray-900 mb-2 flex items-center gap-2">
             <span class="text-3xl">💰</span>
-            <span>Advances</span>
+            <span>Advances (Large Upfront Contributions)</span>
         </h2>
 
+        <!-- Help Text -->
+        <div class="bg-white rounded-lg border-l-4 border-amber-500 p-4 mb-6">
+            <p class="text-sm text-gray-700 mb-2">
+                <strong>What is an Advance?</strong> Use this when someone pays a large amount upfront that benefits the whole group.
+            </p>
+            <div class="mt-3 space-y-2 text-xs text-gray-600">
+                <p><strong>✅ Examples:</strong></p>
+                <ul class="list-disc list-inside space-y-1 ml-2">
+                    <li>Hotel booking paid by one person</li>
+                    <li>Rental car paid upfront</li>
+                    <li>Group activity/tour ticket purchased by one person</li>
+                    <li>Gas/travel costs paid in advance</li>
+                </ul>
+                <p class="mt-2"><strong>❌ NOT an Advance:</strong></p>
+                <ul class="list-disc list-inside space-y-1 ml-2">
+                    <li>Dinner split between friends (use "Add Expense")</li>
+                    <li>Coffee for one person (use "Add Expense")</li>
+                </ul>
+            </div>
+            <p class="text-xs text-amber-800 mt-3 font-semibold">💡 Advances automatically reduce what each person owes in the settlement.</p>
+        </div>
+
         <!-- Add Advance Form -->
-        <div class="bg-white rounded-xl p-6 shadow-md border-2 border-blue-200 mb-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">➕ Add Advance</h3>
+        <div class="bg-white rounded-xl p-6 shadow-md border-2 border-amber-300 mb-6">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">➕ Record Advance Payment</h3>
             <form action="{{ route('groups.advances.store', $group) }}" method="POST" class="space-y-4">
                 @csrf
 
