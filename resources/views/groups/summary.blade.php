@@ -232,27 +232,97 @@
                 <div class="bg-white rounded-lg shadow-sm border border-emerald-200 overflow-hidden">
                     <div class="divide-y divide-gray-200">
                         @foreach($confirmations as $confirmation)
-                        <div class="px-6 py-4 hover:bg-emerald-50 transition-colors">
-                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div class="settlement-item">
+                            <button onclick="toggleSettlement('settlement-{{ $confirmation->id }}')" class="w-full px-6 py-4 hover:bg-emerald-50 transition-colors text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 focus:outline-none">
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-900">
                                         {{ $confirmation->fromUser->name }}
                                         <span class="text-gray-500 mx-2">→</span>
                                         {{ $confirmation->toUser->name }}
                                     </p>
-                                    @if($confirmation->notes)
-                                        <p class="text-sm text-gray-600 mt-1">{{ $confirmation->notes }}</p>
-                                    @endif
-                                    <p class="text-xs text-gray-500 mt-2">
-                                        Confirmed by {{ $confirmation->confirmedBy->name }} on {{ $confirmation->confirmed_at->format('M d, Y H:i') }}
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        {{ $confirmation->confirmed_at->format('M d, Y H:i') }}
                                     </p>
-                                    @if($confirmation->attachments->count() > 0)
-                                        <p class="text-xs text-green-600 mt-1">📸 Receipt attached ({{ $confirmation->attachments->count() }})</p>
-                                    @endif
                                 </div>
-                                <div class="text-right flex-shrink-0">
-                                    <p class="text-lg font-bold text-emerald-600">✓ ₹{{ number_format($confirmation->amount, 0) }}</p>
-                                    <p class="text-xs text-gray-500">Confirmed</p>
+                                <div class="text-right flex-shrink-0 flex items-center gap-3">
+                                    <div>
+                                        <p class="text-lg font-bold text-emerald-600">✓ ₹{{ number_format($confirmation->amount, 0) }}</p>
+                                        <p class="text-xs text-gray-500">Confirmed</p>
+                                    </div>
+                                    <svg id="toggle-settlement-{{ $confirmation->id }}" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                    </svg>
+                                </div>
+                            </button>
+
+                            <!-- Expandable Details -->
+                            <div id="settlement-{{ $confirmation->id }}" class="hidden border-t border-gray-200 bg-emerald-50">
+                                <div class="px-6 py-4 space-y-4">
+                                    <!-- Payment Details -->
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900 mb-2">💳 Payment Details</h4>
+                                        <div class="bg-white rounded p-3 text-sm space-y-2">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">From:</span>
+                                                <span class="font-semibold">{{ $confirmation->fromUser->name }}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-600">To:</span>
+                                                <span class="font-semibold">{{ $confirmation->toUser->name }}</span>
+                                            </div>
+                                            <div class="flex justify-between border-t pt-2">
+                                                <span class="text-gray-600">Amount:</span>
+                                                <span class="font-bold text-emerald-600">₹{{ number_format($confirmation->amount, 0) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes -->
+                                    @if($confirmation->notes)
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900 mb-2">📝 Payment Notes</h4>
+                                        <div class="bg-white rounded p-3 text-sm text-gray-700 border-l-4 border-blue-500">
+                                            {{ $confirmation->notes }}
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    <!-- Receipt Attachments -->
+                                    @if($confirmation->attachments->count() > 0)
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900 mb-2">📸 Receipts & Proof</h4>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            @foreach($confirmation->attachments as $attachment)
+                                            <div class="bg-white rounded p-3 hover:shadow-md transition-shadow">
+                                                <div class="flex items-center gap-3">
+                                                    @if(str_contains($attachment->mime_type, 'image'))
+                                                        <img src="{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}" alt="Receipt" class="w-16 h-16 rounded object-cover border border-gray-200 cursor-pointer hover:border-blue-500" onclick="openImageModal('{{ route('attachments.show', ['attachment' => $attachment->id, 'inline' => true]) }}', '{{ addslashes($attachment->file_name) }}')">
+                                                    @else
+                                                        <div class="w-16 h-16 rounded border border-gray-200 flex items-center justify-center bg-gray-50">
+                                                            <span class="text-2xl">📄</span>
+                                                        </div>
+                                                    @endif
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $attachment->file_name }}</p>
+                                                        <p class="text-xs text-gray-500">{{ $attachment->file_size > 1024 ? round($attachment->file_size / 1024, 1) . ' KB' : $attachment->file_size . ' B' }}</p>
+                                                        <a href="{{ route('attachments.download', $attachment) }}" class="text-xs text-blue-600 hover:text-blue-800 font-semibold">Download →</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    <!-- Confirmation Info -->
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900 mb-2">✅ Confirmation Info</h4>
+                                        <div class="bg-white rounded p-3 text-sm text-gray-600 space-y-1">
+                                            <p><span class="font-semibold">Confirmed by:</span> {{ $confirmation->confirmedBy->name }}</p>
+                                            <p><span class="font-semibold">Date & Time:</span> {{ $confirmation->confirmed_at->format('M d, Y \a\t H:i') }}</p>
+                                            <p><span class="font-semibold">Confirmation ID:</span> <span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">#{{ $confirmation->id }}</span></p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -261,6 +331,38 @@
                 </div>
             </div>
             @endif
+
+            <script>
+                function toggleSettlement(elementId) {
+                    const element = document.getElementById(elementId);
+                    const toggleIcon = document.getElementById('toggle-' + elementId);
+
+                    if (element.classList.contains('hidden')) {
+                        element.classList.remove('hidden');
+                        toggleIcon.style.transform = 'rotate(180deg)';
+                    } else {
+                        element.classList.add('hidden');
+                        toggleIcon.style.transform = 'rotate(0deg)';
+                    }
+                }
+
+                function openImageModal(imageSrc, fileName) {
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4';
+                    modal.innerHTML = `
+                        <div class="bg-white rounded-lg max-w-2xl w-full max-h-96 flex flex-col">
+                            <div class="flex justify-between items-center p-4 border-b">
+                                <h3 class="font-semibold text-gray-900">${fileName}</h3>
+                                <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-900 text-2xl">×</button>
+                            </div>
+                            <div class="flex-1 overflow-auto flex items-center justify-center">
+                                <img src="${imageSrc}" alt="${fileName}" class="max-h-96 max-w-full object-contain">
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                }
+            </script>
 
             <!-- Payment History (from expenses) -->
             @if($paidPayments->count() > 0)
