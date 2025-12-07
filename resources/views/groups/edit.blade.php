@@ -3,6 +3,9 @@
 @section('title', 'Edit ' . $group->name)
 
 @section('content')
+<!-- Group Breadcrumb -->
+<x-group-breadcrumb :group="$group" />
+
 <div class="max-w-2xl mx-auto">
     <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">Edit Group</h1>
@@ -103,4 +106,8 @@
         </div>
     </div>
 </div>
+
+<!-- Mobile Floating Action Buttons -->
+<x-group-fabs :group="$group" />
+
 @endsection
