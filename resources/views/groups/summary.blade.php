@@ -219,10 +219,53 @@
             </div>
             @endif
 
-            <!-- Payment History -->
+            <!-- Settlement Confirmations History -->
+            @php
+                $confirmations = \App\Models\SettlementConfirmation::where('group_id', $group->id)
+                    ->with(['fromUser', 'toUser', 'confirmedBy', 'attachments'])
+                    ->latest('confirmed_at')
+                    ->get();
+            @endphp
+            @if($confirmations->count() > 0)
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">🎯 Settlement Confirmations</h2>
+                <div class="bg-white rounded-lg shadow-sm border border-emerald-200 overflow-hidden">
+                    <div class="divide-y divide-gray-200">
+                        @foreach($confirmations as $confirmation)
+                        <div class="px-6 py-4 hover:bg-emerald-50 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div class="flex-1">
+                                    <p class="font-semibold text-gray-900">
+                                        {{ $confirmation->fromUser->name }}
+                                        <span class="text-gray-500 mx-2">→</span>
+                                        {{ $confirmation->toUser->name }}
+                                    </p>
+                                    @if($confirmation->notes)
+                                        <p class="text-sm text-gray-600 mt-1">{{ $confirmation->notes }}</p>
+                                    @endif
+                                    <p class="text-xs text-gray-500 mt-2">
+                                        Confirmed by {{ $confirmation->confirmedBy->name }} on {{ $confirmation->confirmed_at->format('M d, Y H:i') }}
+                                    </p>
+                                    @if($confirmation->attachments->count() > 0)
+                                        <p class="text-xs text-green-600 mt-1">📸 Receipt attached ({{ $confirmation->attachments->count() }})</p>
+                                    @endif
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                    <p class="text-lg font-bold text-emerald-600">✓ ₹{{ number_format($confirmation->amount, 0) }}</p>
+                                    <p class="text-xs text-gray-500">Confirmed</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- Payment History (from expenses) -->
             @if($paidPayments->count() > 0)
             <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">✅ Already Settled</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">✅ Expense Payments Marked Paid</h2>
                 <div class="bg-white rounded-lg shadow-sm border border-green-200 overflow-hidden">
                     <div class="divide-y divide-gray-200">
                         @foreach($paidPayments as $payment)
