@@ -4,16 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\GroupMember;
+use App\Models\User;
 use App\Services\GroupService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class GroupController extends Controller
 {
     private GroupService $groupService;
+    private NotificationService $notificationService;
 
-    public function __construct(GroupService $groupService)
+    public function __construct(GroupService $groupService, NotificationService $notificationService)
     {
         $this->groupService = $groupService;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -206,7 +210,7 @@ class GroupController extends Controller
         ]);
 
         // Check if user is already a member
-        if ($group->hasMember(\App\Models\User::find($validated['user_id']))) {
+        if ($group->hasMember(User::find($validated['user_id']))) {
             return redirect()->back()->with('error', 'User is already a member');
         }
 
@@ -216,7 +220,11 @@ class GroupController extends Controller
             'role' => 'member',
         ]);
 
-        $user = \App\Models\User::find($validated['user_id']);
+        $user = User::find($validated['user_id']);
+
+        // Send notification to the newly added user
+        $this->notificationService->notifyUserAddedToGroup($user, $group, auth()->user());
+
         return redirect()->back()->with('success', $user->name . ' has been added to the group! 🎉');
     }
 
