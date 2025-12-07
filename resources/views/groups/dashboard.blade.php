@@ -40,7 +40,7 @@
                     <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
                         Add Expense
                     </a>
-                    <button onclick="scrollToAdvances()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-sm flex items-center gap-2">
+                    <button onclick="openAdvanceModal()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-sm flex items-center gap-2">
                         <span>💰</span>
                         Add Advance
                     </button>
@@ -271,64 +271,6 @@
         </button>
         <div id="advancesSection" class="hidden sm:block">
 
-        <!-- Add Advance Form -->
-        <div class="bg-white rounded-xl p-6 shadow-md border-2 border-amber-300 mb-6">
-            <h3 class="text-lg font-bold text-gray-900 mb-4">➕ Record Advance Payment</h3>
-            <form action="{{ route('groups.advances.store', $group) }}" method="POST" class="space-y-4">
-                @csrf
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Sent To -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Sent To</label>
-                        <select name="sent_to_user_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <option value="">-- Select Person --</option>
-                            @foreach($group->members as $member)
-                                @if($member->id !== auth()->id())
-                                    <option value="{{ $member->id }}">{{ $member->name }}</option>
-                                @endif
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Amount Per Person -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Per Person</label>
-                        <input type="number" name="amount_per_person" step="0.01" min="0" placeholder="100" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <!-- Date -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
-                        <input type="date" name="date" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-
-                    <!-- Description -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Description (Optional)</label>
-                        <input type="text" name="description" placeholder="e.g., Travel advance" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                </div>
-
-                <!-- Senders -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Who Sent This Advance?</label>
-                    <div class="space-y-2">
-                        @foreach($group->members as $member)
-                            <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                                <input type="checkbox" name="senders[]" value="{{ $member->id }}" class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
-                                <span class="text-gray-700">{{ $member->name }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all">
-                    ➕ Record Advance
-                </button>
-            </form>
-        </div>
-
         <!-- Advances List -->
         @php
             $advances = \App\Models\Advance::where('group_id', $group->id)->with(['senders', 'sentTo'])->latest()->get();
@@ -535,7 +477,7 @@
     <!-- Mobile Floating Action Buttons -->
     <div class="fixed bottom-6 right-6 sm:hidden z-40 flex flex-col gap-3">
         <!-- Add Advance FAB -->
-        <button onclick="scrollToAdvances()" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
+        <button onclick="openAdvanceModal()" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
             <span class="text-2xl">💰</span>
         </button>
         <!-- Add Expense FAB -->
@@ -644,10 +586,17 @@ function toggleSection(sectionId) {
     }
 }
 
-// Scroll to Advances section
-function scrollToAdvances() {
-    const advancesSection = document.querySelector('[id="advancesSection"]').parentElement;
-    advancesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Open Advance Modal
+function openAdvanceModal() {
+    document.getElementById('advanceModal').classList.remove('hidden');
+    document.getElementById('advanceModal').classList.add('flex');
+}
+
+function closeAdvanceModal(event) {
+    if (!event || event.target.id === 'advanceModal') {
+        document.getElementById('advanceModal').classList.add('hidden');
+        document.getElementById('advanceModal').classList.remove('flex');
+    }
 }
 
 function openGroupPaymentModal(splitId, payeeName, amount, expenseTitle) {
@@ -712,6 +661,78 @@ function closeAdvancesInfoModal(event) {
     }
 }
 </script>
+
+<!-- Add Advance Modal -->
+<div id="advanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeAdvanceModal(event)">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <span>💰</span>
+                Record Advance Payment
+            </h3>
+            <button onclick="closeAdvanceModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">✕</button>
+        </div>
+
+        <form action="{{ route('groups.advances.store', $group) }}" method="POST" class="space-y-4">
+            @csrf
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- Sent To -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Sent To</label>
+                    <select name="sent_to_user_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">-- Select Person --</option>
+                        @foreach($group->members as $member)
+                            @if($member->id !== auth()->id())
+                                <option value="{{ $member->id }}">{{ $member->name }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Amount Per Person -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Per Person</label>
+                    <input type="number" name="amount_per_person" step="0.01" min="0" placeholder="100" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+                    <input type="date" name="date" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Description (Optional)</label>
+                    <input type="text" name="description" placeholder="e.g., Travel advance" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Senders -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Who Sent This Advance?</label>
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                    @foreach($group->members as $member)
+                        <label class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
+                            <input type="checkbox" name="senders[]" value="{{ $member->id }}" class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                            <span class="text-gray-700">{{ $member->name }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeAdvanceModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all font-bold">
+                    ➕ Record Advance
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Advances Info Modal -->
 <div id="advancesInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeAdvancesInfoModal(event)">
