@@ -5,6 +5,8 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SecurityHeaders
 {
@@ -16,6 +18,11 @@ class SecurityHeaders
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
+
+        // Skip adding security headers to file responses (they handle their own headers)
+        if ($this->isFileResponse($response)) {
+            return $response;
+        }
 
         // Prevent clickjacking - Disallow framing of the application
         $response->header('X-Frame-Options', 'DENY');
@@ -66,5 +73,13 @@ class SecurityHeaders
         $response->header('X-Permitted-Cross-Domain-Policies', 'none');
 
         return $response;
+    }
+
+    /**
+     * Check if the response is a file response (binary file or stream).
+     */
+    private function isFileResponse(Response $response): bool
+    {
+        return $response instanceof StreamedResponse || $response instanceof BinaryFileResponse;
     }
 }
