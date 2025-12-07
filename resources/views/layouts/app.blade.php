@@ -146,7 +146,7 @@
     <footer class="bg-white border-t border-gray-200 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="text-center text-sm text-gray-600">
-                <p>&copy; 2024 ExpenseSettle. Track shared expenses with ease.</p>
+                <p>&copy; {{ date('Y') }} ExpenseSettle. Track shared expenses with ease.</p>
             </div>
         </div>
     </footer>
