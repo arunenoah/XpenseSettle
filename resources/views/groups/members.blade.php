@@ -3,21 +3,61 @@
 @section('title', 'Manage Members - ' . $group->name)
 
 @section('content')
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+<div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
+    <!-- Header Section -->
+    <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto">
+            <!-- Group Title -->
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-5xl">{{ $group->icon ?? '👥' }}</span>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">{{ $group->name }}</h1>
+                        @if($group->description)
+                            <p class="text-gray-600 mt-1">{{ $group->description }}</p>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Desktop Action Buttons -->
+                <div class="hidden sm:flex gap-2 flex-shrink-0">
+                    <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
+                        Add Expense
+                    </a>
+                    @if($group->isAdmin(auth()->user()))
+                        <a href="{{ route('groups.edit', $group) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold text-sm">
+                            Settings
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Member Avatars and Info -->
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-semibold text-gray-600 uppercase">{{ $group->members->count() }} Members</span>
+                <div class="flex items-center gap-2">
+                    @foreach($group->members->take(5) as $member)
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $member->name }}">
+                            <span class="text-xs font-bold text-blue-700">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                        </div>
+                    @endforeach
+                    @if($group->members->count() > 5)
+                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $group->members->count() - 5 }}</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Navigation Tabs -->
     <x-group-tabs :group="$group" active="members" />
 
-    <!-- Header -->
-    <div class="bg-gradient-to-br from-purple-100 via-pink-100 to-blue-100 rounded-2xl shadow-lg p-6 mb-6">
-        <div class="flex items-center gap-3 mb-2">
-            <span class="text-4xl">{{ $group->icon ?? '👥' }}</span>
-            <h1 class="text-3xl font-black text-gray-900">{{ $group->name }}</h1>
-        </div>
-        <p class="text-gray-700 font-medium">Manage group members</p>
-    </div>
+    <!-- Main Content -->
+    <div class="px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto space-y-6">
 
-    <!-- Add New Member -->
-    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <!-- Add New Member -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
             <span class="text-2xl">➕</span>
             <span>Add New Member</span>
@@ -38,15 +78,15 @@
             </button>
         </form>
 
-        @if($availableUsers->isEmpty())
-            <p class="mt-3 text-sm text-gray-600 text-center">
-                🎉 All users are already members of this group!
-            </p>
-        @endif
-    </div>
+                @if($availableUsers->isEmpty())
+                    <p class="mt-3 text-sm text-gray-600 text-center">
+                        🎉 All users are already members of this group!
+                    </p>
+                @endif
+            </div>
 
-    <!-- Current Members -->
-    <div class="bg-white rounded-xl shadow-md p-6">
+            <!-- Current Members -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
             <span class="text-2xl">👥</span>
             <span>Current Members ({{ $group->members->count() }})</span>
@@ -54,21 +94,21 @@
 
         <div class="space-y-3">
             @foreach($group->members as $member)
-                <div class="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 hover:border-purple-300 transition-all">
+                <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
                     <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
-                            <span class="text-xl font-black text-white">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
                         </div>
                         <div>
-                            <p class="font-bold text-gray-900 flex items-center gap-2">
+                            <p class="font-semibold text-gray-900 flex items-center gap-2">
                                 {{ $member->name }}
                                 @if($member->pivot->role === 'admin')
-                                    <span class="px-2 py-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold rounded-full">
+                                    <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded">
                                         👑 Admin
                                     </span>
                                 @endif
                                 @if($member->id === auth()->id())
-                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
                                         You
                                     </span>
                                 @endif
@@ -81,7 +121,7 @@
                         <form action="{{ route('groups.members.remove', [$group, $member->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $member->name }} from this group?');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:from-red-600 hover:to-pink-600 transition-all font-bold text-sm">
+                            <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-semibold transition-colors">
                                 Remove
                             </button>
                         </form>
@@ -89,29 +129,15 @@
                         <form action="{{ route('groups.members.leave', $group) }}" method="POST" onsubmit="return confirm('Are you sure you want to leave this group?');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all font-bold text-sm">
-                                Leave Group
+                            <button type="submit" class="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm font-semibold transition-colors">
+                                Leave
                             </button>
                         </form>
                     @endif
                 </div>
             @endforeach
+            </div>
         </div>
-    </div>
-
-    <!-- Mobile Floating Action Buttons -->
-    <div class="fixed bottom-6 right-6 flex flex-col gap-3 sm:hidden z-40">
-        <a href="{{ route('groups.expenses.create', $group) }}" class="inline-flex justify-center items-center w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full hover:from-green-600 hover:to-emerald-600 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Expense">
-            <span class="text-2xl">💸</span>
-        </a>
-        @if($group->isAdmin(auth()->user()))
-            <a href="{{ route('groups.edit', $group) }}" class="inline-flex justify-center items-center w-12 h-12 bg-gradient-to-r from-orange-400 to-pink-400 text-white rounded-full hover:from-orange-500 hover:to-pink-500 transition-all transform hover:scale-110 font-bold shadow-lg text-sm" title="Edit Group">
-                <span class="text-lg">✏️</span>
-            </a>
-        @endif
-        <a href="{{ route('groups.dashboard', $group) }}" class="inline-flex justify-center items-center w-12 h-12 bg-gradient-to-r from-blue-400 to-cyan-400 text-white rounded-full hover:from-blue-500 hover:to-cyan-500 transition-all transform hover:scale-110 font-bold shadow-lg text-sm" title="Dashboard">
-            <span class="text-lg">📊</span>
-        </a>
     </div>
 
     <!-- Expenses Modal -->
