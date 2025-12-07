@@ -1,11 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.expensesettle.app',
+  appId: 'com.arunkumar.expensesettle.app',
   appName: 'ExpenseSettle',
   webDir: 'public',
   server: {
-    // Point to your production URL
+    // Base URL - will auto-redirect unauthenticated users to login
     url: 'https://xpensesettle.on-forge.com',
     androidScheme: 'https',
     cleartext: false, // Production only uses HTTPS
