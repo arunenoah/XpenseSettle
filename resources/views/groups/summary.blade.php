@@ -86,13 +86,13 @@
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
                                     @foreach($settlement as $transaction)
-                                    <tr class="hover:bg-gray-50 transition-colors">
+                                    <tr class="hover:bg-gray-50 transition-colors" data-from="{{ $transaction['from']->id }}" data-to="{{ $transaction['to']->id }}">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
                                                 <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                                                     <span class="font-bold text-red-700">{{ strtoupper(substr($transaction['from']->name, 0, 1)) }}</span>
                                                 </div>
-                                                <span class="font-semibold text-gray-900">{{ $transaction['from']->name }}</span>
+                                                <span class="font-semibold text-gray-900" data-user-id="{{ $transaction['from']->id }}">{{ $transaction['from']->name }}</span>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
@@ -100,16 +100,20 @@
                                                 <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                                                     <span class="font-bold text-green-700">{{ strtoupper(substr($transaction['to']->name, 0, 1)) }}</span>
                                                 </div>
-                                                <span class="font-semibold text-gray-900">{{ $transaction['to']->name }}</span>
+                                                <span class="font-semibold text-gray-900" data-user-id="{{ $transaction['to']->id }}">{{ $transaction['to']->name }}</span>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-right">
                                             <span class="text-lg font-bold text-gray-900">₹{{ number_format($transaction['amount'], 0) }}</span>
                                         </td>
                                         <td class="px-6 py-4 text-center">
-                                            <span class="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800">
-                                                ⏳ Pending
-                                            </span>
+                                            <button
+                                                type="button"
+                                                onclick="openPaymentModal('{{ $transaction['from']->id }}', '{{ $transaction['to']->id }}', {{ $transaction['amount'] }})"
+                                                class="inline-flex px-3 py-1 rounded-full text-sm font-semibold bg-orange-100 text-orange-800 hover:bg-orange-200 transition-colors cursor-pointer"
+                                            >
+                                                ⏳ Mark Paid
+                                            </button>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -256,9 +260,198 @@
     </div>
 </div>
 
+<!-- Payment Confirmation Modal -->
+<div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-2xl max-w-md w-full">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4">
+            <h2 class="text-2xl font-bold">✅ Confirm Payment</h2>
+        </div>
+
+        <!-- Body -->
+        <div class="px-6 py-6 space-y-4">
+            <p class="text-gray-700">
+                <strong id="paymentText"></strong>
+            </p>
+
+            <!-- Payment Details -->
+            <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Amount:</span>
+                    <span class="font-bold text-gray-900">₹<span id="paymentAmount">0</span></span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Payment Method:</span>
+                    <span class="font-semibold text-gray-900">Cash / UPI / Bank</span>
+                </div>
+            </div>
+
+            <!-- Photo Upload Section -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    📸 Receipt/Proof (Optional)
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer" id="photoDropzone">
+                    <input type="file" id="paymentPhoto" accept="image/*" class="hidden" />
+                    <div class="space-y-1">
+                        <p class="text-2xl">📷</p>
+                        <p class="text-sm font-semibold text-gray-700">Click to upload screenshot</p>
+                        <p class="text-xs text-gray-500">UPI receipt, bank transfer confirmation, etc.</p>
+                    </div>
+                </div>
+                <p id="photoFileName" class="text-sm text-green-600 mt-2 hidden">✓ Photo selected</p>
+            </div>
+
+            <!-- Confirmation Checkbox -->
+            <label class="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <input type="checkbox" id="paymentConfirm" class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                <span class="text-sm text-gray-700">
+                    I confirm that <strong id="paymentConfirmText"></strong> has been completed.
+                </span>
+            </label>
+
+            <!-- Notes -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (Optional)</label>
+                <textarea
+                    id="paymentNotes"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="e.g., Paid via UPI on Jan 15"
+                ></textarea>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 bg-gray-50 flex gap-3 rounded-b-lg border-t border-gray-200">
+            <button
+                type="button"
+                onclick="closePaymentModal()"
+                class="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors font-semibold"
+            >
+                Cancel
+            </button>
+            <button
+                type="button"
+                onclick="submitPayment()"
+                id="submitPaymentBtn"
+                class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+            >
+                ✓ Mark as Paid
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Payment Modal -->
+<script>
+let currentPayment = { fromId: null, toId: null, amount: null };
+
+function openPaymentModal(fromId, toId, amount) {
+    currentPayment = { fromId, toId, amount };
+
+    // Get user names (from the page data)
+    const fromName = document.querySelector(`[data-user-id="${fromId}"]`)?.textContent || 'Person A';
+    const toName = document.querySelector(`[data-user-id="${toId}"]`)?.textContent || 'Person B';
+
+    // Update modal with payment details
+    document.getElementById('paymentText').textContent = `${fromName} pays ₹${amount.toLocaleString()} to ${toName}`;
+    document.getElementById('paymentAmount').textContent = amount.toLocaleString();
+    document.getElementById('paymentConfirmText').textContent = `${fromName} → ${toName} payment`;
+
+    // Show modal
+    document.getElementById('paymentModal').classList.remove('hidden');
+
+    // Reset form
+    document.getElementById('paymentConfirm').checked = false;
+    document.getElementById('paymentPhoto').value = '';
+    document.getElementById('paymentNotes').value = '';
+    document.getElementById('photoFileName').classList.add('hidden');
+    updateSubmitButton();
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').classList.add('hidden');
+}
+
+function updateSubmitButton() {
+    const isConfirmed = document.getElementById('paymentConfirm').checked;
+    document.getElementById('submitPaymentBtn').disabled = !isConfirmed;
+}
+
+// Photo upload handling
+document.getElementById('photoDropzone').addEventListener('click', function() {
+    document.getElementById('paymentPhoto').click();
+});
+
+document.getElementById('paymentPhoto').addEventListener('change', function(e) {
+    if (this.files.length > 0) {
+        document.getElementById('photoFileName').classList.remove('hidden');
+    }
+});
+
+// Enable/disable submit button based on confirmation
+document.getElementById('paymentConfirm').addEventListener('change', updateSubmitButton);
+
+async function submitPayment() {
+    const notes = document.getElementById('paymentNotes').value;
+    const hasPhoto = document.getElementById('paymentPhoto').files.length > 0;
+
+    // Create success feedback
+    const modal = document.getElementById('paymentModal');
+    const originalContent = modal.innerHTML;
+
+    // Show success state
+    modal.querySelector('[data-header]')?.remove();
+    const successDiv = document.createElement('div');
+    successDiv.className = 'bg-green-50 px-6 py-12 text-center rounded-lg';
+    successDiv.innerHTML = `
+        <div class="text-5xl mb-4">✅</div>
+        <h3 class="text-2xl font-bold text-green-900 mb-2">Payment Recorded!</h3>
+        <p class="text-green-700 mb-6">
+            The settlement between <strong>${currentPayment.fromName}</strong> and <strong>${currentPayment.toName}</strong> has been confirmed.
+        </p>
+        <button onclick="location.reload()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+            ✓ Done
+        </button>
+    `;
+    modal.innerHTML = '';
+    modal.appendChild(successDiv);
+
+    // In production, you would send this to your backend:
+    // await fetch(`/groups/{{ $group->id }}/settlements/confirm`, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({
+    //         from_user_id: currentPayment.fromId,
+    //         to_user_id: currentPayment.toId,
+    //         amount: currentPayment.amount,
+    //         notes: notes,
+    //         has_photo: hasPhoto
+    //     })
+    // });
+
+    console.log('Payment recorded:', {
+        from: currentPayment.fromId,
+        to: currentPayment.toId,
+        amount: currentPayment.amount,
+        notes: notes,
+        hasPhoto: hasPhoto
+    });
+}
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closePaymentModal();
+    }
+});
+</script>
+
 <style>
     @media print {
-        nav, button, .no-print {
+        nav, button, .no-print, #paymentModal {
             display: none !important;
         }
         body {
