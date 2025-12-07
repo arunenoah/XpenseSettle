@@ -257,67 +257,6 @@
         </div>
     @endif
 
-    <!-- Advances Section - Collapsible -->
-    <div class="bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl shadow-lg p-6 border-2 border-amber-300">
-        <button type="button" onclick="toggleSection('advancesSection')" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
-            <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
-                <span class="text-3xl">💰</span>
-                <span>Advances (Large Upfront Contributions)</span>
-                <button onclick="event.stopPropagation(); openAdvancesInfoModal()" class="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-700 hover:bg-amber-300 transition-colors" title="What is an Advance?">
-                    <span class="text-sm font-bold">ⓘ</span>
-                </button>
-            </h2>
-            <span id="advancesSectionToggle" class="text-2xl transform transition-transform duration-300">▼</span>
-        </button>
-        <div id="advancesSection" class="hidden sm:block">
-
-        <!-- Advances List -->
-        @php
-            $advances = \App\Models\Advance::where('group_id', $group->id)->with(['senders', 'sentTo'])->latest()->get();
-        @endphp
-
-        @if($advances->count() > 0)
-            <div class="space-y-3">
-                @foreach($advances as $advance)
-                    <div class="p-4 bg-white border-2 border-blue-200 rounded-lg">
-                        <div class="flex items-start justify-between gap-3 mb-2">
-                            <div class="flex-1 min-w-0">
-                                <p class="font-bold text-gray-900">
-                                    {{ $advance->senders->pluck('name')->join(', ') }} → {{ $advance->sentTo->name }}
-                                </p>
-                                @if($advance->description)
-                                    <p class="text-sm text-gray-600">{{ $advance->description }}</p>
-                                @endif
-                                <p class="text-xs text-gray-500 mt-1">{{ $advance->date->format('M d, Y') }}</p>
-                            </div>
-                            <div class="text-right flex-shrink-0">
-                                <p class="font-black text-lg text-blue-600">${{ number_format($advance->amount_per_person * $advance->senders()->count(), 2) }}</p>
-                                <p class="text-xs text-gray-600">({{ $group->currency }}{{ number_format($advance->amount_per_person, 2) }} each)</p>
-                            </div>
-                        </div>
-
-                        <!-- Delete Button -->
-                        <div class="mt-3 flex justify-end">
-                            <form action="{{ route('groups.advances.destroy', ['group' => $group, 'advance' => $advance]) }}" method="POST" class="inline" onsubmit="return confirm('Delete this advance record?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded hover:bg-red-200 transition-all">
-                                    🗑️ Delete
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <div class="text-center py-8 bg-white rounded-xl border-2 border-dashed border-blue-200">
-                <p class="text-gray-600 font-medium">No advances recorded yet</p>
-                <p class="text-sm text-gray-500 mt-1">Use the form above to add an advance</p>
-            </div>
-        @endif
-        </div>
-    </div>
-
 
     <!-- Recent Activity (Expenses, Payments, Advances) -->
     <div class="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl shadow-lg p-6">
