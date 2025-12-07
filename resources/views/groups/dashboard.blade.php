@@ -40,6 +40,10 @@
                     <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
                         Add Expense
                     </a>
+                    <button onclick="scrollToAdvances()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-sm flex items-center gap-2">
+                        <span>💰</span>
+                        Add Advance
+                    </button>
                     @if($group->isAdmin(auth()->user()))
                         <a href="{{ route('groups.edit', $group) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold text-sm">
                             Settings
@@ -266,28 +270,6 @@
             <span id="advancesSectionToggle" class="text-2xl transform transition-transform duration-300">▼</span>
         </button>
         <div id="advancesSection" class="hidden sm:block">
-
-        <!-- Help Text -->
-        <div class="bg-white rounded-lg border-l-4 border-amber-500 p-4 mb-6">
-            <p class="text-sm text-gray-700 mb-2">
-                <strong>What is an Advance?</strong> Use this when someone pays a large amount upfront that benefits the whole group.
-            </p>
-            <div class="mt-3 space-y-2 text-xs text-gray-600">
-                <p><strong>✅ Examples:</strong></p>
-                <ul class="list-disc list-inside space-y-1 ml-2">
-                    <li>Hotel booking paid by one person</li>
-                    <li>Rental car paid upfront</li>
-                    <li>Group activity/tour ticket purchased by one person</li>
-                    <li>Gas/travel costs paid in advance</li>
-                </ul>
-                <p class="mt-2"><strong>❌ NOT an Advance:</strong></p>
-                <ul class="list-disc list-inside space-y-1 ml-2">
-                    <li>Dinner split between friends (use "Add Expense")</li>
-                    <li>Coffee for one person (use "Add Expense")</li>
-                </ul>
-            </div>
-            <p class="text-xs text-amber-800 mt-3 font-semibold">💡 Advances automatically reduce what each person owes in the settlement.</p>
-        </div>
 
         <!-- Add Advance Form -->
         <div class="bg-white rounded-xl p-6 shadow-md border-2 border-amber-300 mb-6">
@@ -550,8 +532,13 @@
         </div>
     </div>
 
-    <!-- Mobile Floating Action Button -->
-    <div class="fixed bottom-6 right-6 sm:hidden z-40">
+    <!-- Mobile Floating Action Buttons -->
+    <div class="fixed bottom-6 right-6 sm:hidden z-40 flex flex-col gap-3">
+        <!-- Add Advance FAB -->
+        <button onclick="scrollToAdvances()" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
+            <span class="text-2xl">💰</span>
+        </button>
+        <!-- Add Expense FAB -->
         <a href="{{ route('groups.expenses.create', $group) }}" class="inline-flex justify-center items-center w-14 h-14 bg-green-600 text-white rounded-full hover:bg-green-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Expense">
             <span class="text-2xl">+</span>
         </a>
@@ -655,6 +642,12 @@ function toggleSection(sectionId) {
         toggle.textContent = '▶';
         toggle.style.transform = 'rotate(0deg)';
     }
+}
+
+// Scroll to Advances section
+function scrollToAdvances() {
+    const advancesSection = document.querySelector('[id="advancesSection"]').parentElement;
+    advancesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function openGroupPaymentModal(splitId, payeeName, amount, expenseTitle) {
