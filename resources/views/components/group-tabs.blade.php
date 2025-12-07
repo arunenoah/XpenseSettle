@@ -12,6 +12,14 @@
             <span class="hidden sm:inline">Dashboard</span>
         </a>
 
+        <!-- Summary Tab -->
+        <a href="{{ route('groups.summary', $group) }}"
+           title="Trip Summary"
+           class="flex items-center gap-2 px-2 sm:px-4 py-4 border-b-2 {{ $active === 'summary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }} font-semibold text-sm whitespace-nowrap transition-colors">
+            <span class="text-lg sm:text-base">📈</span>
+            <span class="hidden sm:inline">Summary</span>
+        </a>
+
         <!-- Members Tab -->
         <a href="{{ route('groups.members', $group) }}"
            title="Members"
