@@ -79,12 +79,25 @@ class AttachmentController extends Controller
      */
     public function show(Attachment $attachment, Request $request)
     {
+        // Load attachable relationship if it exists
+        $attachable = $attachment->attachable;
+
+        // If attachable doesn't exist, user may not have permission
+        if (!$attachable) {
+            abort(404, 'Associated resource not found');
+        }
+
         // Check authorization
-        $this->authorizeAttachment($attachment->attachable);
+        $this->authorizeAttachment($attachable);
 
         $inline = $request->get('inline', false);
 
         try {
+            // Verify file exists before attempting to serve it
+            if (!Storage::disk('local')->exists($attachment->file_path)) {
+                abort(404, 'File not found in storage');
+            }
+
             if ($inline && $this->isImage($attachment)) {
                 // Display image inline
                 return response()->file(
@@ -96,7 +109,12 @@ class AttachmentController extends Controller
             // Download file
             return $this->attachmentService->downloadFile($attachment);
         } catch (\Exception $e) {
-            abort(404, 'File not found');
+            \Log::error('Attachment retrieval error', [
+                'attachment_id' => $attachment->id,
+                'file_path' => $attachment->file_path,
+                'error' => $e->getMessage(),
+            ]);
+            abort(404, 'File not found: ' . $e->getMessage());
         }
     }
 
@@ -105,12 +123,30 @@ class AttachmentController extends Controller
      */
     public function download(Attachment $attachment)
     {
+        // Load attachable relationship if it exists
+        $attachable = $attachment->attachable;
+
+        // If attachable doesn't exist, user may not have permission
+        if (!$attachable) {
+            abort(404, 'Associated resource not found');
+        }
+
         // Check authorization
-        $this->authorizeAttachment($attachment->attachable);
+        $this->authorizeAttachment($attachable);
 
         try {
+            // Verify file exists before attempting to serve it
+            if (!Storage::disk('local')->exists($attachment->file_path)) {
+                abort(404, 'File not found in storage');
+            }
+
             return $this->attachmentService->downloadFile($attachment);
         } catch (\Exception $e) {
+            \Log::error('Attachment download error', [
+                'attachment_id' => $attachment->id,
+                'file_path' => $attachment->file_path,
+                'error' => $e->getMessage(),
+            ]);
             abort(404, 'File not found');
         }
     }
