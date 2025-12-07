@@ -7,6 +7,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\SettlementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -67,6 +68,11 @@ Route::middleware('auth')->group(function () {
     // Advances Management (nested under groups)
     Route::post('/groups/{group}/advances', [AdvanceController::class, 'store'])->name('groups.advances.store');
     Route::delete('/groups/{group}/advances/{advance}', [AdvanceController::class, 'destroy'])->name('groups.advances.destroy');
+
+    // Settlement Management (nested under groups)
+    Route::post('/groups/{group}/settlements/confirm', [SettlementController::class, 'confirmSettlement'])->name('groups.settlements.confirm');
+    Route::get('/groups/{group}/settlements/history', [SettlementController::class, 'getSettlementHistory'])->name('groups.settlements.history');
+    Route::get('/groups/{group}/settlements/unsettled', [SettlementController::class, 'getUnsettledTransactions'])->name('groups.settlements.unsettled');
 
     // Attachments Management
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');

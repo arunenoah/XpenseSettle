@@ -396,49 +396,56 @@ document.getElementById('paymentConfirm').addEventListener('change', updateSubmi
 
 async function submitPayment() {
     const notes = document.getElementById('paymentNotes').value;
-    const hasPhoto = document.getElementById('paymentPhoto').files.length > 0;
+    const photoFile = document.getElementById('paymentPhoto').files[0];
 
-    // Create success feedback
-    const modal = document.getElementById('paymentModal');
-    const originalContent = modal.innerHTML;
+    // Create FormData for file upload support
+    const formData = new FormData();
+    formData.append('from_user_id', currentPayment.fromId);
+    formData.append('to_user_id', currentPayment.toId);
+    formData.append('amount', currentPayment.amount);
+    formData.append('notes', notes);
+    if (photoFile) {
+        formData.append('photo', photoFile);
+    }
 
-    // Show success state
-    modal.querySelector('[data-header]')?.remove();
-    const successDiv = document.createElement('div');
-    successDiv.className = 'bg-green-50 px-6 py-12 text-center rounded-lg';
-    successDiv.innerHTML = `
-        <div class="text-5xl mb-4">✅</div>
-        <h3 class="text-2xl font-bold text-green-900 mb-2">Payment Recorded!</h3>
-        <p class="text-green-700 mb-6">
-            The settlement between <strong>${currentPayment.fromName}</strong> and <strong>${currentPayment.toName}</strong> has been confirmed.
-        </p>
-        <button onclick="location.reload()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
-            ✓ Done
-        </button>
-    `;
-    modal.innerHTML = '';
-    modal.appendChild(successDiv);
+    try {
+        // Send to backend
+        const response = await fetch(`/groups/{{ $group->id }}/settlements/confirm`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+            },
+            body: formData
+        });
 
-    // In production, you would send this to your backend:
-    // await fetch(`/groups/{{ $group->id }}/settlements/confirm`, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({
-    //         from_user_id: currentPayment.fromId,
-    //         to_user_id: currentPayment.toId,
-    //         amount: currentPayment.amount,
-    //         notes: notes,
-    //         has_photo: hasPhoto
-    //     })
-    // });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-    console.log('Payment recorded:', {
-        from: currentPayment.fromId,
-        to: currentPayment.toId,
-        amount: currentPayment.amount,
-        notes: notes,
-        hasPhoto: hasPhoto
-    });
+        const data = await response.json();
+
+        // Show success state
+        const modal = document.getElementById('paymentModal');
+        const successDiv = document.createElement('div');
+        successDiv.className = 'bg-green-50 px-6 py-12 text-center rounded-lg';
+        successDiv.innerHTML = `
+            <div class="text-5xl mb-4">✅</div>
+            <h3 class="text-2xl font-bold text-green-900 mb-2">Payment Recorded!</h3>
+            <p class="text-green-700 mb-6">
+                The settlement has been confirmed and saved with receipt.
+            </p>
+            <button onclick="location.reload()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                ✓ Refresh to See Updates
+            </button>
+        `;
+        modal.innerHTML = '';
+        modal.appendChild(successDiv);
+
+    } catch (error) {
+        console.error('Error submitting payment:', error);
+        alert('Error recording payment. Please try again. Error: ' + error.message);
+        closePaymentModal();
+    }
 }
 
 // Close modal on escape key
