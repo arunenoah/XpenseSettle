@@ -131,13 +131,16 @@
     </div>
     --}}
 
-    <!-- Squad Members -->
+    <!-- Squad Members - Collapsible Section -->
     <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
-        <h2 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-            <span class="text-3xl">👥</span>
-            <span>Squad Members</span>
-        </h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <button type="button" onclick="toggleSection('squadMembers')" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
+            <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <span class="text-3xl">👥</span>
+                <span>Squad Members</span>
+            </h2>
+            <span id="squadMembersToggle" class="text-2xl transform transition-transform duration-300">▼</span>
+        </button>
+        <div id="squadMembers" class="hidden sm:block grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($balances as $balance)
                 <div class="bg-white rounded-xl p-5 shadow-md border-2 {{ $balance['net_balance'] >= 0 ? 'border-green-300' : 'border-red-300' }} hover:shadow-xl transition-all transform hover:scale-105">
                     <div class="flex items-start gap-3 mb-3">
@@ -190,14 +193,17 @@
         </div>
     </div>
 
-    <!-- Settlement Breakdown (Net per Person) -->
+    <!-- Settlement Breakdown (Net per Person) - Collapsible Section -->
     @if(count($settlement) > 0)
         <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
-            <h3 class="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
-                <span class="text-3xl">⚖️</span>
-                <span>Settlement Summary</span>
-            </h3>
-            <div class="space-y-3">
+            <button type="button" onclick="toggleSection('settlementSummary')" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
+                <h3 class="text-2xl font-black text-gray-900 flex items-center gap-2">
+                    <span class="text-3xl">⚖️</span>
+                    <span>Settlement Summary</span>
+                </h3>
+                <span id="settlementSummaryToggle" class="text-2xl transform transition-transform duration-300">▼</span>
+            </button>
+            <div id="settlementSummary" class="hidden sm:block space-y-3">
                 @foreach($settlement as $item)
                     @php
                         $isOwed = $item['net_amount'] > 0;
@@ -247,15 +253,19 @@
         </div>
     @endif
 
-    <!-- Advances Section -->
+    <!-- Advances Section - Collapsible -->
     <div class="bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 rounded-2xl shadow-lg p-6 border-2 border-amber-300">
-        <h2 class="text-2xl font-black text-gray-900 mb-2 flex items-center gap-2">
-            <span class="text-3xl">💰</span>
-            <span>Advances (Large Upfront Contributions)</span>
-            <button onclick="openAdvancesInfoModal()" class="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-700 hover:bg-amber-300 transition-colors" title="What is an Advance?">
-                <span class="text-sm font-bold">ⓘ</span>
-            </button>
-        </h2>
+        <button type="button" onclick="toggleSection('advancesSection')" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
+            <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
+                <span class="text-3xl">💰</span>
+                <span>Advances (Large Upfront Contributions)</span>
+                <button onclick="event.stopPropagation(); openAdvancesInfoModal()" class="ml-2 inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-200 text-amber-700 hover:bg-amber-300 transition-colors" title="What is an Advance?">
+                    <span class="text-sm font-bold">ⓘ</span>
+                </button>
+            </h2>
+            <span id="advancesSectionToggle" class="text-2xl transform transition-transform duration-300">▼</span>
+        </button>
+        <div id="advancesSection" class="hidden sm:block">
 
         <!-- Help Text -->
         <div class="bg-white rounded-lg border-l-4 border-amber-500 p-4 mb-6">
@@ -381,6 +391,7 @@
                 <p class="text-sm text-gray-500 mt-1">Use the form above to add an advance</p>
             </div>
         @endif
+        </div>
     </div>
 
 
@@ -628,6 +639,24 @@
 </div>
 
 <script>
+// Toggle section collapse/expand
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    const toggle = document.getElementById(sectionId + 'Toggle');
+
+    if (section.classList.contains('hidden')) {
+        // Show section
+        section.classList.remove('hidden');
+        toggle.textContent = '▼';
+        toggle.style.transform = 'rotate(0deg)';
+    } else {
+        // Hide section
+        section.classList.add('hidden');
+        toggle.textContent = '▶';
+        toggle.style.transform = 'rotate(0deg)';
+    }
+}
+
 function openGroupPaymentModal(splitId, payeeName, amount, expenseTitle) {
     document.getElementById('groupPayeeName').textContent = payeeName;
     document.getElementById('groupPaymentAmount').textContent = '$' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
