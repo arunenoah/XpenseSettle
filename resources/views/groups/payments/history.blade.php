@@ -3,30 +3,68 @@
 @section('title', 'Payment History - ' . $group->name)
 
 @section('content')
-<div class="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-    <!-- Navigation Tabs -->
-    <x-group-tabs :group="$group" active="history" />
+<div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
+    <!-- Header Section -->
+    <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto">
+            <!-- Group Title -->
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-5xl">{{ $group->icon ?? '👥' }}</span>
+                    <div>
+                        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">{{ $group->name }}</h1>
+                        @if($group->description)
+                            <p class="text-gray-600 mt-1">{{ $group->description }}</p>
+                        @endif
+                    </div>
+                </div>
 
-    <!-- Header -->
-    <div class="flex flex-col gap-4">
-        <div>
-            <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Settlement Summary
-            </h1>
-            <p class="mt-2 text-gray-600">{{ $group->name }} • {{ auth()->user()->name }}</p>
+                <!-- Desktop Action Buttons -->
+                <div class="hidden sm:flex gap-2 flex-shrink-0">
+                    <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
+                        Add Expense
+                    </a>
+                    @if($group->isAdmin(auth()->user()))
+                        <a href="{{ route('groups.edit', $group) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold text-sm">
+                            Settings
+                        </a>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Member Avatars and Info -->
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-semibold text-gray-600 uppercase">{{ $group->members->count() }} Members</span>
+                <div class="flex items-center gap-2">
+                    @foreach($group->members->take(5) as $member)
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $member->name }}">
+                            <span class="text-xs font-bold text-blue-700">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                        </div>
+                    @endforeach
+                    @if($group->members->count() > 5)
+                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $group->members->count() - 5 }}</span>
+                    @endif
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    <x-group-tabs :group="$group" active="history" />
 
-    <!-- Personal Settlement Section -->
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
-            @if(count($personalSettlement) > 0)
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-gray-200">
+    <!-- Main Content -->
+    <div class="px-4 sm:px-6 lg:px-8 py-8">
+        <div class="max-w-7xl mx-auto space-y-6">
+
+            <!-- Personal Settlement Section -->
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
+                @if(count($personalSettlement) > 0)
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-gray-50 border-b border-gray-200">
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
                             <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">They spent for me</th>
