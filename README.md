@@ -241,6 +241,7 @@ MIT License - Open source
 - Tailwind CSS - Styling
 - Chart.js - Charts
 - Splitwise - Inspiration
+- **Claude Code** - AI assistant for app development, mobile app setup, and documentation
 
 ---
 
