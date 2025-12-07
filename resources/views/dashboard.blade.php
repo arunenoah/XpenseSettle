@@ -30,42 +30,55 @@
         <div class="max-w-7xl mx-auto space-y-8">
             <!-- Summary Cards - Mobile Optimized -->
             @php
-                $netOwed = $totalOwed - $totalPaid;
+                // Calculate overall balances across all groups
+                $totalYouOwe = 0;
+                $totalTheyOweYou = 0;
+
+                foreach ($user->groups as $group) {
+                    $balances = app('App\Services\GroupService')->getGroupBalance($group);
+                    $userBalance = $balances[$user->id] ?? ['total_owed' => 0, 'total_paid' => 0];
+                    $totalYouOwe += $userBalance['total_owed'];
+                    $totalTheyOweYou += $userBalance['total_paid'];
+                }
+
+                $netBalance = $totalTheyOweYou - $totalYouOwe;
             @endphp
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Net Balance Card -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <!-- You Owe -->
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-600">Balance</h3>
-                        <span class="text-2xl">{{ $netOwed > 0 ? '📤' : '📥' }}</span>
+                        <h3 class="text-sm font-semibold text-gray-600">You Owe</h3>
+                        <span class="text-2xl">📤</span>
                     </div>
-                    <p class="text-3xl font-bold text-gray-900 mb-2">₹{{ number_format(abs($netOwed), 0) }}</p>
-                    <p class="text-sm {{ $netOwed > 0 ? 'text-red-600' : 'text-green-600' }} font-semibold">
-                        {{ $netOwed > 0 ? 'You owe this amount' : 'Friends owe you this amount' }}
+                    <p class="text-3xl font-bold text-red-600 mb-2">₹{{ number_format($totalYouOwe, 0) }}</p>
+                    <p class="text-sm text-gray-600 font-semibold">
+                        Amount owed across groups
                     </p>
                 </div>
 
-                <!-- Pending Count Card -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <!-- They Owe You -->
+                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-600">Pending Payments</h3>
-                        <span class="text-2xl">⏳</span>
+                        <h3 class="text-sm font-semibold text-gray-600">They Owe You</h3>
+                        <span class="text-2xl">📥</span>
                     </div>
-                    <p class="text-3xl font-bold text-gray-900 mb-2">{{ $pendingCount }}</p>
-                    <p class="text-sm text-amber-600 font-semibold">
-                        {{ $pendingCount == 1 ? 'payment' : 'payments' }} to settle
+                    <p class="text-3xl font-bold text-green-600 mb-2">₹{{ number_format($totalTheyOweYou, 0) }}</p>
+                    <p class="text-sm text-gray-600 font-semibold">
+                        Amount owed to you
                     </p>
                 </div>
 
-                <!-- Squads Card -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <!-- Net Balance -->
+                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-600">Your Groups</h3>
-                        <span class="text-2xl">👥</span>
+                        <h3 class="text-sm font-semibold text-gray-600">Your Balance</h3>
+                        <span class="text-2xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
                     </div>
-                    <p class="text-3xl font-bold text-gray-900 mb-2">{{ count($groups) }}</p>
-                    <p class="text-sm text-blue-600 font-semibold">
-                        {{ count($groups) == 1 ? 'group' : 'groups' }} active
+                    <p class="text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }} mb-2">
+                        {{ $netBalance >= 0 ? '+' : '' }}₹{{ number_format(abs($netBalance), 0) }}
+                    </p>
+                    <p class="text-sm text-gray-600 font-semibold">
+                        {{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}
                     </p>
                 </div>
             </div>
