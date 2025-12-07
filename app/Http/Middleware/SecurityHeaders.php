@@ -37,11 +37,12 @@ class SecurityHeaders
 
         // Content Security Policy - Prevent XSS and injection attacks
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
+               "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
+               "worker-src 'self' blob:; " .
                "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " .
-               "img-src 'self' data: https:; " .
+               "img-src 'self' data: https: blob:; " .
                "font-src 'self' data: https:; " .
-               "connect-src 'self' https:; " .
+               "connect-src 'self' https: blob:; " .
                "frame-ancestors 'none'; " .
                "base-uri 'self'; " .
                "form-action 'self'";
