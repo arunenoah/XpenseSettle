@@ -44,9 +44,12 @@
                     </button>
                 </div>
 
-                <!-- Desktop Logout -->
+                <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ auth()->user()->name }}</span>
+                    <a href="{{ route('auth.show-update-pin') }}" class="text-gray-700 hover:text-blue-600 font-medium" title="Update PIN">
+                        🔐
+                    </a>
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
                         <button type="submit" class="text-gray-700 hover:text-blue-600 font-medium">Logout</button>
@@ -66,6 +69,10 @@
                 </a>
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     <p class="px-3 py-2 text-sm text-gray-900 font-bold">{{ auth()->user()->name }}</p>
+                    <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-base bg-blue-100 text-blue-700 hover:bg-blue-200">
+                        <span class="text-xl">🔐</span>
+                        <span>Update PIN</span>
+                    </a>
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
                         <button type="submit" class="w-full flex items-center gap-2 text-left px-3 py-2 rounded-lg font-bold text-base bg-red-100 text-red-700 hover:bg-red-200">
