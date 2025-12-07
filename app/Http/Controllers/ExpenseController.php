@@ -5,15 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Models\Group;
 use App\Services\ExpenseService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
     private ExpenseService $expenseService;
+    private NotificationService $notificationService;
 
-    public function __construct(ExpenseService $expenseService)
+    public function __construct(ExpenseService $expenseService, NotificationService $notificationService)
     {
         $this->expenseService = $expenseService;
+        $this->notificationService = $notificationService;
     }
 
     /**
@@ -69,6 +72,9 @@ class ExpenseController extends Controller
                 auth()->user(),
                 $validated
             );
+
+            // Send notification to group members about the new expense
+            $this->notificationService->notifyExpenseCreated($expense, auth()->user());
 
             // Handle OCR extracted items if provided
             if (!empty($validated['items_json'])) {

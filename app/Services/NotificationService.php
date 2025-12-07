@@ -7,9 +7,17 @@ use App\Models\Group;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NotificationService
 {
+    private FirebaseService $firebaseService;
+
+    public function __construct(FirebaseService $firebaseService)
+    {
+        $this->firebaseService = $firebaseService;
+    }
+
     /**
      * Notify group members about a new expense.
      *
@@ -27,10 +35,23 @@ class NotificationService
                 'title' => 'New Expense in ' . $group->name,
                 'message' => "{$creator->name} added an expense: {$expense->title}",
                 'data' => [
-                    'expense_id' => $expense->id,
-                    'group_id' => $group->id,
+                    'expense_id' => (string)$expense->id,
+                    'group_id' => (string)$group->id,
+                    'type' => 'expense_created',
                 ],
             ]);
+
+            // Send push notification to device
+            $this->sendPushNotification(
+                $member,
+                'New Expense in ' . $group->name,
+                "{$creator->name} added an expense: {$expense->title}",
+                [
+                    'expense_id' => (string)$expense->id,
+                    'group_id' => (string)$group->id,
+                    'type' => 'expense_created',
+                ]
+            );
         }
     }
 
@@ -52,11 +73,25 @@ class NotificationService
             'title' => 'Payment Received',
             'message' => "{$paidBy->name} marked their payment as paid for {$expense->title}",
             'data' => [
-                'expense_id' => $expense->id,
-                'group_id' => $group->id,
-                'payment_id' => $payment->id,
+                'expense_id' => (string)$expense->id,
+                'group_id' => (string)$group->id,
+                'payment_id' => (string)$payment->id,
+                'type' => 'payment_marked',
             ],
         ]);
+
+        // Send push notification
+        $this->sendPushNotification(
+            $payer,
+            'Payment Received',
+            "{$paidBy->name} marked their payment as paid for {$expense->title}",
+            [
+                'expense_id' => (string)$expense->id,
+                'group_id' => (string)$group->id,
+                'payment_id' => (string)$payment->id,
+                'type' => 'payment_marked',
+            ]
+        );
     }
 
     /**
@@ -77,10 +112,23 @@ class NotificationService
                 'title' => 'New Comment in ' . $group->name,
                 'message' => "{$commenter->name} commented on {$expense->title}",
                 'data' => [
-                    'expense_id' => $expense->id,
-                    'group_id' => $group->id,
+                    'expense_id' => (string)$expense->id,
+                    'group_id' => (string)$group->id,
+                    'type' => 'comment_added',
                 ],
             ]);
+
+            // Send push notification
+            $this->sendPushNotification(
+                $member,
+                'New Comment in ' . $group->name,
+                "{$commenter->name} commented on {$expense->title}",
+                [
+                    'expense_id' => (string)$expense->id,
+                    'group_id' => (string)$group->id,
+                    'type' => 'comment_added',
+                ]
+            );
         }
     }
 
@@ -98,33 +146,21 @@ class NotificationService
             'title' => 'Added to Group',
             'message' => "{$addedBy->name} added you to {$group->name}",
             'data' => [
-                'group_id' => $group->id,
+                'group_id' => (string)$group->id,
+                'type' => 'added_to_group',
             ],
         ]);
-    }
 
-    /**
-     * Create a notification record in database.
-     *
-     * @param User $user
-     * @param array $data
-     */
-    private function createNotification(User $user, array $data): void
-    {
-        // Store in database (you may need to create a notifications table)
-        DB::table('notifications')->insert([
-            'user_id' => $user->id,
-            'type' => $data['type'],
-            'title' => $data['title'],
-            'message' => $data['message'],
-            'data' => json_encode($data['data']),
-            'read' => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // You can also send email/SMS here
-        // Mail::send(new ExpenseNotification($user, $data));
+        // Send push notification
+        $this->sendPushNotification(
+            $user,
+            'Added to Group',
+            "{$addedBy->name} added you to {$group->name}",
+            [
+                'group_id' => (string)$group->id,
+                'type' => 'added_to_group',
+            ]
+        );
     }
 
     /**
@@ -140,9 +176,94 @@ class NotificationService
             'title' => 'Payment Reminder',
             'message' => "You have an unpaid expense: {$expense->title}",
             'data' => [
-                'expense_id' => $expense->id,
-                'group_id' => $expense->group_id,
+                'expense_id' => (string)$expense->id,
+                'group_id' => (string)$expense->group_id,
+                'type' => 'payment_reminder',
             ],
         ]);
+
+        // Send push notification
+        $this->sendPushNotification(
+            $user,
+            'Payment Reminder',
+            "You have an unpaid expense: {$expense->title}",
+            [
+                'expense_id' => (string)$expense->id,
+                'group_id' => (string)$expense->group_id,
+                'type' => 'payment_reminder',
+            ]
+        );
+    }
+
+    /**
+     * Create a notification record in database and send push notification.
+     *
+     * @param User $user
+     * @param array $data
+     */
+    private function createNotification(User $user, array $data): void
+    {
+        try {
+            DB::table('notifications')->insert([
+                'user_id' => $user->id,
+                'type' => $data['type'],
+                'title' => $data['title'],
+                'message' => $data['message'],
+                'data' => json_encode($data['data']),
+                'read' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to create notification in database', [
+                'user_id' => $user->id,
+                'type' => $data['type'],
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Send push notification via Firebase to all user's devices.
+     *
+     * @param User $user
+     * @param string $title
+     * @param string $body
+     * @param array $data
+     */
+    private function sendPushNotification(User $user, string $title, string $body, array $data): void
+    {
+        try {
+            // Get all active device tokens for the user
+            $deviceTokens = $user->deviceTokens()
+                ->where('active', true)
+                ->pluck('token')
+                ->toArray();
+
+            if (empty($deviceTokens)) {
+                Log::info('No active device tokens for user', ['user_id' => $user->id]);
+                return;
+            }
+
+            // Send to each device
+            $result = $this->firebaseService->sendBulkNotification(
+                $deviceTokens,
+                $title,
+                $body,
+                $data
+            );
+
+            Log::info('Push notification sent', [
+                'user_id' => $user->id,
+                'successful' => $result['successful'],
+                'failed' => $result['failed'],
+                'total' => $result['total'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to send push notification', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
