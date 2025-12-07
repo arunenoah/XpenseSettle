@@ -34,9 +34,11 @@ class AttachmentService
         // Compress image to reduce file size
         $compressedContent = $this->compressImage($file);
 
-        // Generate unique filename
+        // Generate unique filename with timestamp and random component to handle duplicates
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-        $filename = $originalName . '_' . time() . '.jpg';
+        $timestamp = time();
+        $randomPart = substr(md5(random_bytes(16)), 0, 8);
+        $filename = $originalName . '_' . $timestamp . '_' . $randomPart . '.jpg';
         $path = $directory . '/' . $filename;
 
         // Store compressed image
