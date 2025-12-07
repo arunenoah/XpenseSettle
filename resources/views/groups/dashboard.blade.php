@@ -144,42 +144,42 @@
             </h2>
             <span id="squadMembersToggle" class="text-2xl transform transition-transform duration-300">▼</span>
         </button>
-        <div id="squadMembers" class="hidden sm:block grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div id="squadMembers" class="hidden sm:block grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             @foreach($balances as $balance)
-                <div class="bg-white rounded-xl p-5 shadow-md border-2 {{ $balance['net_balance'] >= 0 ? 'border-green-300' : 'border-red-300' }} hover:shadow-xl transition-all transform hover:scale-105">
-                    <div class="flex items-start gap-3 mb-3">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
-                            <span class="text-xl font-black text-white">{{ strtoupper(substr($balance['user']->name, 0, 1)) }}</span>
+                <div class="bg-white rounded-lg p-3 sm:p-5 shadow-md border-2 {{ $balance['net_balance'] >= 0 ? 'border-green-300' : 'border-red-300' }} hover:shadow-lg transition-shadow transform hover:scale-105">
+                    <div class="flex items-start gap-2 sm:gap-3 mb-2 sm:mb-3">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center flex-shrink-0">
+                            <span class="text-lg sm:text-xl font-black text-white">{{ strtoupper(substr($balance['user']->name, 0, 1)) }}</span>
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-lg font-bold text-gray-900 truncate">{{ $balance['user']->name }}</p>
+                            <p class="text-xs sm:text-sm font-bold text-gray-900 truncate">{{ $balance['user']->name }}</p>
                             @if($balance['user']->id === auth()->id())
-                                <span class="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">That's You! 👋</span>
+                                <span class="inline-block px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full whitespace-nowrap">You 👋</span>
                             @endif
                         </div>
                     </div>
 
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-gray-600">💸 Paid</span>
-                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_paid'], 2) }}</span>
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-gray-600">💸 Paid</span>
+                            <span class="font-bold text-gray-900">${{ number_format($balance['total_paid'], 2) }}</span>
                         </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs font-semibold text-gray-600">💰 Share</span>
-                            <span class="text-sm font-bold text-gray-900">${{ number_format($balance['total_owed'], 2) }}</span>
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-semibold text-gray-600">💰 Share</span>
+                            <span class="font-bold text-gray-900">${{ number_format($balance['total_owed'], 2) }}</span>
                         </div>
                         @if(isset($memberAdvances[$balance['user']->id]) && $memberAdvances[$balance['user']->id] > 0)
-                            <div class="flex justify-between items-center">
-                                <span class="text-xs font-semibold text-blue-600">🚀 Advanced</span>
-                                <span class="text-sm font-bold text-blue-600">${{ number_format($memberAdvances[$balance['user']->id], 2) }}</span>
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-semibold text-blue-600">🚀 Adv</span>
+                                <span class="font-bold text-blue-600">${{ number_format($memberAdvances[$balance['user']->id], 2) }}</span>
                             </div>
                         @endif
-                        <div class="pt-2 border-t-2 border-gray-100">
+                        <div class="pt-1 sm:pt-2 border-t border-gray-100">
                             <div class="flex justify-between items-center">
-                                <span class="text-sm font-bold {{ $balance['net_balance'] >= 0 ? 'text-green-700' : 'text-red-700' }}">
-                                    {{ $balance['net_balance'] >= 0 ? '🤑 Gets Back' : '😬 Owes' }}
+                                <span class="text-xs sm:text-sm font-bold {{ $balance['net_balance'] >= 0 ? 'text-green-700' : 'text-red-700' }}">
+                                    {{ $balance['net_balance'] >= 0 ? '🤑' : '😬' }}
                                 </span>
-                                <span class="text-xl font-black {{ $balance['net_balance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                <span class="text-base sm:text-lg font-black {{ $balance['net_balance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
                                     {{ $balance['net_balance'] >= 0 ? '+' : '' }}${{ number_format(abs($balance['net_balance']), 2) }}
                                 </span>
                             </div>
