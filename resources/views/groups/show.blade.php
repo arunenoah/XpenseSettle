@@ -17,13 +17,8 @@
         </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="border-b border-gray-200">
-        <div class="flex flex-wrap gap-4">
-            <a href="{{ route('groups.show', $group) }}" class="py-2 px-4 border-b-2 border-blue-600 text-blue-600 font-semibold">Expenses</a>
-            <a href="{{ route('groups.dashboard', $group) }}" class="py-2 px-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300">Dashboard</a>
-        </div>
-    </div>
+    <!-- Navigation Tabs -->
+    <x-group-tabs :group="$group" active="expenses" />
 
     <!-- Add Expense Button -->
     <div class="flex justify-end">

@@ -4,36 +4,8 @@
 
 @section('content')
 <div class="w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-    <!-- Navigation Menu -->
-    <div class="bg-white rounded-xl shadow-md p-2 flex gap-2 overflow-x-auto">
-        <!-- Dashboard -->
-        <a href="{{ route('groups.dashboard', $group) }}" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="Dashboard">
-            <span class="text-xl">📊</span>
-            <span class="hidden sm:inline">Dashboard</span>
-        </a>
-        <!-- Members -->
-        <a href="{{ route('groups.members', $group) }}" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="Members">
-            <span class="text-xl">👥</span>
-            <span class="hidden sm:inline">Members</span>
-        </a>
-        <!-- Payment History -->
-        <a href="{{ route('groups.payments.history', $group) }}" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold whitespace-nowrap shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all" title="Payment History">
-            <span class="text-xl">📜</span>
-            <span class="hidden sm:inline">History</span>
-        </a>
-        <!-- Expenses Modal -->
-        <a href="#" onclick="showExpensesModal(); return false;" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="All Expenses">
-            <span class="text-xl">📋</span>
-            <span class="hidden sm:inline">Expenses</span>
-        </a>
-        <!-- Settings (Admin Only) -->
-        @if($group->isAdmin(auth()->user()))
-            <a href="{{ route('groups.edit', $group) }}" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-900 hover:bg-gray-200 rounded-lg font-bold whitespace-nowrap transition-all" title="Settings">
-                <span class="text-xl">⚙️</span>
-                <span class="hidden sm:inline">Settings</span>
-            </a>
-        @endif
-    </div>
+    <!-- Navigation Tabs -->
+    <x-group-tabs :group="$group" active="history" />
 
     <!-- Header -->
     <div class="flex flex-col gap-4">

@@ -50,14 +50,7 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200 sticky top-0 z-30">
-        <div class="max-w-7xl mx-auto flex gap-8 overflow-x-auto">
-            <a href="{{ route('groups.dashboard', $group) }}" class="px-2 py-4 border-b-2 border-blue-600 text-blue-600 font-semibold text-sm whitespace-nowrap">Dashboard</a>
-            <a href="{{ route('groups.members', $group) }}" class="px-2 py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-semibold text-sm whitespace-nowrap">Members</a>
-            <a href="{{ route('groups.payments.history', $group) }}" class="px-2 py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-semibold text-sm whitespace-nowrap">History</a>
-            <a href="#" onclick="showExpensesModal(); return false;" class="px-2 py-4 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-semibold text-sm whitespace-nowrap">All Expenses</a>
-        </div>
-    </div>
+    <x-group-tabs :group="$group" active="dashboard" />
 
     <!-- Main Content -->
     <div class="px-4 sm:px-6 lg:px-8 py-8">
