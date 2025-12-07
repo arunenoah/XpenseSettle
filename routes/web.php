@@ -10,10 +10,12 @@ use App\Http\Controllers\AttachmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
+    // Redirect based on authentication status
     if (auth()->check()) {
         return redirect()->route('dashboard');
     }
-    return view('welcome');
+    // Unauthenticated users are redirected to login page
+    return redirect()->route('login');
 })->name('home');
 
 // Authentication Routes
