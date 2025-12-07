@@ -21,6 +21,10 @@
 
                 <!-- Desktop Action Buttons -->
                 <div class="hidden sm:flex gap-2 flex-shrink-0">
+                    <a href="{{ route('groups.summary', $group) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm flex items-center gap-2">
+                        <span>📊</span>
+                        Summary
+                    </a>
                     <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
                         Add Expense
                     </a>

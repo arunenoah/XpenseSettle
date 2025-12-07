@@ -451,4 +451,161 @@ class DashboardController extends Controller
 
         return $memberAdvances;
     }
+
+    /**
+     * Display the ONE authoritative trip summary page.
+     *
+     * This is the single source of truth for settlement in a group.
+     * Shows:
+     * - Total spent across entire group
+     * - Per-person summary (what each person paid)
+     * - Final settlement (minimum transactions needed to settle)
+     * - Breakdown of expenses
+     */
+    public function groupSummary(Group $group)
+    {
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        $user = auth()->user();
+
+        // Get all expenses and advances in this group
+        $expenses = $group->expenses()
+            ->where('split_type', '!=', 'itemwise')  // Exclude itemwise from settlement
+            ->with('payer', 'splits.user', 'splits.payment')
+            ->get();
+
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
+            ->get();
+
+        // Calculate total spent by each member
+        $totalSpentByMember = [];
+        $totalSharedByMember = [];  // What they should pay (their share)
+        $totalAmount = 0;
+
+        foreach ($group->members as $member) {
+            $totalSpentByMember[$member->id] = 0;
+            $totalSharedByMember[$member->id] = 0;
+        }
+
+        // Calculate from expenses
+        foreach ($expenses as $expense) {
+            $totalAmount += $expense->amount;
+            $totalSpentByMember[$expense->payer_id] = ($totalSpentByMember[$expense->payer_id] ?? 0) + $expense->amount;
+
+            foreach ($expense->splits as $split) {
+                $totalSharedByMember[$split->user_id] = ($totalSharedByMember[$split->user_id] ?? 0) + $split->share_amount;
+            }
+        }
+
+        // Add advances to total spent
+        foreach ($advances as $advance) {
+            $totalAmount += ($advance->amount_per_person * count($advance->senders));
+            foreach ($advance->senders as $sender) {
+                $totalSpentByMember[$sender->id] = ($totalSpentByMember[$sender->id] ?? 0) + $advance->amount_per_person;
+            }
+            // Advances reduce what the recipient needs to pay
+            $totalSharedByMember[$advance->sent_to_user_id] = max(0, ($totalSharedByMember[$advance->sent_to_user_id] ?? 0) - ($advance->amount_per_person * count($advance->senders)));
+        }
+
+        // Calculate net balance for each member (what they paid - what they owe)
+        $memberSummary = [];
+        foreach ($group->members as $member) {
+            $paid = $totalSpentByMember[$member->id] ?? 0;
+            $owes = $totalSharedByMember[$member->id] ?? 0;
+            $netBalance = $paid - $owes;
+
+            $memberSummary[$member->id] = [
+                'user' => $member,
+                'paid' => $paid,
+                'owes' => $owes,
+                'balance' => $netBalance,  // Positive = they're owed, Negative = they owe
+            ];
+        }
+
+        // Calculate minimal settlement transactions
+        $settlement = $this->calculateMinimalSettlement($memberSummary);
+
+        // Get payment history for transparency
+        $paidPayments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
+            $q->where('group_id', $group->id);
+        })
+            ->where('status', 'paid')
+            ->with([
+                'split.user',
+                'split.expense.payer',
+                'paidBy',
+                'attachments'
+            ])
+            ->latest()
+            ->get();
+
+        return view('groups.summary', [
+            'group' => $group,
+            'user' => $user,
+            'totalAmount' => $totalAmount,
+            'memberSummary' => collect($memberSummary)->sortByDesc('balance'),
+            'settlement' => $settlement,
+            'expenseCount' => $expenses->count(),
+            'advanceCount' => $advances->count(),
+            'paidPayments' => $paidPayments,
+        ]);
+    }
+
+    /**
+     * Calculate the minimal settlement transactions needed to settle all debts.
+     * Uses a greedy algorithm to minimize the number of transactions.
+     */
+    private function calculateMinimalSettlement($memberSummary)
+    {
+        // Extract creditors (positive balance - owed money) and debtors (negative balance - owe money)
+        $creditors = [];  // ['user' => User, 'amount' => positive amount]
+        $debtors = [];    // ['user' => User, 'amount' => positive amount]
+
+        foreach ($memberSummary as $memberId => $summary) {
+            if ($summary['balance'] > 0.01) {  // They're owed money
+                $creditors[] = [
+                    'user' => $summary['user'],
+                    'amount' => round($summary['balance'], 2),
+                ];
+            } elseif ($summary['balance'] < -0.01) {  // They owe money
+                $debtors[] = [
+                    'user' => $summary['user'],
+                    'amount' => round(abs($summary['balance']), 2),
+                ];
+            }
+        }
+
+        // Sort by amount (largest first)
+        usort($creditors, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+        usort($debtors, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+
+        // Match creditors and debtors
+        $transactions = [];
+        foreach ($debtors as &$debtor) {
+            while ($debtor['amount'] > 0.01 && !empty($creditors)) {
+                $creditor = &$creditors[0];
+
+                $amount = min($debtor['amount'], $creditor['amount']);
+                $amount = round($amount, 2);
+
+                $transactions[] = [
+                    'from' => $debtor['user'],
+                    'to' => $creditor['user'],
+                    'amount' => $amount,
+                ];
+
+                $debtor['amount'] = round($debtor['amount'] - $amount, 2);
+                $creditor['amount'] = round($creditor['amount'] - $amount, 2);
+
+                if ($creditor['amount'] < 0.01) {
+                    array_shift($creditors);
+                }
+            }
+        }
+
+        return $transactions;
+    }
 }
