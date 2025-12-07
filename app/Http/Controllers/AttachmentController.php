@@ -99,11 +99,15 @@ class AttachmentController extends Controller
             }
 
             if ($inline && $this->isImage($attachment)) {
-                // Display image inline
-                return response()->file(
-                    Storage::disk('local')->path($attachment->file_path),
-                    ['Content-Type' => $attachment->mime_type]
-                );
+                // Display image inline - return file with proper headers
+                $fullPath = Storage::disk('local')->path($attachment->file_path);
+                $content = file_get_contents($fullPath);
+
+                return response($content, 200)
+                    ->header('Content-Type', $attachment->mime_type)
+                    ->header('Content-Length', strlen($content))
+                    ->header('Cache-Control', 'public, max-age=31536000')
+                    ->header('Expires', gmdate('D, d M Y H:i:s', time() + 31536000) . ' GMT');
             }
 
             // Download file
@@ -114,7 +118,7 @@ class AttachmentController extends Controller
                 'file_path' => $attachment->file_path,
                 'error' => $e->getMessage(),
             ]);
-            abort(404, 'File not found: ' . $e->getMessage());
+            abort(404, 'File not found');
         }
     }
 
