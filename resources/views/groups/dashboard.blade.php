@@ -77,28 +77,29 @@
                 $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
                 $netBalance = $totalOwe - $totalOwed;
             @endphp
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Balance Cards - Optimized for Mobile -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-6">
                 <!-- You Owe -->
-                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-6">
-                    <h3 class="text-sm font-semibold text-gray-600 mb-2">You Owe</h3>
-                    <p class="text-3xl font-bold text-red-600">{{ $group->currency }}{{ number_format($totalOwed, 2) }}</p>
-                    <p class="text-xs text-gray-500 mt-2">Amount owed in this group</p>
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-6">
+                    <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-2">You Owe</h3>
+                    <p class="text-lg sm:text-3xl font-bold text-red-600">{{ $group->currency }}{{ number_format($totalOwed, 0) }}</p>
+                    <p class="hidden sm:block text-xs text-gray-500 mt-2">Amount owed in this group</p>
                 </div>
 
                 <!-- They Owe You -->
-                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-6">
-                    <h3 class="text-sm font-semibold text-gray-600 mb-2">They Owe You</h3>
-                    <p class="text-3xl font-bold text-green-600">{{ $group->currency }}{{ number_format($totalOwe, 2) }}</p>
-                    <p class="text-xs text-gray-500 mt-2">Amount owed to you</p>
+                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-6">
+                    <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-2">They Owe You</h3>
+                    <p class="text-lg sm:text-3xl font-bold text-green-600">{{ $group->currency }}{{ number_format($totalOwe, 0) }}</p>
+                    <p class="hidden sm:block text-xs text-gray-500 mt-2">Amount owed to you</p>
                 </div>
 
                 <!-- Net Balance -->
-                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-6">
-                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Your Balance</h3>
-                    <p class="text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ $netBalance >= 0 ? '+' : '' }}{{ $group->currency }}{{ number_format(abs($netBalance), 2) }}
+                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-6">
+                    <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-2">Your Balance</h3>
+                    <p class="text-lg sm:text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                        {{ $netBalance >= 0 ? '+' : '' }}{{ $group->currency }}{{ number_format(abs($netBalance), 0) }}
                     </p>
-                    <p class="text-xs text-gray-500 mt-2">{{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}</p>
+                    <p class="hidden sm:block text-xs text-gray-500 mt-2">{{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}</p>
                 </div>
             </div>
 
