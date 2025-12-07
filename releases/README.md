@@ -165,3 +165,11 @@ After testing on your phone:
 ---
 
 **Ready to install?** Start with your preferred installation method above! 🚀
+
+---
+
+## 🙏 Thanks
+
+This Android app and deployment documentation was built with the help of **[Claude Code](https://claude.com/claude-code)** - Anthropic's AI assistant for software engineering.
+
+🤖 Generated with Claude Code
