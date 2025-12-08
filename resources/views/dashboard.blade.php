@@ -315,30 +315,35 @@
             @if(count($groups) > 0)
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Groups</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     @foreach($groups as $item)
                         <a href="{{ route('groups.show', $item['group']) }}" class="group block">
-                            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
-                                <div class="flex items-start justify-between gap-3 mb-3">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-lg hover:border-blue-300 transition-all hover:-translate-y-1">
+                                <!-- Header with Icon and Name -->
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-2xl flex-shrink-0 shadow-md">
+                                        {{ $item['group']->icon ?? '👥' }}
+                                    </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2 mb-2">
-                                            <span class="text-2xl">{{ $item['group']->icon ?? '👥' }}</span>
-                                            <h3 class="font-bold text-gray-900 truncate">{{ $item['group']->name }}</h3>
-                                        </div>
+                                        <h3 class="font-bold text-gray-900 truncate text-base group-hover:text-blue-600 transition-colors">{{ $item['group']->name }}</h3>
                                         @if($item['user_is_admin'])
-                                            <span class="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded mb-2">Admin</span>
+                                            <span class="inline-block px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">Admin</span>
                                         @endif
                                     </div>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ $item['group']->description ?: 'No description' }}</p>
-                                <div class="grid grid-cols-2 gap-2 text-sm">
-                                    <div>
-                                        <p class="text-gray-600">Expenses</p>
-                                        <p class="font-bold text-gray-900">{{ $item['total_expenses'] }}</p>
+                                
+                                <!-- Stats in compact row -->
+                                <div class="flex items-center justify-between text-sm bg-gray-50 rounded-lg p-2.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-blue-600 font-semibold">💰</span>
+                                        <span class="text-gray-600 text-xs">Expenses:</span>
+                                        <span class="font-bold text-gray-900">{{ $item['total_expenses'] }}</span>
                                     </div>
-                                    <div>
-                                        <p class="text-gray-600">Members</p>
-                                        <p class="font-bold text-gray-900">{{ $item['group']->members()->count() }}</p>
+                                    <div class="w-px h-4 bg-gray-300"></div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-green-600 font-semibold">👥</span>
+                                        <span class="text-gray-600 text-xs">Members:</span>
+                                        <span class="font-bold text-gray-900">{{ $item['group']->members()->count() }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -347,9 +352,10 @@
                 </div>
             </div>
             @else
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-                <p class="text-gray-600 font-medium mb-2">No groups yet</p>
-                <p class="text-sm text-gray-500">Create a group to start tracking expenses with friends</p>
+            <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-sm border border-blue-200 p-8 text-center">
+                <div class="text-5xl mb-3">👥</div>
+                <p class="text-gray-900 font-bold mb-1">No groups yet</p>
+                <p class="text-sm text-gray-600">Create a group to start tracking expenses with friends</p>
             </div>
             @endif
 
