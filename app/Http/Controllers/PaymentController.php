@@ -696,8 +696,15 @@ class PaymentController extends Controller
         // Generate filename
         $filename = 'Group_History_' . str_replace(' ', '_', $group->name) . '_' . now()->format('Y-m-d') . '.pdf';
         
-        // Use stream for better mobile compatibility
-        // Stream opens PDF in browser, allowing mobile users to download
-        return $pdf->stream($filename);
+        // For Android WebView compatibility, use download with proper headers
+        return response()->streamDownload(function() use ($pdf) {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 }
