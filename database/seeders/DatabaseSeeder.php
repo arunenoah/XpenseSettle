@@ -14,6 +14,19 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * Database Seeder for ExpenseSettle Application
+ * 
+ * IMPORTANT NOTES:
+ * 1. This seeder is SAFE to run multiple times - it creates sample data for testing
+ * 2. Running migrations with --force will NOT delete existing data
+ * 3. Migrations only modify table structure, not data
+ * 4. To reset database completely, use: php artisan migrate:fresh --seed
+ * 5. In production, NEVER use migrate:fresh as it will drop all tables
+ * 6. Safe production commands:
+ *    - php artisan migrate --force (only runs new migrations)
+ *    - php artisan db:seed (only adds sample data)
+ */
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
