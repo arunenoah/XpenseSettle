@@ -59,6 +59,17 @@
     <div class="px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-7xl mx-auto space-y-6">
 
+            <!-- Export Button Section (Desktop Only) -->
+            <div class="hidden sm:flex justify-end mb-4">
+                <a href="{{ route('groups.payments.export-pdf', $group) }}" 
+                   class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-semibold shadow-md hover:shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Export Statement as PDF
+                </a>
+            </div>
+
             <!-- Personal Settlement Section -->
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
@@ -709,7 +720,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
 
     <!-- Mobile Floating Action Buttons -->
-    <x-group-fabs :group="$group" />
+    <x-group-fabs :group="$group" :showPdfExport="true" />
 </div>
 
 @endsection
