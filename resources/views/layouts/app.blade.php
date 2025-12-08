@@ -45,6 +45,23 @@
                 </div>
 
 
+                <!-- Mobile Quick Actions (sm devices only) -->
+                <div class="md:hidden flex items-center gap-1">
+                    <a href="{{ route('dashboard') }}" class="p-2 text-xl hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('dashboard') ? 'text-blue-600' : 'text-gray-700' }}" title="Dashboard">
+                        📊
+                    </a>
+                    <a href="{{ route('groups.index') }}" class="p-2 text-xl hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('groups.*') ? 'text-blue-600' : 'text-gray-700' }}" title="Groups">
+                        👥
+                    </a>
+                    <a href="{{ route('auth.show-update-pin') }}" class="p-2 text-xl hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('auth.show-update-pin') ? 'text-blue-600' : 'text-gray-700' }}" title="Change PIN">
+                        🔐
+                    </a>
+                    <form action="{{ route('logout') }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="p-2 text-xl hover:bg-red-100 rounded-lg transition-all text-gray-700" title="Logout">🚪</button>
+                    </form>
+                </div>
+
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex items-center space-x-4">
                     <span class="text-sm text-gray-700">{{ auth()->user()->name }}</span>
@@ -103,47 +120,6 @@
 
         </div>
     </nav>
-
-    <!-- Mobile Top Navigation Bar (Fixed) -->
-    <nav class="md:hidden fixed top-16 left-0 right-0 bg-white border-b border-gray-200 shadow-md z-40">
-        <div class="flex justify-around items-center h-14 px-2">
-            <!-- Dashboard -->
-            <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all {{ request()->routeIs('dashboard') ? 'bg-blue-100 text-blue-600' : 'text-gray-700 hover:bg-gray-100' }}" title="Dashboard">
-                <span class="text-xl">📊</span>
-                <span class="text-xs mt-0.5 font-semibold">Home</span>
-            </a>
-
-            <!-- Groups -->
-            <a href="{{ route('groups.index') }}" class="flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all {{ request()->routeIs('groups.index') || request()->routeIs('groups.dashboard') ? 'bg-blue-100 text-blue-600' : 'text-gray-700 hover:bg-gray-100' }}" title="Groups">
-                <span class="text-xl">👥</span>
-                <span class="text-xs mt-0.5 font-semibold">Groups</span>
-            </a>
-
-            <!-- Change PIN -->
-            <a href="{{ route('auth.show-update-pin') }}" class="flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all {{ request()->routeIs('auth.show-update-pin') ? 'bg-blue-100 text-blue-600' : 'text-gray-700 hover:bg-gray-100' }}" title="Change PIN">
-                <span class="text-xl">🔐</span>
-                <span class="text-xs mt-0.5 font-semibold">PIN</span>
-            </a>
-
-            <!-- Logout -->
-            <form action="{{ route('logout') }}" method="POST" class="flex flex-col items-center justify-center">
-                @csrf
-                <button type="submit" class="flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all text-gray-700 hover:bg-red-100 hover:text-red-600" title="Logout">
-                    <span class="text-xl">🚪</span>
-                    <span class="text-xs mt-0.5 font-semibold">Exit</span>
-                </button>
-            </form>
-        </div>
-    </nav>
-
-    <!-- Main Content (adjust top padding for mobile nav bar) -->
-    <style>
-        @media (max-width: 768px) {
-            main {
-                margin-top: 56px; /* Height of mobile nav bar */
-            }
-        }
-    </style>
 
     <!-- Main Content -->
     <main class="flex-1 py-6 sm:py-8 lg:py-10">
