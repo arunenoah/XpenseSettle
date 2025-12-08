@@ -433,6 +433,13 @@
             </a>
         </div>
     @endif
+
+    <!-- Mobile Floating Back Button -->
+    <div class="fixed bottom-6 right-6 sm:hidden z-40">
+        <a href="{{ route('groups.dashboard', $group) }}" class="flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Back to Group">
+            <span class="text-xl">←</span>
+        </a>
+    </div>
 </div>
 
 <script>
