@@ -16,53 +16,72 @@
         </div>
     </div>
 
-    <!-- Header Section -->
-    <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 border-b border-gray-200">
+    <!-- Header Section - Optimized & Compact -->
+    <div class="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-gray-200">
         <div class="max-w-7xl mx-auto">
-            <!-- Group Title -->
-            <div class="flex items-start justify-between gap-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <span class="text-5xl">{{ $group->icon ?? '👥' }}</span>
-                    <div>
-                        <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">{{ $group->name }}</h1>
-                        @if($group->description)
-                            <p class="text-gray-600 mt-1">{{ $group->description }}</p>
-                        @endif
+            <!-- Compact Header Row -->
+            <div class="flex items-center justify-between gap-3 sm:gap-4">
+                <!-- Left: Icon & Title & Members (Inline) -->
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <span class="text-3xl flex-shrink-0">{{ $group->icon ?? '👥' }}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <div>
+                                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{{ $group->name }}</h1>
+                                @if($group->description)
+                                    <p class="text-xs sm:text-sm text-gray-600 truncate">{{ $group->description }}</p>
+                                @endif
+                            </div>
+                            <!-- Member Avatars (Compact) -->
+                            <div class="hidden sm:flex items-center gap-1 flex-shrink-0 pl-2 border-l border-gray-200">
+                                <span class="text-xs font-semibold text-gray-600 whitespace-nowrap">{{ $group->members->count() }}M</span>
+                                <div class="flex items-center gap-1">
+                                    @foreach($group->members->take(3) as $member)
+                                        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border border-white shadow-sm" title="{{ $member->name }}">
+                                            <span class="text-xs font-bold text-blue-700">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                                        </div>
+                                    @endforeach
+                                    @if($group->members->count() > 3)
+                                        <span class="text-xs font-semibold text-gray-600 ml-0.5">+{{ $group->members->count() - 3 }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Desktop Action Buttons -->
+                <!-- Right: Desktop Action Buttons -->
                 <div class="hidden sm:flex gap-2 flex-shrink-0">
-                    <a href="{{ route('groups.summary', $group) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm flex items-center gap-2">
+                    <a href="{{ route('groups.summary', $group) }}" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-xs flex items-center gap-1">
                         <span>📊</span>
-                        Summary
+                        <span>Summary</span>
                     </a>
-                    <a href="{{ route('groups.expenses.create', $group) }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
-                        Add Expense
+                    <a href="{{ route('groups.expenses.create', $group) }}" class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-xs whitespace-nowrap">
+                        + Expense
                     </a>
-                    <button onclick="openAdvanceModal()" class="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-sm flex items-center gap-2">
+                    <button onclick="openAdvanceModal()" class="px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-xs flex items-center gap-1 whitespace-nowrap">
                         <span>💰</span>
-                        Add Advance
+                        <span>Advance</span>
                     </button>
                     @if($group->isAdmin(auth()->user()))
-                        <a href="{{ route('groups.edit', $group) }}" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold text-sm">
-                            Settings
+                        <a href="{{ route('groups.edit', $group) }}" class="px-3 py-1.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all font-semibold text-xs">
+                            ⚙️
                         </a>
                     @endif
                 </div>
             </div>
 
-            <!-- Member Avatars and Info -->
-            <div class="flex items-center gap-4">
-                <span class="text-xs font-semibold text-gray-600 uppercase">{{ $group->members->count() }} Members</span>
-                <div class="flex items-center gap-2">
-                    @foreach($group->members->take(5) as $member)
-                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $member->name }}">
+            <!-- Mobile Member Info -->
+            <div class="flex items-center gap-2 sm:hidden mt-2">
+                <span class="text-xs font-semibold text-gray-600">{{ $group->members->count() }} Members:</span>
+                <div class="flex items-center gap-1">
+                    @foreach($group->members->take(4) as $member)
+                        <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border border-white shadow-sm" title="{{ $member->name }}">
                             <span class="text-xs font-bold text-blue-700">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
                         </div>
                     @endforeach
-                    @if($group->members->count() > 5)
-                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $group->members->count() - 5 }}</span>
+                    @if($group->members->count() > 4)
+                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $group->members->count() - 4 }}</span>
                     @endif
                 </div>
             </div>
