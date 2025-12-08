@@ -204,14 +204,14 @@
     @endif
 
     <!-- Action Buttons -->
-    @if($canManage)
+    @if($expense->payer_id === auth()->id())
         <div class="bg-white rounded-lg shadow-sm p-6 sm:p-8">
             <div class="flex flex-col sm:flex-row gap-3">
                 <a
                     href="{{ route('groups.expenses.edit', ['group' => $group, 'expense' => $expense]) }}"
                     class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-center"
                 >
-                    Edit Expense
+                    ✏️ Edit Expense
                 </a>
                 <form
                     action="{{ route('groups.expenses.destroy', ['group' => $group, 'expense' => $expense]) }}"
@@ -225,27 +225,38 @@
                         type="submit"
                         class="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
                     >
-                        Delete Expense
+                        🗑️ Delete Expense
                     </button>
                 </form>
                 <a
                     href="{{ route('groups.show', $group) }}"
-                    class="flex-1 px-6 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-center"
+                    class="hidden sm:flex flex-1 px-6 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-semibold items-center justify-center"
                 >
-                    Back to Group
+                    ← Back to Group
                 </a>
             </div>
         </div>
     @else
-        <div class="text-center">
+        <div class="hidden sm:text-center sm:block">
             <a
                 href="{{ route('groups.show', $group) }}"
                 class="inline-block px-6 py-3 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
             >
-                Back to Group
+                ← Back to Group
             </a>
         </div>
     @endif
+
+    <!-- Mobile Floating Back Button -->
+    <div class="fixed bottom-6 right-6 sm:hidden z-40">
+        <a
+            href="{{ route('groups.show', $group) }}"
+            class="flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all transform hover:scale-110 font-bold shadow-lg"
+            title="Back to Group"
+        >
+            <span class="text-xl">←</span>
+        </a>
+    </div>
 </div>
 
 <script>
