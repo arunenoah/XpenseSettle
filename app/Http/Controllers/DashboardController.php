@@ -231,6 +231,12 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Calculate family statistics
+        $totalFamilyCount = $group->members()->sum('family_count') ?: $group->members()->count();
+        $totalExpenses = $expenses->sum('amount');
+        $totalFamilyCost = $totalExpenses;
+        $perHeadCost = $totalFamilyCount > 0 ? $totalExpenses / $totalFamilyCount : 0;
+
         return view('groups.dashboard', [
             'group' => $group,
             'balances' => $balances,
@@ -241,6 +247,9 @@ class DashboardController extends Controller
             'memberAdvances' => $memberAdvances,
             'recentPayments' => $recentPayments,
             'recentAdvances' => $recentAdvances,
+            'totalFamilyCount' => $totalFamilyCount,
+            'totalFamilyCost' => $totalFamilyCost,
+            'perHeadCost' => $perHeadCost,
         ]);
     }
 

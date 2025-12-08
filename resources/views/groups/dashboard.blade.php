@@ -135,6 +135,29 @@
                 </div>
             </div>
 
+            <!-- Family Cost Widgets -->
+            <div class="grid grid-cols-2 gap-2 sm:gap-6">
+                <!-- Total Family Cost -->
+                <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm border border-purple-200 p-3 sm:p-6">
+                    <div class="flex items-center gap-2 mb-1 sm:mb-2">
+                        <span class="text-xl sm:text-2xl">👨‍👩‍👧‍👦</span>
+                        <h3 class="text-xs sm:text-sm font-semibold text-purple-900">Total Family Cost</h3>
+                    </div>
+                    <p class="text-lg sm:text-3xl font-bold text-purple-700">{{ $group->currency }}{{ number_format($totalFamilyCost, 0) }}</p>
+                    <p class="hidden sm:block text-xs text-purple-600 mt-2">{{ $totalFamilyCount }} family members total</p>
+                </div>
+
+                <!-- Per Head Cost -->
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm border border-blue-200 p-3 sm:p-6">
+                    <div class="flex items-center gap-2 mb-1 sm:mb-2">
+                        <span class="text-xl sm:text-2xl">👤</span>
+                        <h3 class="text-xs sm:text-sm font-semibold text-blue-900">Per Head Cost</h3>
+                    </div>
+                    <p class="text-lg sm:text-3xl font-bold text-blue-700">{{ $group->currency }}{{ number_format($perHeadCost, 0) }}</p>
+                    <p class="hidden sm:block text-xs text-blue-600 mt-2">Average cost per person</p>
+                </div>
+            </div>
+
     <!-- Quick Analytics - HIDDEN -->
     {{--
     <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-indigo-50 rounded-2xl shadow-lg p-4">
