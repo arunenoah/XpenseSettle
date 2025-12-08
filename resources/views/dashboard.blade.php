@@ -43,41 +43,41 @@
 
                 $netBalance = $totalTheyOweYou - $totalYouOwe;
             @endphp
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
                 <!-- You Owe -->
-                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-600">You Owe</h3>
-                        <span class="text-2xl">📤</span>
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
+                        <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
+                        <span class="text-lg sm:text-2xl">📤</span>
                     </div>
-                    <p class="text-3xl font-bold text-red-600 mb-2">₹{{ number_format($totalYouOwe, 0) }}</p>
-                    <p class="text-sm text-gray-600 font-semibold">
+                    <p class="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-1 sm:mb-2">₹{{ number_format($totalYouOwe, 0) }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
                         Amount owed across groups
                     </p>
                 </div>
 
                 <!-- They Owe You -->
-                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-600">They Owe You</h3>
-                        <span class="text-2xl">📥</span>
+                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
+                        <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
+                        <span class="text-lg sm:text-2xl">📥</span>
                     </div>
-                    <p class="text-3xl font-bold text-green-600 mb-2">₹{{ number_format($totalTheyOweYou, 0) }}</p>
-                    <p class="text-sm text-gray-600 font-semibold">
+                    <p class="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-1 sm:mb-2">₹{{ number_format($totalTheyOweYou, 0) }}</p>
+                    <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
                         Amount owed to you
                     </p>
                 </div>
 
                 <!-- Net Balance -->
-                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-6 hover:shadow-md transition-shadow">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-sm font-semibold text-gray-600">Your Balance</h3>
-                        <span class="text-2xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
+                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                    <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
+                        <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
+                        <span class="text-lg sm:text-2xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
                     </div>
-                    <p class="text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }} mb-2">
+                    <p class="text-xl sm:text-2xl md:text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }} mb-1 sm:mb-2">
                         {{ $netBalance >= 0 ? '+' : '' }}₹{{ number_format(abs($netBalance), 0) }}
                     </p>
-                    <p class="text-sm text-gray-600 font-semibold">
+                    <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
                         {{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}
                     </p>
                 </div>
