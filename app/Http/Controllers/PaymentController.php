@@ -10,6 +10,7 @@ use App\Services\AttachmentService;
 use App\Services\PaymentService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PaymentController extends Controller
 {
@@ -656,5 +657,45 @@ class PaymentController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Export group payment history as PDF.
+     */
+    public function exportHistoryPdf(Group $group)
+    {
+        // Check if user is member of group
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        // Load group with all necessary relationships
+        $group->load(['members', 'expenses.splits.user', 'expenses.splits.payment', 'expenses.payer']);
+
+        // Calculate overall settlement matrix for all group members
+        $overallSettlement = $this->calculateGroupSettlementMatrix($group);
+
+        // Get complete transaction history for the group
+        $transactionHistory = $this->getGroupTransactionHistory($group);
+
+        // Calculate total group expenses
+        $totalExpenses = $group->expenses->sum('amount');
+
+        // Generate PDF
+        $pdf = Pdf::loadView('groups.payments.history-pdf', [
+            'group' => $group,
+            'overallSettlement' => $overallSettlement,
+            'transactionHistory' => $transactionHistory,
+            'totalExpenses' => $totalExpenses,
+            'exportDate' => now()->format('F d, Y'),
+        ]);
+
+        // Set PDF options
+        $pdf->setPaper('a4', 'portrait');
+
+        // Download PDF with group name in filename
+        $filename = 'Group_History_' . str_replace(' ', '_', $group->name) . '_' . now()->format('Y-m-d') . '.pdf';
+        
+        return $pdf->download($filename);
     }
 }

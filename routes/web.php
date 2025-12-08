@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/splits/{split}/mark-paid', [PaymentController::class, 'markPaid'])->name('splits.mark-paid');
     Route::put('/splits/{split}/mark-paid', [PaymentController::class, 'markPaid'])->name('splits.mark-paid.update');
     Route::get('/groups/{group}/payments', [PaymentController::class, 'groupPaymentHistory'])->name('groups.payments.history');
+    Route::get('/groups/{group}/payments/export-pdf', [PaymentController::class, 'exportHistoryPdf'])->name('groups.payments.export-pdf');
     Route::get('/groups/{group}/dashboard', [DashboardController::class, 'groupDashboard'])->name('groups.dashboard');
     Route::get('/groups/{group}/summary', [DashboardController::class, 'groupSummary'])->name('groups.summary');
     Route::get('/groups/{group}/timeline/pdf', [DashboardController::class, 'exportTimelinePdf'])->name('groups.timeline.pdf');
