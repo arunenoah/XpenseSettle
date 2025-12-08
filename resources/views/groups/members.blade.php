@@ -95,11 +95,11 @@
         <div class="space-y-3">
             @foreach($group->members as $member)
                 <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 flex-1">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
                             <span class="text-sm font-bold text-white">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
                         </div>
-                        <div>
+                        <div class="flex-1">
                             <p class="font-semibold text-gray-900 flex items-center gap-2">
                                 {{ $member->name }}
                                 @if($member->pivot->role === 'admin')
@@ -114,6 +114,33 @@
                                 @endif
                             </p>
                             <p class="text-sm text-gray-600">{{ $member->email }}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-xs text-gray-500">👨‍👩‍👧‍👦 Family Count:</span>
+                                @if($group->isAdmin(auth()->user()))
+                                    <form action="{{ route('groups.members.update-family-count', [$group, $member->id]) }}" 
+                                          method="POST" 
+                                          class="inline-flex items-center gap-1"
+                                          onsubmit="updateFamilyCount(event, {{ $member->id }})">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="number" 
+                                               name="family_count" 
+                                               id="family_count_{{ $member->id }}"
+                                               value="{{ $member->pivot->family_count ?? 1 }}" 
+                                               min="1" 
+                                               max="20" 
+                                               class="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                        <button type="submit" 
+                                                id="update_btn_{{ $member->id }}"
+                                                class="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-semibold transition-colors">
+                                            Update
+                                        </button>
+                                        <span id="status_{{ $member->id }}" class="text-xs font-semibold"></span>
+                                    </form>
+                                @else
+                                    <span class="text-sm font-semibold text-purple-600">{{ $member->pivot->family_count ?? 1 }}</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
 
@@ -183,6 +210,76 @@
         if (!event || event.target.id === 'expensesModal') {
             document.getElementById('expensesModal').classList.add('hidden');
             document.getElementById('expensesModal').classList.remove('flex');
+        }
+    }
+
+    async function updateFamilyCount(event, memberId) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const input = document.getElementById(`family_count_${memberId}`);
+        const button = document.getElementById(`update_btn_${memberId}`);
+        const status = document.getElementById(`status_${memberId}`);
+        const originalValue = input.value;
+        
+        // Disable button and show loading
+        button.disabled = true;
+        button.textContent = '...';
+        status.textContent = '';
+        status.className = 'text-xs font-semibold';
+        
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Success - show green checkmark
+                status.textContent = '✓';
+                status.className = 'text-xs font-semibold text-green-600';
+                
+                // Flash the input green
+                input.classList.add('border-green-500', 'bg-green-50');
+                setTimeout(() => {
+                    input.classList.remove('border-green-500', 'bg-green-50');
+                    status.textContent = '';
+                }, 2000);
+            } else {
+                // Error - show red X and revert value
+                status.textContent = '✗';
+                status.className = 'text-xs font-semibold text-red-600';
+                input.value = originalValue;
+                
+                // Flash the input red
+                input.classList.add('border-red-500', 'bg-red-50');
+                setTimeout(() => {
+                    input.classList.remove('border-red-500', 'bg-red-50');
+                    status.textContent = '';
+                }, 2000);
+            }
+        } catch (error) {
+            // Network error - show red X and revert
+            status.textContent = '✗';
+            status.className = 'text-xs font-semibold text-red-600';
+            input.value = originalValue;
+            
+            input.classList.add('border-red-500', 'bg-red-50');
+            setTimeout(() => {
+                input.classList.remove('border-red-500', 'bg-red-50');
+                status.textContent = '';
+            }, 2000);
+        } finally {
+            // Re-enable button
+            button.disabled = false;
+            button.textContent = 'Update';
         }
     }
     </script>
