@@ -236,6 +236,8 @@ class DashboardController extends Controller
         $totalExpenses = $expenses->sum('amount');
         $totalFamilyCost = $totalExpenses;
         $perHeadCost = $totalFamilyCount > 0 ? $totalExpenses / $totalFamilyCount : 0;
+        $memberCount = $group->members()->count();
+        $perMemberShare = $memberCount > 0 ? $totalExpenses / $memberCount : 0;
 
         return view('groups.dashboard', [
             'group' => $group,
@@ -250,6 +252,8 @@ class DashboardController extends Controller
             'totalFamilyCount' => $totalFamilyCount,
             'totalFamilyCost' => $totalFamilyCost,
             'perHeadCost' => $perHeadCost,
+            'memberCount' => $memberCount,
+            'perMemberShare' => $perMemberShare,
         ]);
     }
 

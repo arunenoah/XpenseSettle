@@ -115,7 +115,10 @@
                             </p>
                             <p class="text-sm text-gray-600">{{ $member->email }}</p>
                             <div class="flex items-center gap-2 mt-2">
-                                <span class="text-xs text-gray-500">👨‍👩‍👧‍👦 Family Count:</span>
+                                <span class="text-xs text-gray-500 flex items-center gap-1">
+                                    <span class="text-base">👨‍👩‍👧‍👦</span>
+                                    <span class="hidden sm:inline">Family Count:</span>
+                                </span>
                                 @if($group->isAdmin(auth()->user()))
                                     <form action="{{ route('groups.members.update-family-count', [$group, $member->id]) }}" 
                                           method="POST" 
@@ -129,16 +132,20 @@
                                                value="{{ $member->pivot->family_count ?? 1 }}" 
                                                min="1" 
                                                max="20" 
-                                               class="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200">
+                                               class="w-12 sm:w-16 px-1 sm:px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-center font-semibold">
                                         <button type="submit" 
                                                 id="update_btn_{{ $member->id }}"
-                                                class="px-2 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded text-xs font-semibold transition-colors">
-                                            Update
+                                                class="w-7 h-7 sm:w-auto sm:h-auto sm:px-2 sm:py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95"
+                                                title="Update family count">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                            <span class="hidden sm:inline text-xs font-semibold">Update</span>
                                         </button>
-                                        <span id="status_{{ $member->id }}" class="text-xs font-semibold"></span>
+                                        <span id="status_{{ $member->id }}" class="text-base sm:text-xs font-semibold"></span>
                                     </form>
                                 @else
-                                    <span class="text-sm font-semibold text-purple-600">{{ $member->pivot->family_count ?? 1 }}</span>
+                                    <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $member->pivot->family_count ?? 1 }}</span>
                                 @endif
                             </div>
                         </div>
@@ -148,16 +155,22 @@
                         <form action="{{ route('groups.members.remove', [$group, $member->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $member->name }} from this group?');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded text-sm font-semibold transition-colors">
-                                Remove
+                            <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-red-500 hover:bg-red-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Remove member">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                <span class="hidden sm:inline text-sm font-semibold">Remove</span>
                             </button>
                         </form>
                     @elseif($member->id === auth()->id() && $member->pivot->role !== 'admin')
                         <form action="{{ route('groups.members.leave', $group) }}" method="POST" onsubmit="return confirm('Are you sure you want to leave this group?');">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded text-sm font-semibold transition-colors">
-                                Leave
+                            <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Leave group">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                <span class="hidden sm:inline text-sm font-semibold">Leave</span>
                             </button>
                         </form>
                     @endif
@@ -221,12 +234,13 @@
         const button = document.getElementById(`update_btn_${memberId}`);
         const status = document.getElementById(`status_${memberId}`);
         const originalValue = input.value;
+        const originalButtonHTML = button.innerHTML;
         
-        // Disable button and show loading
+        // Disable button and show loading spinner
         button.disabled = true;
-        button.textContent = '...';
+        button.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
         status.textContent = '';
-        status.className = 'text-xs font-semibold';
+        status.className = 'text-base sm:text-xs font-semibold';
         
         try {
             const formData = new FormData(form);
@@ -277,9 +291,9 @@
                 status.textContent = '';
             }, 2000);
         } finally {
-            // Re-enable button
+            // Re-enable button and restore original content
             button.disabled = false;
-            button.textContent = 'Update';
+            button.innerHTML = originalButtonHTML;
         }
     }
     </script>

@@ -3,21 +3,20 @@
 @section('title', $group->name)
 
 @section('content')
-<div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
-    <!-- Breadcrumb Navigation -->
-    <div class="px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 border-b border-gray-200">
-        <div class="max-w-7xl mx-auto flex items-center gap-2 text-sm">
-            <a href="{{ route('groups.index') }}" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                <span>👥</span>
-                <span>All Groups</span>
-            </a>
-            <span class="text-gray-400">/</span>
-            <span class="text-gray-700 font-medium">{{ $group->name }}</span>
-        </div>
+<!-- Breadcrumb Navigation -->
+<div class="px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 border-b border-gray-200">
+    <div class="max-w-7xl mx-auto flex items-center gap-2 text-sm">
+        <a href="{{ route('groups.index') }}" class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+            <span>👥</span>
+            <span>All Groups</span>
+        </a>
+        <span class="text-gray-400">/</span>
+        <span class="text-gray-700 font-medium">{{ $group->name }}</span>
     </div>
+</div>
 
-    <!-- Header Section - Optimized & Compact -->
-    <div class="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-gray-200">
+<!-- Header Section - Optimized & Compact -->
+<div class="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-gray-200 bg-white">
         <div class="max-w-7xl mx-auto">
             <!-- Compact Header Row -->
             <div class="flex items-center justify-between gap-3 sm:gap-4">
@@ -96,11 +95,13 @@
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Navigation Tabs -->
-    <x-group-tabs :group="$group" active="dashboard" />
+<!-- Navigation Tabs -->
+<x-group-tabs :group="$group" active="dashboard" />
 
-    <!-- Main Content -->
+<!-- Main Content -->
+<div class="w-full bg-gradient-to-b from-blue-50 via-white to-white">
     <div class="px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-7xl mx-auto space-y-8">
             <!-- User's Balance Summary -->
@@ -137,14 +138,16 @@
 
             <!-- Family Cost Widgets -->
             <div class="grid grid-cols-2 gap-2 sm:gap-6">
-                <!-- Total Family Cost -->
+                <!-- Member Share -->
                 <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm border border-purple-200 p-3 sm:p-6">
                     <div class="flex items-center gap-2 mb-1 sm:mb-2">
-                        <span class="text-xl sm:text-2xl">👨‍👩‍👧‍👦</span>
-                        <h3 class="text-xs sm:text-sm font-semibold text-purple-900">Total Family Cost</h3>
+                        <span class="text-xl sm:text-2xl">💰</span>
+                        <h3 class="text-xs sm:text-sm font-semibold text-purple-900">Member Share</h3>
                     </div>
-                    <p class="text-lg sm:text-3xl font-bold text-purple-700">{{ $group->currency }}{{ number_format($totalFamilyCost, 0) }}</p>
-                    <p class="hidden sm:block text-xs text-purple-600 mt-2">{{ $totalFamilyCount }} family members total</p>
+                    <p class="text-lg sm:text-3xl font-bold text-purple-700">{{ $group->currency }}{{ number_format($perMemberShare, 2) }}</p>
+                    <p class="text-xs text-purple-600 mt-1 sm:mt-2">
+                        <span class="font-semibold">Total: {{ $group->currency }}{{ number_format($totalFamilyCost, 2) }}</span>
+                    </p>
                 </div>
 
                 <!-- Per Head Cost -->
@@ -153,8 +156,11 @@
                         <span class="text-xl sm:text-2xl">👤</span>
                         <h3 class="text-xs sm:text-sm font-semibold text-blue-900">Per Head Cost</h3>
                     </div>
-                    <p class="text-lg sm:text-3xl font-bold text-blue-700">{{ $group->currency }}{{ number_format($perHeadCost, 0) }}</p>
-                    <p class="hidden sm:block text-xs text-blue-600 mt-2">Average cost per person</p>
+                    <p class="text-lg sm:text-3xl font-bold text-blue-700">{{ $group->currency }}{{ number_format($perHeadCost, 2) }}</p>
+                    <p class="text-xs text-blue-600 mt-1 sm:mt-2">
+                        <span class="font-semibold">{{ $totalFamilyCount }} family members</span>
+                        <span class="hidden sm:inline"> total</span>
+                    </p>
                 </div>
             </div>
 
@@ -767,6 +773,9 @@ function closeAdvancesInfoModal(event) {
         <button onclick="closeAdvancesInfoModal()" class="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
             Got it!
         </button>
+    </div>
+</div>
+
     </div>
 </div>
 
