@@ -175,11 +175,16 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        // Delete all tokens for the authenticated user
+        if ($request->user()) {
+            $request->user()->tokens()->delete();
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect(route('home'))->with('success', 'You have been logged out.');
+        return redirect(route('login'))->with('success', 'You have been logged out.');
     }
 }

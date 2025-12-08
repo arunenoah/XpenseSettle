@@ -24,106 +24,82 @@
     <!-- Navigation -->
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex-shrink-0">
-                    <a href="{{ route('dashboard') }}" class="text-2xl font-bold text-blue-600">
-                        💰 ExpenseSettle
-                    </a>
-                </div>
-
-                <!-- Desktop Navigation -->
-                <div class="hidden md:flex gap-2">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-bold transition-all text-base">
-                        <span class="text-xl">📊</span>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="{{ route('groups.index') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-bold transition-all text-base">
-                        <span class="text-xl">📋</span>
-                        <span>All Groups</span>
-                    </a>
-                </div>
-
-
-                <!-- Mobile Quick Actions (sm devices only) -->
-                <div class="md:hidden flex items-center gap-1">
-                    <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('dashboard') ? 'text-blue-600' : 'text-gray-700' }}" title="Dashboard">
-                        <span class="text-base">📊</span>
-                        <span class="text-xs font-medium leading-tight">Home</span>
-                    </a>
-                    <a href="{{ route('groups.index') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('groups.index', 'groups.*') ? 'text-blue-600' : 'text-gray-700' }}" title="Groups">
-                        <span class="text-base">👥</span>
-                        <span class="text-xs font-medium leading-tight">Groups</span>
-                    </a>
-                    <a href="{{ route('auth.show-update-pin') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('auth.show-update-pin') ? 'text-blue-600' : 'text-gray-700' }}" title="Change PIN">
-                        <span class="text-base">🔐</span>
-                        <span class="text-xs font-medium leading-tight">PIN</span>
-                    </a>
-                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-red-100 rounded-lg transition-all text-gray-700" title="Logout">
-                            <span class="text-base">🚪</span>
-                            <span class="text-xs font-medium leading-tight">Exit</span>
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <span class="text-sm text-gray-700">{{ auth()->user()->name }}</span>
-
-                    <!-- Activity Notification Bell -->
-                    @php
-                        $unreadActivities = \App\Models\Activity::where('user_id', '<>', auth()->id())
-                            ->whereIn('group_id', auth()->user()->groups()->pluck('groups.id'))
-                            ->orderByDesc('created_at')
-                            ->limit(5)
-                            ->get();
-                    @endphp
-
-                    <div class="relative group">
-                        <button class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2" title="Recent Activity">
-                            🔔
-                            @if($unreadActivities->count() > 0)
-                                <span class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                                    {{ $unreadActivities->count() > 9 ? '9+' : $unreadActivities->count() }}
-                                </span>
-                            @endif
-                        </button>
-
-                        <!-- Activity Dropdown -->
-                        @if($unreadActivities->count() > 0)
-                        <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-40">
-                            <div class="p-4 border-b border-gray-200">
-                                <h3 class="text-sm font-bold text-gray-900">Recent Activity</h3>
-                            </div>
-                            <div class="max-h-80 overflow-y-auto">
-                                @foreach($unreadActivities as $activity)
-                                <div class="p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors">
-                                    <div class="flex items-start gap-2">
-                                        <span class="text-lg mt-1">{{ $activity->icon }}</span>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-semibold text-gray-900 truncate">{{ $activity->title }}</p>
-                                            <p class="text-xs text-gray-500 mt-1">{{ $activity->created_at->diffForHumans() }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
-                    </div>
-
-                    <a href="{{ route('auth.show-update-pin') }}" class="text-gray-700 hover:text-blue-600 font-medium" title="Update PIN">
-                        🔐
-                    </a>
-                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="text-gray-700 hover:text-blue-600 font-medium">Logout</button>
-                    </form>
-                </div>
+            <!-- Logo Section -->
+            <div class="flex justify-center items-center h-16 border-b border-gray-100">
+                <a href="{{ route('dashboard') }}" class="text-2xl font-bold text-blue-600">
+                    💰 ExpenseSettle
+                </a>
             </div>
 
+            <!-- Top Menu - Centered -->
+            <div class="flex justify-center items-center py-3 gap-6">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-sm">
+                    <span class="text-lg">🏠</span>
+                    <span>Home</span>
+                </a>
+                <a href="{{ route('groups.index') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-sm">
+                    <span class="text-lg">👥</span>
+                    <span>Groups</span>
+                </a>
+                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-sm">
+                    <span class="text-lg">🔐</span>
+                    <span>Update Pin</span>
+                </a>
+                <form action="{{ route('logout') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-sm">
+                        <span class="text-lg">🚪</span>
+                        <span>Exit</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- User Info & Notifications Bar -->
+            <div class="flex justify-between items-center py-2 border-t border-gray-100">
+                <span class="text-sm text-gray-700 font-medium">{{ auth()->user()->name }}</span>
+
+                <!-- Activity Notification Bell -->
+                @php
+                    $unreadActivities = \App\Models\Activity::where('user_id', '<>', auth()->id())
+                        ->whereIn('group_id', auth()->user()->groups()->pluck('groups.id'))
+                        ->orderByDesc('created_at')
+                        ->limit(5)
+                        ->get();
+                @endphp
+
+                <div class="relative group">
+                    <button class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2" title="Recent Activity">
+                        🔔
+                        @if($unreadActivities->count() > 0)
+                            <span class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                                {{ $unreadActivities->count() > 9 ? '9+' : $unreadActivities->count() }}
+                            </span>
+                        @endif
+                    </button>
+
+                    <!-- Activity Dropdown -->
+                    @if($unreadActivities->count() > 0)
+                    <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-40">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="text-sm font-bold text-gray-900">Recent Activity</h3>
+                        </div>
+                        <div class="max-h-80 overflow-y-auto">
+                            @foreach($unreadActivities as $activity)
+                            <div class="p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-lg mt-1">{{ $activity->icon }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $activity->title }}</p>
+                                        <p class="text-xs text-gray-500 mt-1">{{ $activity->created_at->diffForHumans() }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
         </div>
     </nav>
 
