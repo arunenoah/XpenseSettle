@@ -32,24 +32,24 @@
             </div>
 
             <!-- Top Menu - Centered -->
-            <div class="flex justify-center items-center py-3 gap-6">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-sm">
-                    <span class="text-lg">🏠</span>
-                    <span>Home</span>
+            <div class="flex justify-center items-center py-2 gap-1 sm:gap-4 overflow-x-auto">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span class="text-base sm:text-lg">🏠</span>
+                    <span class="hidden xs:inline sm:inline">Home</span>
                 </a>
-                <a href="{{ route('groups.index') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-sm">
-                    <span class="text-lg">👥</span>
-                    <span>Groups</span>
+                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span class="text-base sm:text-lg">👥</span>
+                    <span class="hidden xs:inline sm:inline">Groups</span>
                 </a>
-                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-2 px-4 py-2 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-sm">
-                    <span class="text-lg">🔐</span>
-                    <span>Update Pin</span>
+                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span class="text-base sm:text-lg">🔐</span>
+                    <span class="hidden xs:inline sm:inline">Pin</span>
                 </a>
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
-                    <button type="submit" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-sm">
-                        <span class="text-lg">🚪</span>
-                        <span>Exit</span>
+                    <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                        <span class="text-base sm:text-lg">🚪</span>
+                        <span class="hidden xs:inline sm:inline">Exit</span>
                     </button>
                 </form>
             </div>
