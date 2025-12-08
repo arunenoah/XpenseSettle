@@ -18,12 +18,16 @@ class Activity extends Model
         'related_id',
         'related_type',
         'metadata',
+        'read_by',
+        'read_at',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'related_users' => 'array',
         'metadata' => 'array',
+        'read_by' => 'array',
+        'read_at' => 'datetime',
     ];
 
     /**
@@ -76,5 +80,42 @@ class Activity extends Model
             'settlement_confirmed' => '🎯',
             default => '📌',
         };
+    }
+
+    /**
+     * Check if activity is read by a specific user
+     */
+    public function isReadBy($userId)
+    {
+        $readBy = $this->read_by ?? [];
+        return in_array($userId, $readBy);
+    }
+
+    /**
+     * Mark activity as read by a specific user
+     */
+    public function markAsReadBy($userId)
+    {
+        $readBy = $this->read_by ?? [];
+        if (!in_array($userId, $readBy)) {
+            $readBy[] = $userId;
+            $this->read_by = $readBy;
+            $this->read_at = now();
+            $this->save();
+        }
+    }
+
+    /**
+     * Scope to get unread activities for a specific user
+     */
+    public function scopeUnreadFor($query, $userId)
+    {
+        return $query->where(function ($q) use ($userId) {
+            $q->where('user_id', '!=', $userId)
+              ->where(function ($q2) use ($userId) {
+                  $q2->whereNull('read_by')
+                     ->orWhereJsonDoesntContain('read_by', $userId);
+              });
+        });
     }
 }

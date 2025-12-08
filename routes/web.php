@@ -8,6 +8,7 @@ use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\SettlementController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -82,6 +83,12 @@ Route::middleware('auth')->group(function () {
     // PIN Management
     Route::get('/auth/update-pin', [AuthController::class, 'showUpdatePin'])->name('auth.show-update-pin');
     Route::put('/auth/update-pin', [AuthController::class, 'updatePin'])->name('auth.update-pin');
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
