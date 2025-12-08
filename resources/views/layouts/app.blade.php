@@ -60,45 +60,133 @@
 
                 <!-- Activity Notification Bell -->
                 @php
-                    $unreadActivities = \App\Models\Activity::where('user_id', '<>', auth()->id())
+                    $unreadCount = \App\Models\Activity::where('user_id', '<>', auth()->id())
                         ->whereIn('group_id', auth()->user()->groups()->pluck('groups.id'))
-                        ->orderByDesc('created_at')
-                        ->limit(5)
-                        ->get();
+                        ->unreadFor(auth()->id())
+                        ->count();
                 @endphp
 
-                <div class="relative group">
-                    <button class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2" title="Recent Activity">
+                <div class="relative" x-data="{ open: false, filter: 'unread', activities: [], unreadCount: {{ $unreadCount }} }">
+                    <button @click="open = !open; if(open) loadNotifications()" 
+                            class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2" 
+                            title="Notifications">
                         🔔
-                        @if($unreadActivities->count() > 0)
-                            <span class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                                {{ $unreadActivities->count() > 9 ? '9+' : $unreadActivities->count() }}
-                            </span>
-                        @endif
+                        <span x-show="unreadCount > 0" 
+                              x-text="unreadCount > 9 ? '9+' : unreadCount"
+                              class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                        </span>
                     </button>
 
-                    <!-- Activity Dropdown -->
-                    @if($unreadActivities->count() > 0)
-                    <div class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-40">
+                    <!-- Notification Panel -->
+                    <div x-show="open" 
+                         @click.away="open = false"
+                         x-transition
+                         class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50"
+                         style="display: none;">
+                        
+                        <!-- Header with Tabs -->
                         <div class="p-4 border-b border-gray-200">
-                            <h3 class="text-sm font-bold text-gray-900">Recent Activity</h3>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex gap-4">
+                                    <button @click="filter = 'unread'; loadNotifications()" 
+                                            :class="filter === 'unread' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
+                                            class="pb-1 transition-colors">
+                                        Unread <span x-text="unreadCount"></span>
+                                    </button>
+                                    <button @click="filter = 'all'; loadNotifications()" 
+                                            :class="filter === 'all' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
+                                            class="pb-1 transition-colors">
+                                        All
+                                    </button>
+                                </div>
+                                <button @click="markAllAsRead()" 
+                                        x-show="unreadCount > 0"
+                                        class="text-sm text-teal-600 hover:text-teal-700 font-semibold">
+                                    Mark all as read
+                                </button>
+                            </div>
                         </div>
-                        <div class="max-h-80 overflow-y-auto">
-                            @foreach($unreadActivities as $activity)
-                            <div class="p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors">
-                                <div class="flex items-start gap-2">
-                                    <span class="text-lg mt-1">{{ $activity->icon }}</span>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-sm font-semibold text-gray-900 truncate">{{ $activity->title }}</p>
-                                        <p class="text-xs text-gray-500 mt-1">{{ $activity->created_at->diffForHumans() }}</p>
+
+                        <!-- Notifications List -->
+                        <div class="max-h-96 overflow-y-auto">
+                            <template x-if="activities.length === 0">
+                                <div class="p-8 text-center text-gray-500">
+                                    <span class="text-4xl mb-2 block">🔔</span>
+                                    <p class="text-sm">No notifications</p>
+                                </div>
+                            </template>
+                            
+                            <template x-for="activity in activities" :key="activity.id">
+                                <div @click="markAsRead(activity.id)" 
+                                     class="p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer relative">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                            <span x-text="activity.icon" class="text-lg"></span>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-semibold text-gray-900" x-text="activity.title"></p>
+                                            <p class="text-xs text-gray-500 mt-1" x-text="formatTime(activity.created_at)"></p>
+                                        </div>
+                                        <span x-show="!activity.is_read" class="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0 mt-2"></span>
                                     </div>
                                 </div>
-                            </div>
-                            @endforeach
+                            </template>
                         </div>
                     </div>
-                    @endif
                 </div>
+
+                <script>
+                function loadNotifications() {
+                    const filter = Alpine.store('notifications')?.filter || 'unread';
+                    fetch(`/notifications?filter=${filter}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            Alpine.store('notifications', {
+                                activities: data.activities.map(a => ({
+                                    ...a,
+                                    is_read: a.read_by && a.read_by.includes({{ auth()->id() }})
+                                })),
+                                unreadCount: data.unread_count,
+                                filter: data.filter
+                            });
+                        });
+                }
+
+                function markAsRead(id) {
+                    fetch(`/notifications/${id}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(() => loadNotifications());
+                }
+
+                function markAllAsRead() {
+                    fetch('/notifications/mark-all-read', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(() => loadNotifications());
+                }
+
+                function formatTime(dateString) {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    if (diffMins < 1) return 'Just now';
+                    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+                    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+                    return date.toLocaleDateString();
+                }
+                </script>
             </div>
         </div>
     </nav>

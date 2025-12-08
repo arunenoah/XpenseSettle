@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Activity;
+use Illuminate\Http\Request;
+
+class NotificationController extends Controller
+{
+    /**
+     * Get all notifications for the authenticated user
+     */
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+        $filter = $request->get('filter', 'unread'); // 'unread' or 'all'
+
+        $query = Activity::where('user_id', '!=', $user->id)
+            ->whereIn('group_id', $user->groups()->pluck('groups.id'))
+            ->orderByDesc('created_at');
+
+        if ($filter === 'unread') {
+            $query->unreadFor($user->id);
+        }
+
+        $activities = $query->limit(50)->get();
+        $unreadCount = Activity::where('user_id', '!=', $user->id)
+            ->whereIn('group_id', $user->groups()->pluck('groups.id'))
+            ->unreadFor($user->id)
+            ->count();
+
+        return response()->json([
+            'activities' => $activities,
+            'unread_count' => $unreadCount,
+            'filter' => $filter,
+        ]);
+    }
+
+    /**
+     * Mark a single notification as read
+     */
+    public function markAsRead($id)
+    {
+        $activity = Activity::findOrFail($id);
+        $activity->markAsReadBy(auth()->id());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read',
+        ]);
+    }
+
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllAsRead()
+    {
+        $user = auth()->user();
+        
+        $activities = Activity::where('user_id', '!=', $user->id)
+            ->whereIn('group_id', $user->groups()->pluck('groups.id'))
+            ->unreadFor($user->id)
+            ->get();
+
+        foreach ($activities as $activity) {
+            $activity->markAsReadBy($user->id);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All notifications marked as read',
+            'count' => $activities->count(),
+        ]);
+    }
+
+    /**
+     * Get unread count
+     */
+    public function unreadCount()
+    {
+        $user = auth()->user();
+        
+        $count = Activity::where('user_id', '!=', $user->id)
+            ->whereIn('group_id', $user->groups()->pluck('groups.id'))
+            ->unreadFor($user->id)
+            ->count();
+
+        return response()->json([
+            'unread_count' => $count,
+        ]);
+    }
+}
