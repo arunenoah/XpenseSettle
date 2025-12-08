@@ -46,19 +46,25 @@
 
 
                 <!-- Mobile Quick Actions (sm devices only) -->
-                <div class="md:hidden flex items-center gap-1">
-                    <a href="{{ route('dashboard') }}" class="p-2 text-xl hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('dashboard') ? 'text-blue-600' : 'text-gray-700' }}" title="Dashboard">
-                        📊
+                <div class="md:hidden flex items-center gap-0.5">
+                    <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center w-16 py-1 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('dashboard') ? 'text-blue-600' : 'text-gray-700' }}" title="Dashboard">
+                        <span class="text-lg">📊</span>
+                        <span class="text-xs font-medium mt-0.5">Home</span>
                     </a>
-                    <a href="{{ route('groups.index') }}" class="p-2 text-xl hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('groups.*') ? 'text-blue-600' : 'text-gray-700' }}" title="Groups">
-                        👥
+                    <a href="{{ route('groups.index') }}" class="flex flex-col items-center justify-center w-16 py-1 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('groups.*') ? 'text-blue-600' : 'text-gray-700' }}" title="Groups">
+                        <span class="text-lg">👥</span>
+                        <span class="text-xs font-medium mt-0.5">Groups</span>
                     </a>
-                    <a href="{{ route('auth.show-update-pin') }}" class="p-2 text-xl hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('auth.show-update-pin') ? 'text-blue-600' : 'text-gray-700' }}" title="Change PIN">
-                        🔐
+                    <a href="{{ route('auth.show-update-pin') }}" class="flex flex-col items-center justify-center w-16 py-1 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('auth.show-update-pin') ? 'text-blue-600' : 'text-gray-700' }}" title="Change PIN">
+                        <span class="text-lg">🔐</span>
+                        <span class="text-xs font-medium mt-0.5">Set PIN</span>
                     </a>
                     <form action="{{ route('logout') }}" method="POST" class="inline">
                         @csrf
-                        <button type="submit" class="p-2 text-xl hover:bg-red-100 rounded-lg transition-all text-gray-700" title="Logout">🚪</button>
+                        <button type="submit" class="flex flex-col items-center justify-center w-16 py-1 hover:bg-red-100 rounded-lg transition-all text-gray-700" title="Logout">
+                            <span class="text-lg">🚪</span>
+                            <span class="text-xs font-medium mt-0.5">Exit</span>
+                        </button>
                     </form>
                 </div>
 
