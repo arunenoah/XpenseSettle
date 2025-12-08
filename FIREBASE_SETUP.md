@@ -1,513 +1,291 @@
-# Firebase Setup for Push Notifications
+# Firebase Push Notifications Setup Guide
 
-Push notifications allow your app to notify users when payments are made, groups are updated, etc.
+## Summary of Implementation
 
----
+Your ExpenseSettle app now has complete Firebase push notification support for the Android Capacitor app. Here's what has been done:
 
-## Prerequisites
+### Backend Setup ✅
+- Modified `AuthController.php` to create Sanctum API tokens on login
+- Added Firebase initialization script to Blade layout (`app.blade.php`)
+- Exposed authentication token to JavaScript for API calls
+- Configured Firebase credentials via environment variables (.env)
 
-- Firebase Account (free at https://console.firebase.google.com)
-- Apple Developer Account (for iOS)
-- Google Play Developer Account (for Android)
+### Mobile (Capacitor) Setup ✅
+- Installed `@capacitor-firebase/messaging@7.4.0` npm package
+- Synced with Android native project
 
----
-
-## Step 1: Create Firebase Project
-
-1. Go to https://console.firebase.google.com
-2. Click "Create Project"
-3. Name: `ExpenseSettle`
-4. Enable Google Analytics (optional)
-5. Click "Create Project"
+### What's Left - **NEXT STEP**
+- Add `google-services.json` to your Android project
 
 ---
 
-## Step 2: Setup Android Firebase
+## Step 1: Get google-services.json from Firebase Console
 
-### Add Android App to Firebase
+### 1. Go to Firebase Console
+1. Navigate to https://console.firebase.google.com
+2. Select your **expensesettle** project
 
-1. In Firebase Console, click "Add App" → "Android"
-2. Package Name: `com.expensesettle.app`
-3. App Nickname: `ExpenseSettle Mobile`
-4. Download `google-services.json`
-5. Place in: `android/app/google-services.json`
+### 2. Download the JSON File
+1. Click **⚙️ Project Settings** (gear icon top-left)
+2. Go to **Cloud Messaging** tab
+3. Or go to **Project Settings** → **Your apps** → Select **Android app**
+4. Click **Download google-services.json** button
+5. A JSON file will be downloaded to your computer
 
-### Configure Android Build Files
+### 3. Copy to Android Project
+1. Copy the downloaded `google-services.json` file
+2. Paste it into: `android/app/google-services.json`
 
-File: `android/build.gradle`
+**Important**: The file MUST be at `android/app/` NOT `android/` or any other location.
 
-```gradle
-buildscript {
-    dependencies {
-        // Add Google Services
-        classpath 'com.google.gms:google-services:4.3.15'
-    }
-}
+---
+
+## Step 2: Configure Environment Variables
+
+### Local Testing (.env)
+Your `.env` already has Firebase configuration placeholders. Make sure these are filled:
+
+```env
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_PRIVATE_KEY_ID=your-key-id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_CLIENT_ID=your-client-id
+FIREBASE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/...
+FCM_SERVER_KEY=your-fcm-server-key
+FIREBASE_API_KEY=your-api-key
+FIREBASE_WEB_API_KEY=your-web-api-key
 ```
 
-File: `android/app/build.gradle`
+Get these values from:
+- **Firebase Console** → **Project Settings** → **Service Accounts** tab
+- Click **Generate New Private Key** to get credentials
+- Copy the JSON and extract the values
 
-```gradle
-// At the bottom of file, add:
-apply plugin: 'com.google.gms.google-services'
-
-dependencies {
-    // Firebase Cloud Messaging
-    implementation 'com.google.firebase:firebase-messaging:23.2.1'
-}
-```
+### Production (Laravel Forge)
+1. Go to your Forge app dashboard
+2. Click **Environment** section
+3. Add the same variables as shown above
+4. Use the same values from Firebase Console
 
 ---
 
-## Step 3: Setup iOS Firebase
+## Step 3: Build and Test on Android
 
-### Add iOS App to Firebase
+### Build the Web Assets
+```bash
+npm run build
+```
 
-1. In Firebase Console, click "Add App" → "iOS"
-2. Bundle ID: `com.expensesettle.app`
-3. App Nickname: `ExpenseSettle iOS`
-4. Download `GoogleService-Info.plist`
-5. Open `ios/App/App.xcworkspace` in Xcode
-6. Drag `GoogleService-Info.plist` into Xcode
-7. Check "Copy items if needed"
-8. Finish
+### Copy to Capacitor
+```bash
+npx cap copy android
+```
 
-### Configure Xcode
+### Run on Android Device
+```bash
+npx cap run android --livereload
+```
 
-In Xcode (ios/App/App.xcworkspace):
+Or use Android Studio:
+```bash
+npx cap open android
+```
 
-1. Select "App" project
-2. Go to "Build Phases"
-3. Add new "Run Script Phase"
-4. Paste:
-   ```bash
-   ${PODS_ROOT}/FirebaseCore/Sources/FirebaseCore/Support/run_firebase_setup.sh
+Then build and run from Android Studio.
+
+---
+
+## Step 4: Test the Push Notification Flow
+
+### 1. Log in to the Android App
+- Enter your 6-digit PIN
+- You should see a success message
+
+### 2. Check Device Token Registration
+1. Open Android Logcat (if using Android Studio)
+2. Look for log messages:
+   ```
+   ✅ Capacitor + Token detected - Setting up Firebase...
+   📱 Requesting notification permissions...
+   ✅ Notifications allowed
+   🔑 Device Token: abc123xyz...
+   📤 Registering token with backend...
+   ✅ Token registered: Device token saved
    ```
 
+### 3. Test Notification Sending
+1. In the web app, go to any group
+2. Click **📊 Summary**
+3. Click **⏳ Mark Paid** on any settlement
+4. Complete the payment confirmation
+5. Check your Android device - you should see a **green notification banner**
+
+### 4. Verify Device Token in Database
+Run this in your Laravel app:
+```bash
+php artisan tinker
+```
+
+Then:
+```php
+$user = User::first();
+$user->deviceTokens()->get();
+// Should show registered tokens with timestamps
+```
+
 ---
 
-## Step 4: Install Capacitor Firebase Plugin
+## How It Works
+
+### 1. User Logs In (Session + API Token)
+```
+1. User enters 6-digit PIN
+2. Laravel AuthController creates session (PIN-based auth)
+3. AuthController also creates Sanctum API token
+4. Token exposed to Blade template as window.SANCTUM_TOKEN
+```
+
+### 2. Capacitor App Detects Environment
+```
+1. JavaScript checks if window.Capacitor exists
+2. Checks if window.SANCTUM_TOKEN is available
+3. If both exist, initializes Firebase
+```
+
+### 3. Device Token Registration
+```
+1. App requests notification permissions from user
+2. Firebase Cloud Messaging provides device token
+3. App calls POST /api/device-tokens with Bearer token
+4. Backend saves token to database
+5. Token stored with user association + timestamp
+```
+
+### 4. Push Notification Delivery
+```
+1. Backend detects settlement confirmation
+2. Fetches user's active device tokens
+3. Sends notification via Firebase Cloud Messaging
+4. FCM delivers to device
+5. App shows green banner notification
+6. User can tap to navigate to group summary
+```
+
+---
+
+## File Changes Summary
+
+### Backend Files Modified
+- `app/Http/Controllers/AuthController.php` - Added Sanctum token creation
+- `resources/views/layouts/app.blade.php` - Added Firebase initialization script
+
+### Frontend Configuration
+- `package.json` - Added @capacitor-firebase/messaging
+- `capacitor.config.json` - Updated with Firebase plugin
+
+### Android Native
+- `android/app/google-services.json` - **NEEDS TO BE ADDED BY YOU**
+- `android/app/build.gradle` - Updated by Capacitor
+- `android/app/src/main/AndroidManifest.xml` - Updated by Capacitor
+
+### Environment Configuration
+- `.env` - FIREBASE_* variables (fill with your credentials)
+- `config/firebase.php` - Builds credentials from env variables
+
+---
+
+## Troubleshooting
+
+### Issue: "No Sanctum token found - skipping registration"
+**Solution**: The user is not logged in or session expired
+- Clear browser cache
+- Log in again
+- Check `window.SANCTUM_TOKEN` in browser console
+
+### Issue: Device token not registering
+**Solution**: Check network request in browser DevTools
+- Open DevTools → Network tab
+- Log in again
+- Look for POST request to `/api/device-tokens`
+- Check response status (should be 200)
+
+### Issue: Notification received but app doesn't respond
+**Solution**: Check listener setup in browser console
+- Look for "✅ Notification listeners ready" message
+- If not present, Firebase initialization failed
+
+### Issue: "Unsupported engine" npm warnings
+**Solution**: These are just warnings, not errors
+- Your Node version (22.11.0) works fine
+- You can safely ignore these warnings
+
+---
+
+## Next Steps
+
+1. **Download google-services.json** from Firebase Console
+2. **Copy to `android/app/google-services.json`**
+3. **Fill .env variables** with Firebase credentials
+4. **Build and test** on Android device
+5. **Monitor logs** to verify token registration
+6. **Mark a payment** to trigger test notification
+
+---
+
+## Quick Reference Commands
 
 ```bash
-# Install push notifications plugin
-npm install @capacitor/push-notifications
+# Install Firebase plugin
+npm install @capacitor-firebase/messaging
 
-# Install Firebase admin SDK for Laravel
-composer require kreait/firebase-php
+# Sync with Android
+npx cap sync android
 
-# Sync with native projects
-npx cap sync
-```
-
----
-
-## Step 5: Get Firebase Service Account Key (for Laravel)
-
-### Download Service Account Key
-
-1. In Firebase Console, go to Project Settings (⚙️)
-2. Click "Service Accounts" tab
-3. Click "Generate New Private Key"
-4. Save as `firebase-credentials.json`
-
-### Add to Laravel
-
-```bash
-# Create config directory
-mkdir -p config/firebase
-
-# Move credentials
-cp firebase-credentials.json config/firebase/
-
-# Add to .gitignore
-echo "config/firebase/firebase-credentials.json" >> .gitignore
-```
-
-### Create Laravel Firebase Service Class
-
-File: `app/Services/FirebaseService.php`
-
-```php
-<?php
-
-namespace App\Services;
-
-use Kreait\Firebase\Factory;
-use Kreait\Firebase\Messaging\CloudMessage;
-
-class FirebaseService
-{
-    private $messaging;
-
-    public function __construct()
-    {
-        $factory = (new Factory)
-            ->withServiceAccount(config_path('firebase/firebase-credentials.json'));
-
-        $this->messaging = $factory->createMessaging();
-    }
-
-    /**
-     * Send push notification to user
-     */
-    public function sendNotification(string $deviceToken, string $title, string $body, array $data = [])
-    {
-        try {
-            $message = CloudMessage::withTarget('token', $deviceToken)
-                ->withNotification(
-                    \Kreait\Firebase\Messaging\Notification::create()
-                        ->withTitle($title)
-                        ->withBody($body)
-                )
-                ->withData($data);
-
-            return $this->messaging->send($message);
-        } catch (\Exception $e) {
-            \Log::error('Firebase notification error: ' . $e->getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * Send to multiple devices
-     */
-    public function sendBroadcast(array $deviceTokens, string $title, string $body, array $data = [])
-    {
-        try {
-            $message = CloudMessage::new()
-                ->withNotification(
-                    \Kreait\Firebase\Messaging\Notification::create()
-                        ->withTitle($title)
-                        ->withBody($body)
-                )
-                ->withData($data);
-
-            return $this->messaging->sendMulticast($message, $deviceTokens);
-        } catch (\Exception $e) {
-            \Log::error('Firebase broadcast error: ' . $e->getMessage());
-            return false;
-        }
-    }
-}
-```
-
----
-
-## Step 6: Store Device Tokens in Laravel
-
-When user logs in from mobile app, save their device token:
-
-### Create Migration
-
-```bash
-php artisan make:migration add_device_token_to_users
-```
-
-File: `database/migrations/YYYY_MM_DD_add_device_token_to_users.php`
-
-```php
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('device_token')->nullable();
-            $table->enum('device_type', ['ios', 'android'])->nullable();
-            $table->timestamp('token_updated_at')->nullable();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['device_token', 'device_type', 'token_updated_at']);
-        });
-    }
-};
-```
-
-Run migration:
-
-```bash
-php artisan migrate
-```
-
-### Update User Model
-
-File: `app/Models/User.php`
-
-```php
-<?php
-
-namespace App\Models;
-
-use Illuminate\Foundation\Auth\User as Authenticatable;
-
-class User extends Authenticatable
-{
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'device_token',
-        'device_type',
-    ];
-
-    // Save device token
-    public function updateDeviceToken(string $token, string $deviceType = 'android')
-    {
-        $this->update([
-            'device_token' => $token,
-            'device_type' => $deviceType,
-            'token_updated_at' => now(),
-        ]);
-    }
-
-    // Get notification method
-    public function notifyViaFirebase(string $title, string $body, array $data = [])
-    {
-        if ($this->device_token) {
-            $firebase = new \App\Services\FirebaseService();
-            $firebase->sendNotification($this->device_token, $title, $body, $data);
-        }
-    }
-}
-```
-
-### Create API Endpoint to Save Token
-
-File: `routes/web.php`
-
-```php
-Route::post('/api/device-token', function (Request $request) {
-    $user = auth()->user();
-    if ($user) {
-        $user->updateDeviceToken(
-            $request->input('token'),
-            $request->input('device_type', 'android')
-        );
-        return response()->json(['success' => true]);
-    }
-    return response()->json(['error' => 'Not authenticated'], 401);
-});
-```
-
----
-
-## Step 7: Setup Notifications in Web App
-
-Add this to your main Blade template or layout:
-
-File: `resources/views/layouts/app.blade.php`
-
-```html
-<script>
-// Register device token when user logs in
-document.addEventListener('DOMContentLoaded', async function() {
-    if (typeof window.Capacitor !== 'undefined' && auth.user) {
-        // This is Capacitor app with authenticated user
-        setupPushNotifications();
-    }
-});
-
-async function setupPushNotifications() {
-    try {
-        const { PushNotifications } = window.Capacitor.Plugins;
-
-        // Request permission
-        const permission = await PushNotifications.requestPermissions();
-
-        if (permission.receive === 'granted') {
-            // Register to receive push notifications
-            await PushNotifications.register();
-
-            // Get the token
-            const { value } = await PushNotifications.getDeliveredNotifications();
-
-            // Listen for notifications
-            PushNotifications.addListener('registration', (token) => {
-                // Save token to server
-                fetch('/api/device-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    },
-                    body: JSON.stringify({
-                        token: token.value,
-                        device_type: window.Capacitor.platform === 'ios' ? 'ios' : 'android',
-                    }),
-                });
-
-                console.log('Device Token:', token.value);
-            });
-
-            // Handle notification when app is in foreground
-            PushNotifications.addListener('pushNotificationReceived', (notification) => {
-                console.log('Notification received:', notification);
-                showNotificationBanner(notification.title, notification.body);
-            });
-
-            // Handle notification click
-            PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-                const data = action.notification.data;
-
-                if (data.type === 'group') {
-                    // Navigate to group
-                    window.location.href = `/groups/${data.id}`;
-                } else if (data.type === 'expense') {
-                    // Navigate to expense
-                    window.location.href = `/expenses/${data.id}`;
-                } else if (data.type === 'payment') {
-                    // Navigate to payment
-                    window.location.href = `/groups/${data.group_id}/payments`;
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Push notification setup error:', error);
-    }
-}
-
-function showNotificationBanner(title, body) {
-    // Show a banner notification in-app
-    const banner = document.createElement('div');
-    banner.className = 'fixed top-0 left-0 right-0 bg-blue-500 text-white p-4 rounded-b shadow-lg';
-    banner.innerHTML = `<strong>${title}</strong><p>${body}</p>`;
-    document.body.appendChild(banner);
-
-    setTimeout(() => banner.remove(), 5000);
-}
-</script>
-```
-
----
-
-## Step 8: Send Notifications from Laravel
-
-Example: When payment is marked as paid
-
-File: `app/Http/Controllers/PaymentController.php`
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use App\Models\Payment;
-use App\Services\FirebaseService;
-
-class PaymentController extends Controller
-{
-    public function markAsPaid(Payment $payment)
-    {
-        // Mark as paid
-        $payment->update(['status' => 'paid']);
-
-        // Send notification to expense payer
-        $payer = $payment->split->expense->payer;
-        $firebase = new FirebaseService();
-
-        $firebase->sendNotification(
-            deviceToken: $payer->device_token,
-            title: 'Payment Received',
-            body: auth()->user()->name . ' paid ₹' . $payment->split->share_amount,
-            data: [
-                'type' => 'payment',
-                'payment_id' => $payment->id,
-                'group_id' => $payment->split->expense->group_id,
-            ]
-        );
-
-        return redirect()->back()->with('success', 'Payment marked as paid!');
-    }
-}
-```
-
----
-
-## Step 9: Build and Test
-
-### Test on iOS Simulator
-
-```bash
-# Build and run
+# Build web assets
 npm run build
-npx cap copy
-npx cap run ios
 
-# In simulator:
-# 1. Log in to your app
-# 2. Device token should save automatically
-# 3. Check Laravel logs for token saved
-```
+# Copy to Capacitor
+npx cap copy android
 
-### Test on Android Emulator
+# Run on device (development)
+npx cap run android --livereload
 
-```bash
-# Build and run
-npm run build
-npx cap copy
-npx cap run android
+# Open in Android Studio
+npx cap open android
 
-# In emulator:
-# 1. Log in to your app
-# 2. Grant notification permission
-# 3. Device token should save automatically
-```
-
-### Send Test Notification
-
-From Firebase Console:
-
-1. Go to Messaging → Create Campaign
-2. Select "Cloud Messaging"
-3. Add notification title and body
-4. Target: User Segment or Custom Audience
-5. Click "Create"
-
-Or use Laravel Artisan:
-
-```php
-// In tinker or command
-$user = User::find(1);
-$firebase = new \App\Services\FirebaseService();
-$firebase->sendNotification(
-    $user->device_token,
-    'Test Notification',
-    'This is a test!',
-    ['type' => 'test']
-);
+# Check logs
+npx cap build android
 ```
 
 ---
 
-## Checklist
+## Production Deployment (Laravel Forge)
 
-- [ ] Firebase project created
-- [ ] Android app added to Firebase
-- [ ] iOS app added to Firebase
-- [ ] google-services.json added to Android
-- [ ] GoogleService-Info.plist added to iOS
-- [ ] Capacitor push notifications installed
-- [ ] Firebase admin SDK installed in Laravel
-- [ ] Service account key added to Laravel
-- [ ] Device token migration created
-- [ ] User model updated
-- [ ] API endpoint created for device token
-- [ ] Push notification setup code added to app
-- [ ] Tested on iOS simulator
-- [ ] Tested on Android emulator
-- [ ] Test notification sent and received
+When deploying to production:
+
+1. **Set environment variables** in Forge dashboard for:
+   - All FIREBASE_* variables
+   - FCM_SERVER_KEY
+   - FIREBASE_API_KEY
+   - FIREBASE_WEB_API_KEY
+
+2. **Build APK/AAB** with production Firebase config:
+   ```bash
+   npm run build
+   npx cap copy android
+   # Then build in Android Studio
+   ```
+
+3. **Update google-services.json** if using different Firebase project for production
+
+4. **Test** notification flow in production environment
 
 ---
 
-**Push notifications are now ready!** 🎉
+## Support
 
-Next: Test locally, then deploy to app stores.
+If you need help with:
+- Firebase Console setup: https://firebase.google.com/docs/android/setup
+- Capacitor Firebase: https://github.com/capawesome-team/capacitor-firebase
+- Laravel Sanctum: https://laravel.com/docs/sanctum

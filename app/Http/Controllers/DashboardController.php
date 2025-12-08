@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Group;
+use App\Services\ActivityService;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
 
@@ -542,6 +543,9 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
+        // Get activity timeline for the group
+        $activities = ActivityService::getGroupActivities($group->id, 100);
+
         return view('groups.summary', [
             'group' => $group,
             'user' => $user,
@@ -551,6 +555,26 @@ class DashboardController extends Controller
             'expenseCount' => $expenses->count(),
             'advanceCount' => $advances->count(),
             'paidPayments' => $paidPayments,
+            'activities' => $activities,
+        ]);
+    }
+
+    /**
+     * Export group timeline as PDF/Printable document
+     */
+    public function exportTimelinePdf(Group $group)
+    {
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        // Get activity timeline for the group
+        $activities = ActivityService::getTimelineForPdf($group->id);
+
+        return view('groups.timeline-pdf', [
+            'group' => $group,
+            'activities' => $activities,
+            'exportedAt' => now(),
         ]);
     }
 
