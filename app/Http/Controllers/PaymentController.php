@@ -693,9 +693,11 @@ class PaymentController extends Controller
         // Set PDF options
         $pdf->setPaper('a4', 'portrait');
 
-        // Download PDF with group name in filename
+        // Generate filename
         $filename = 'Group_History_' . str_replace(' ', '_', $group->name) . '_' . now()->format('Y-m-d') . '.pdf';
         
-        return $pdf->download($filename);
+        // Use stream for better mobile compatibility
+        // Stream opens PDF in browser, allowing mobile users to download
+        return $pdf->stream($filename);
     }
 }
