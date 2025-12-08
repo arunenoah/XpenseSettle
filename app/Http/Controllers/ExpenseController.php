@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Group;
+use App\Services\ActivityService;
 use App\Services\ExpenseService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -73,6 +74,9 @@ class ExpenseController extends Controller
                 $validated
             );
 
+            // Log activity for timeline
+            ActivityService::logExpenseCreated($group, $expense);
+
             // Send notification to group members about the new expense
             $this->notificationService->notifyExpenseCreated($expense, auth()->user());
 
@@ -129,10 +133,7 @@ class ExpenseController extends Controller
         // Calculate settlement
         $settlement = $this->expenseService->getExpenseSettlement($expense);
 
-        // Check if current user can edit/delete
-        $canManage = $expense->payer_id === auth()->id() || $group->isAdmin(auth()->user());
-
-        return view('expenses.show', compact('expense', 'group', 'settlement', 'canManage'));
+        return view('expenses.show', compact('expense', 'group', 'settlement'));
     }
 
     /**
