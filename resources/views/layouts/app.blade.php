@@ -46,17 +46,15 @@
 
 
                 <!-- Mobile Quick Actions (sm devices only) -->
-                <div class="md:hidden flex items-center justify-end gap-1 flex-1">
+                <div class="md:hidden flex items-center gap-1">
                     <a href="{{ route('dashboard') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('dashboard') ? 'text-blue-600' : 'text-gray-700' }}" title="Dashboard">
                         <span class="text-base">📊</span>
                         <span class="text-xs font-medium leading-tight">Home</span>
                     </a>
-                    @if(!request()->routeIs('groups.dashboard', 'groups.expenses.*', 'groups.payments.*', 'groups.summary'))
-                    <a href="{{ route('groups.index') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('groups.index') ? 'text-blue-600' : 'text-gray-700' }}" title="Groups">
+                    <a href="{{ route('groups.index') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('groups.index', 'groups.*') ? 'text-blue-600' : 'text-gray-700' }}" title="Groups">
                         <span class="text-base">👥</span>
                         <span class="text-xs font-medium leading-tight">Groups</span>
                     </a>
-                    @endif
                     <a href="{{ route('auth.show-update-pin') }}" class="flex flex-col items-center justify-center min-w-12 px-1 py-0.5 hover:bg-gray-100 rounded-lg transition-all {{ request()->routeIs('auth.show-update-pin') ? 'text-blue-600' : 'text-gray-700' }}" title="Change PIN">
                         <span class="text-base">🔐</span>
                         <span class="text-xs font-medium leading-tight">PIN</span>
