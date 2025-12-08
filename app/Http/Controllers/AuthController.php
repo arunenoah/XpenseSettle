@@ -48,10 +48,14 @@ class AuthController extends Controller
         if ($user) {
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
-            
+
+            // Create Sanctum token for API access (mobile/Capacitor app)
+            $sanctumToken = $user->createToken('mobile')->plainTextToken;
+            session(['sanctum_token' => $sanctumToken]);
+
             // Clear rate limiter on successful login
             RateLimiter::clear($key);
-            
+
             return redirect()->intended(route('dashboard'));
         }
 

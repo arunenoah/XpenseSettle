@@ -634,6 +634,104 @@ document.addEventListener('keydown', function(e) {
     }
 </style>
 
+    <!-- Activity Timeline Section -->
+    @if($activities && $activities->count() > 0)
+    <div class="px-4 sm:px-6 lg:px-8 py-8 sm:py-12 border-t border-gray-200">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-2xl font-bold text-gray-900 mb-8">📋 Group Timeline</h2>
+
+            <!-- Timeline Container -->
+            <div class="space-y-4">
+                @foreach($activities as $activity)
+                <div class="flex gap-4 items-start">
+                    <!-- Timeline Dot and Line -->
+                    <div class="flex flex-col items-center">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 border-2 border-white shadow-sm flex-shrink-0">
+                            <span class="text-lg">{{ $activity->icon }}</span>
+                        </div>
+                        @if(!$loop->last)
+                        <div class="w-0.5 h-16 bg-gradient-to-b from-blue-200 to-gray-200 mt-2"></div>
+                        @endif
+                    </div>
+
+                    <!-- Activity Content -->
+                    <div class="flex-1 pt-1.5 pb-4">
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                            <!-- Date Header -->
+                            <div class="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-2">
+                                {{ $activity->created_at->format('d M Y') }}
+                            </div>
+
+                            <!-- Activity Title -->
+                            <h3 class="text-base font-semibold text-gray-900 mb-2">
+                                {{ $activity->title }}
+                            </h3>
+
+                            <!-- Activity Description -->
+                            @if($activity->description)
+                            <p class="text-sm text-gray-600 mb-2">
+                                {{ $activity->description }}
+                            </p>
+                            @endif
+
+                            <!-- Activity Amount (if applicable) -->
+                            @if($activity->amount)
+                            <div class="text-sm font-semibold text-emerald-600 mb-2">
+                                ₹{{ number_format($activity->amount, 0) }}
+                            </div>
+                            @endif
+
+                            <!-- Related Users (if applicable) -->
+                            @if($activity->related_users && count($activity->related_users) > 0)
+                            <div class="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-100">
+                                <span class="font-semibold">Members involved:</span>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    @php
+                                        $relatedUsers = \App\Models\User::whereIn('id', $activity->related_users)->pluck('name');
+                                    @endphp
+                                    @foreach($relatedUsers as $name)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ $name }}
+                                    </span>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Actor -->
+                            @if($activity->user)
+                            <div class="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100">
+                                by <span class="font-semibold text-gray-600">{{ $activity->user->name }}</span>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            <!-- Timeline Footer -->
+            <div class="text-center mt-12 flex justify-center gap-4">
+                <a
+                    href="{{ route('groups.timeline.pdf', $group) }}"
+                    target="_blank"
+                    class="inline-flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                >
+                    📄 Export PDF
+                </a>
+                <button
+                    onclick="window.print()"
+                    class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                >
+                    🖨️ Print Timeline
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+</div>
+
 <!-- Mobile Floating Action Buttons -->
 <x-group-fabs :group="$group" />
 

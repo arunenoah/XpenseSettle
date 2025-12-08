@@ -16,6 +16,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@capacitor-firebase/messaging": "^7.4.0",
         "@capacitor/android": "^7.4.4",
         "@capacitor/camera": "^7.0.2",
         "@capacitor/cli": "^7.4.4",

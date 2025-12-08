@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/groups/{group}/payments', [PaymentController::class, 'groupPaymentHistory'])->name('groups.payments.history');
     Route::get('/groups/{group}/dashboard', [DashboardController::class, 'groupDashboard'])->name('groups.dashboard');
     Route::get('/groups/{group}/summary', [DashboardController::class, 'groupSummary'])->name('groups.summary');
+    Route::get('/groups/{group}/timeline/pdf', [DashboardController::class, 'exportTimelinePdf'])->name('groups.timeline.pdf');
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

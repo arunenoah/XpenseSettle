@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Advance;
 use App\Models\Group;
+use App\Services\ActivityService;
 use Illuminate\Http\Request;
 
 class AdvanceController extends Controller
@@ -39,6 +40,9 @@ class AdvanceController extends Controller
 
             // Attach the senders
             $advance->senders()->attach($validated['senders']);
+
+            // Log activity for timeline
+            ActivityService::logAdvancePaid($group, $advance, $validated['senders']);
 
             return redirect()->back()->with('success', 'Advance recorded successfully! 💰');
         } catch (\Exception $e) {
