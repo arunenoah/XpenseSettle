@@ -12,9 +12,9 @@ use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Landing page
-Route::get('/', function () {
+/*Route::get('/', function () {
     return view('home');
-})->name('home');
+})->name('home');*/
 
 // Home route (alias for landing page)
 Route::get('/home', function () {
