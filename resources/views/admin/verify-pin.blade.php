@@ -1,20 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 px-4">
+<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
     <div class="max-w-md w-full">
         <!-- Admin Access Card -->
-        <div class="bg-white rounded-2xl shadow-2xl p-8 border-2 border-purple-200">
+        <div class="bg-white rounded-lg shadow-lg p-8 border border-gray-200">
             <!-- Header -->
             <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full mb-4">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-purple-600 rounded-full mb-4">
                     <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                     </svg>
                 </div>
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">🔐 Admin Access</h1>
                 <p class="text-gray-600">Enter your admin PIN to continue</p>
-                <p class="text-sm text-purple-600 mt-2">Logged in as: <strong>{{ auth()->user()->name }}</strong></p>
+                <p class="text-sm text-gray-700 mt-2">Logged in as: <strong>{{ auth()->user()->name }}</strong></p>
             </div>
 
             <!-- Error Message -->
@@ -55,7 +55,7 @@
 
                 <button 
                     type="submit" 
-                    class="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-bold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    class="w-full py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-bold text-lg shadow-md"
                 >
                     🔓 Unlock Admin Panel
                 </button>
