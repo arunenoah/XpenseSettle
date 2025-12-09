@@ -45,6 +45,14 @@
                     <span class="text-base sm:text-lg">🔐</span>
                     <span class="hidden xs:inline sm:inline">Pin</span>
                 </a>
+                
+                @if(auth()->user()->email === 'arun@example.com')
+                    <a href="{{ route('admin.verify') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('admin.*') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-purple-100 text-purple-900 hover:bg-purple-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap border-2 border-purple-300">
+                        <span class="text-base sm:text-lg">🔧</span>
+                        <span class="hidden xs:inline sm:inline">Admin</span>
+                    </a>
+                @endif
+                
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
                     <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">

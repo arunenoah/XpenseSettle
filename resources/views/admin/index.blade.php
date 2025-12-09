@@ -3,9 +3,17 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">🔧 Super Admin Panel</h1>
-        <p class="text-gray-600 mt-2">Manage user plans and group subscriptions</p>
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">🔧 Super Admin Panel</h1>
+            <p class="text-gray-600 mt-2">Manage user plans and group subscriptions</p>
+        </div>
+        <form action="{{ route('admin.logout') }}" method="POST">
+            @csrf
+            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+                🔒 Lock Admin Panel
+            </button>
+        </form>
     </div>
 
     <!-- Success Message -->
