@@ -31,7 +31,7 @@ class Group extends Model
     public function members()
     {
         return $this->belongsToMany(User::class, 'group_members')
-                    ->withPivot('role')
+                    ->withPivot('role', 'family_count')
                     ->withTimestamps();
     }
 
