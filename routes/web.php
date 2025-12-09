@@ -11,15 +11,18 @@ use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
-// Landing page
-/*Route::get('/', function () {
-    return view('home');
-})->name('home');*/
+// Root route - redirect to login for guests, dashboard for authenticated users
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
+})->name('home');
 
-// Home route (alias for landing page)
-Route::get('/home', function () {
+// Landing page (optional marketing page)
+Route::get('/landing', function () {
     return view('home');
-});
+})->name('landing');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
