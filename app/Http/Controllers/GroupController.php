@@ -278,11 +278,18 @@ class GroupController extends Controller
                 'family_count' => $validated['family_count']
             ]);
 
+            // Clear any cached relationships
+            $group->load('members');
+
+            // Get the updated value from database to confirm
+            $updatedMember = $group->members()->where('users.id', $memberId)->first();
+            $actualFamilyCount = $updatedMember->pivot->family_count ?? $validated['family_count'];
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Family count updated successfully!',
-                    'family_count' => $validated['family_count']
+                    'family_count' => $actualFamilyCount
                 ]);
             }
 
