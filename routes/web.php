@@ -103,3 +103,11 @@ Route::middleware('auth')->group(function () {
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
+
+// Super Admin Routes (only for arun@example.com)
+Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AdminController::class, 'index'])->name('index');
+    Route::post('/users/{user}/plan', [\App\Http\Controllers\AdminController::class, 'updateUserPlan'])->name('users.update-plan');
+    Route::post('/groups/{group}/plan', [\App\Http\Controllers\AdminController::class, 'updateGroupPlan'])->name('groups.update-plan');
+    Route::post('/groups/{group}/reset-ocr', [\App\Http\Controllers\AdminController::class, 'resetOCRCounter'])->name('groups.reset-ocr');
+});

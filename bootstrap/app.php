@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Caching headers middleware
         $middleware->append(\App\Http\Middleware\CacheHeaders::class);
+        
+        // Register super admin middleware alias
+        $middleware->alias([
+            'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
