@@ -541,7 +541,54 @@ function handleFileSelect() {
     }
 }
 
-// Process OCR
+// Image preprocessing for better OCR
+async function preprocessImage(imageUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size to image size
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Draw original image
+            ctx.drawImage(img, 0, 0);
+            
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            // Convert to grayscale and increase contrast
+            for (let i = 0; i < data.length; i += 4) {
+                // Grayscale conversion
+                const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                
+                // Increase contrast (simple threshold)
+                const threshold = 128;
+                const contrast = 1.5;
+                let adjusted = (gray - threshold) * contrast + threshold;
+                adjusted = Math.max(0, Math.min(255, adjusted));
+                
+                // Apply to all channels
+                data[i] = adjusted;     // R
+                data[i + 1] = adjusted; // G
+                data[i + 2] = adjusted; // B
+            }
+            
+            // Put processed image back
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Return as data URL
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = reject;
+        img.src = imageUrl;
+    });
+}
+
+// Process OCR on uploaded receipt
 document.getElementById('process-ocr-btn').addEventListener('click', async function() {
     const files = document.getElementById('attachments').files;
     if (files.length === 0) {
@@ -558,45 +605,88 @@ document.getElementById('process-ocr-btn').addEventListener('click', async funct
     spinner.classList.remove('hidden');
 
     try {
-        const file = files[0];
-        const imageUrl = URL.createObjectURL(file);
-
-        console.log('Starting OCR for file:', file.name);
-
-        // Wait for Tesseract to load
+        // Wait for Tesseract to load once
         console.log('Waiting for Tesseract.js library to load...');
         await waitForTesseract();
         console.log('Tesseract library loaded successfully');
 
-        // Initialize Tesseract worker with correct v5 API
+        // Initialize Tesseract worker once
         const { createWorker } = Tesseract;
         console.log('Creating Tesseract worker...');
-        const worker = await createWorker();
+        const worker = await createWorker('eng', 1, {
+            logger: m => console.log(m)
+        });
+        
+        // Configure for receipt scanning
+        await worker.setParameters({
+            tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz$.,:-/()* ',
+            tessedit_pageseg_mode: '6', // Assume uniform block of text
+        });
 
-        console.log('Worker created, starting recognition...');
-        const result = await worker.recognize(imageUrl);
-        const text = result.data.text;
+        let allItems = [];
+        let itemId = 1;
 
-        console.log('OCR text extracted:', text);
+        // Process each file
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            
+            // Skip non-image files
+            if (!file.type.startsWith('image/')) {
+                console.log('Skipping non-image file:', file.name);
+                continue;
+            }
+
+            const imageUrl = URL.createObjectURL(file);
+            console.log(`\n[${i + 1}/${files.length}] Processing file: ${file.name}`);
+            btnText.textContent = `Processing ${i + 1}/${files.length}: ${file.name}`;
+
+            // Preprocess image for better OCR
+            console.log('Preprocessing image...');
+            const preprocessedImage = await preprocessImage(imageUrl);
+
+            console.log('Starting recognition...');
+            const result = await worker.recognize(preprocessedImage);
+            const text = result.data.text;
+
+            console.log('OCR text extracted:', text);
+
+            // Parse receipt and extract items
+            console.log('Parsing receipt...');
+            const items = parseTableFormat(text) || parseReceipt(text);
+
+            if (items && items.length > 0) {
+                console.log(`Found ${items.length} items in ${file.name}`);
+                
+                // Add file name to each item and renumber IDs
+                items.forEach(item => {
+                    item.id = itemId++;
+                    item.source_file = file.name;
+                });
+                
+                allItems = allItems.concat(items);
+            } else {
+                console.log(`No items found in ${file.name}`);
+            }
+
+            // Clean up
+            URL.revokeObjectURL(imageUrl);
+        }
 
         await worker.terminate();
 
-        // Parse receipt and extract items
-        console.log('Parsing receipt...');
-        extractedItems = parseReceipt(text);
+        console.log(`\nTotal items extracted from ${files.length} file(s): ${allItems.length}`);
 
-        console.log('Items extracted:', extractedItems);
-
-        if (extractedItems.length === 0) {
-            alert('No items found in receipt. Please check the image quality and try again.');
+        if (allItems.length === 0) {
+            alert('No items found in any of the uploaded receipts. Please check the image quality and try again.');
             return;
         }
 
-        // Display items
+        // Display all items
+        extractedItems = allItems;
         displayExtractedItems(extractedItems);
         document.getElementById('items-section').classList.remove('hidden');
 
-        console.log('Items displayed successfully');
+        console.log('All items displayed successfully');
 
     } catch (error) {
         console.error('OCR Error:', error);
@@ -621,6 +711,159 @@ document.getElementById('process-ocr-btn').addEventListener('click', async funct
     }
 });
 
+// Parse table-based invoice format (e.g., Julitha Van, service invoices)
+function parseTableFormat(text) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    const items = [];
+    let itemId = 1;
+    
+    console.log('Attempting table format parsing...');
+    
+    // Patterns for table-based data
+    const tableRowPattern = /^([A-Za-z\s]+)\s+(\d+\.?\d*)\s*([A-Za-z]+)?\s+\$?(\d+\.?\d{2})\s+\$?(\d+\.?\d{2})$/;
+    
+    // Keywords to skip (totals, headers, etc.)
+    const skipKeywords = ['sub-total', 'subtotal', 'sub total', 'booking total', 'trip total', 
+                          'total paid', 'total due', 'payments made', 'payment:'];
+    
+    // Header-only keywords (skip if line is ONLY this keyword)
+    const headerKeywords = ['amount', 'rate', 'usage', 'description', 'other charges', 
+                           'time and distance charges', 'charges'];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineUpper = line.toUpperCase();
+        
+        // Skip total lines
+        if (skipKeywords.some(kw => lineUpper.includes(kw.toUpperCase()))) {
+            console.log('Skipping table total:', line);
+            continue;
+        }
+        
+        // Skip header-only lines (but allow items that contain these words)
+        if (headerKeywords.some(kw => lineUpper === kw.toUpperCase())) {
+            console.log('Skipping table header:', line);
+            continue;
+        }
+        
+        // Try to match table row pattern: "Hours  2.5 Hours  $15.10  $37.75"
+        const match = line.match(tableRowPattern);
+        
+        if (match) {
+            const name = match[1].trim();
+            const quantity = parseFloat(match[2]);
+            const unit = match[3] || '';
+            const rate = parseFloat(match[4]);
+            const amount = parseFloat(match[5]);
+            
+            console.log('Found table row:', { name, quantity, unit, rate, amount });
+            
+            // Validate
+            if (name.length > 0 && quantity > 0 && amount > 0) {
+                items.push({
+                    id: itemId++,
+                    name: `${name}${unit ? ' (' + unit + ')' : ''}`,
+                    quantity: quantity,
+                    unit_price: rate,
+                    total_price: amount
+                });
+            }
+        } else {
+            // Try simpler pattern: "Hours    2.5 Hours    $15.10    $37.75"
+            // Or: "Damage Cover    $6.25" (single amount at end)
+            
+            // First try: Split by multiple spaces or tabs
+            let parts = line.split(/\s{2,}|\t+/).filter(p => p.trim());
+            
+            // If that didn't work well, try finding price at end and splitting from there
+            if (parts.length < 2) {
+                const priceAtEndMatch = line.match(/^(.+?)\s+\$?(\d+\.?\d{2})$/);
+                if (priceAtEndMatch) {
+                    parts = [priceAtEndMatch[1].trim(), priceAtEndMatch[2]];
+                    console.log('Found price at end pattern:', parts);
+                }
+            }
+            
+            if (parts.length >= 2) {
+                const name = parts[0];
+                let quantity = 1;
+                let rate = 0;
+                let amount = 0;
+                
+                // Look for numbers in all parts (including the name part for embedded numbers)
+                const numbers = [];
+                for (let j = 0; j < parts.length; j++) {
+                    // Find all numbers in this part
+                    const numMatches = parts[j].matchAll(/\$?(\d+\.?\d*)/g);
+                    for (const match of numMatches) {
+                        const num = parseFloat(match[1]);
+                        if (!isNaN(num)) {
+                            numbers.push(num);
+                        }
+                    }
+                }
+                
+                console.log('Line:', line, '-> Parts:', parts, '-> Numbers:', numbers);
+                
+                // If we have 3+ numbers: quantity, rate, amount
+                if (numbers.length >= 3) {
+                    quantity = numbers[0];
+                    rate = numbers[1];
+                    amount = numbers[2];
+                } else if (numbers.length === 2) {
+                    // If we have 2 numbers: rate, amount (quantity = 1)
+                    rate = numbers[0];
+                    amount = numbers[1];
+                } else if (numbers.length === 1) {
+                    // If we have 1 number: amount (quantity = 1, rate = amount)
+                    amount = numbers[0];
+                    rate = amount;
+                }
+                
+                // Validate
+                const hasLetters = /[a-zA-Z]/.test(name);
+                const isValidAmount = amount > 0 && amount < 10000; // Reasonable max for table items
+                const isReasonableQuantity = quantity > 0 && quantity <= 100; // Reasonable quantity
+                const notSkipKeyword = !skipKeywords.some(kw => name.toUpperCase().includes(kw.toUpperCase()));
+                const notHeaderOnly = !headerKeywords.some(kw => name.toUpperCase() === kw.toUpperCase());
+                
+                // Additional validation: name should not be mostly numbers or symbols
+                const letterCount = (name.match(/[a-zA-Z]/g) || []).length;
+                const digitCount = (name.match(/\d/g) || []).length;
+                const hasMoreLettersThanDigits = letterCount >= digitCount; // Allow equal for items like "7-ELEVEN"
+                
+                // Name should not contain common OCR garbage patterns
+                const hasOCRGarbage = /\d{4,}/.test(name) || // 4+ consecutive digits (phone numbers, etc.)
+                                      name.split(/\s+/).length > 8 || // Too many words (likely OCR error)
+                                      /^[a-z]{1,5}$/.test(name.toLowerCase()) || // Short lowercase gibberish
+                                      /^[A-Z]{1,2}$/.test(name) || // 1-2 uppercase letters only
+                                      name.length < 3; // Too short to be a real item
+                
+                // Check for common garbage patterns
+                const hasGarbageWords = /\b(wesc|awl|deblt|lleven|atc|el)\b/i.test(name);
+                
+                if (hasLetters && isValidAmount && isReasonableQuantity && notSkipKeyword && notHeaderOnly && hasMoreLettersThanDigits && !hasOCRGarbage && !hasGarbageWords && name.length > 1) {
+                    console.log('✓ Found table item:', { name, quantity, rate, amount });
+                    items.push({
+                        id: itemId++,
+                        name: name,
+                        quantity: quantity,
+                        unit_price: rate,
+                        total_price: amount
+                    });
+                } else {
+                    console.log('✗ Rejected:', { name, hasLetters, isValidAmount, notSkipKeyword, notHeaderOnly });
+                }
+            }
+        }
+    }
+    
+    console.log('Table format parsing complete. Found', items.length, 'items');
+    
+    // Return items if we found any, otherwise return null to try other parsers
+    return items.length > 0 ? items : null;
+}
+
 // Parse receipt text and extract items
 function parseReceipt(text) {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
@@ -630,15 +873,31 @@ function parseReceipt(text) {
     console.log('Parsing receipt text:');
     console.log('Lines:', lines);
 
-    // Price pattern - more permissive
-    const pricePattern = /(\d+[.,]\d{2})/;
-    const quantityPattern = /\b[x×]\s*(\d+)\b/i;
+    // Enhanced price patterns for different formats (including negative for discounts)
+    const pricePatterns = [
+        /\$\s*-?(\d+[.,]\d{2})/,           // $12.34 or $-12.34
+        /-\$\s*(\d+[.,]\d{2})/,            // -$12.34
+        /(-?\d+[.,]\d{2})\s*\$/,           // 12.34$ or -12.34$
+        /(-?\d+[.,]\d{2})\s*(?:AUD|USD|EUR|GBP)?$/i,  // 12.34 AUD or -12.34 AUD
+        /(?:^|\s)(-?\d+[.,]\d{2})(?:\s|$)/ // 12.34 (standalone) or -12.34
+    ];
+    
+    const quantityPatterns = [
+        /\b[x×*]\s*(\d+)\b/i,            // x2, ×2, *2
+        /\b(\d+)\s*[x×*]\b/i,            // 2x, 2×, 2*
+        /qty:?\s*(\d+)/i,                 // qty:2, qty 2
+        /^(\d+)\s+/                       // Leading number
+    ];
 
-    // Common receipt headers/footers to ignore
+    // Enhanced ignore keywords - be more aggressive
     const ignoreKeywords = ['welcome', 'thank', 'thanks', 'total', 'subtotal', 'net', 'cash', 'card',
                             'payment', 'paid', 'change', 'gst', 'vat', 'tax', 'discount', 'member',
                             'loyalty', 'phone', 'address', 'date', 'time', 'store', 'location',
-                            'receipt', 'invoice', 'account', 'balance', 'till', 'cashier', 'items', 'qty'];
+                            'receipt', 'invoice', 'account', 'balance', 'till', 'cashier', 'items', 'qty',
+                            'eftpos', 'approved', 'auth', 'terminal', 'reference', 'customer', 'copy',
+                            'debit', 'credit', 'visa', 'mastercard', 'amex', 'rounded', 'rounding',
+                            'tendered', 'surcharge', 'service', 'fee', 'purchase', 'abn', 'acn', 'ph:',
+                            'included', 'incl', 'excl', 'excluding', 'including', 'staff', 'sale'];
 
     let itemId = 1;
     let pendingName = null;
@@ -653,20 +912,33 @@ function parseReceipt(text) {
             continue;
         }
 
-        // Skip lines with only keywords
-        if (ignoreKeywords.some(kw => lineUpper === kw.toUpperCase())) {
+        // Skip lines containing any ignore keywords (not just exact match)
+        if (ignoreKeywords.some(kw => lineUpper.includes(kw.toUpperCase()))) {
             console.log('Skipping keyword line:', line);
             pendingName = null;
             continue;
         }
 
-        // Find price in this line
-        const priceMatch = line.match(pricePattern);
+        // Find price in this line using multiple patterns
+        let priceMatch = null;
+        let priceStr = null;
+        
+        for (const pattern of pricePatterns) {
+            priceMatch = line.match(pattern);
+            if (priceMatch) {
+                priceStr = priceMatch[1];
+                break;
+            }
+        }
 
-        if (priceMatch) {
-            // This line has a price
-            const priceStr = priceMatch[1];
-            const price = parseFloat(priceStr.replace(',', '.'));
+        if (priceMatch && priceStr) {
+            // This line has a price (can be negative for discounts)
+            let price = parseFloat(priceStr.replace(',', '.'));
+            
+            // Check if the original line had a minus sign for the price
+            if (line.includes('-$') || line.match(/-\s*\d+[.,]\d{2}/)) {
+                price = Math.abs(price) * -1; // Ensure it's negative
+            }
 
             let name = '';
 
@@ -687,19 +959,69 @@ function parseReceipt(text) {
             name = name.replace(/\s+\d{4,}$/, '').trim();
             // Remove quantity patterns
             name = name.replace(/\s+[x×]\s*\d+.*$/i, '').trim();
+            // Remove trailing single/double digit numbers (likely quantity)
+            name = name.replace(/\s+\d{1,2}$/, '').trim();
             // Remove single letters/codes at start
             name = name.replace(/^[a-z]\s+/i, '').trim();
 
-            // Extract quantity
-            const qtyMatch = line.match(quantityPattern);
-            const quantity = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+            // Extract quantity using multiple patterns
+            let quantity = 1;
+            
+            // First, try to find quantity in the cleaned name part (before price)
+            const nameBeforePrice = line.substring(0, priceMatch.index).trim();
+            const numbersInName = nameBeforePrice.match(/\b(\d+)\b/g);
+            
+            if (numbersInName && numbersInName.length > 0) {
+                // Take the last number before the price as quantity (most likely to be qty)
+                const lastNum = parseInt(numbersInName[numbersInName.length - 1]);
+                
+                // Only use as quantity if it's a reasonable quantity (not part of product name like "30G")
+                // Check if the number is followed by a unit indicator (G, ML, KG, etc.)
+                const hasUnitAfter = /\d+(G|ML|KG|L|OZ|GM|MG)\b/i.test(nameBeforePrice);
+                
+                if (lastNum > 0 && lastNum < 20 && !hasUnitAfter) {
+                    // Only accept quantities up to 20 to avoid mistaking product codes/weights
+                    quantity = lastNum;
+                }
+            }
+            
+            // If that didn't work, try the quantity patterns
+            if (quantity === 1) {
+                for (const pattern of quantityPatterns) {
+                    const qtyMatch = line.match(pattern);
+                    if (qtyMatch) {
+                        quantity = parseInt(qtyMatch[1]);
+                        if (quantity > 0 && quantity < 100) { // Reasonable quantity range
+                            break;
+                        }
+                    }
+                }
+            }
 
             // Validate: name should have at least one letter
             const hasLetters = /[a-zA-Z]/.test(name);
-            const isValidPrice = price > 0 && price < 100000; // Reasonable price range
+            const isValidPrice = (price > 0 && price < 1000) || (price < 0 && price > -500); // Allow negative for discounts
+            const isReasonableQuantity = quantity > 0 && quantity <= 50; // Reasonable quantity range
+            
+            // Additional validation: name should not be mostly numbers or symbols
+            const letterCount = (name.match(/[a-zA-Z]/g) || []).length;
+            const digitCount = (name.match(/\d/g) || []).length;
+            const hasMoreLettersThanDigits = letterCount > digitCount;
+            
+            // Name should not contain common OCR garbage patterns
+            const hasOCRGarbage = /\d{3,}/.test(name) || // 3+ consecutive digits
+                                  /[^\w\s-/$.]/.test(name.replace(/[()&*]/g, '')) || // Special chars except common ones (allow $ for discounts)
+                                  name.split(/\s+/).length > 8 || // Too many words (likely OCR error) - increased for discount descriptions
+                                  /^[a-z]{1,4}$/.test(name.toLowerCase()) || // Short lowercase gibberish
+                                  /^[A-Z]{1,2}$/.test(name) || // 1-2 uppercase letters only (like "El", "Fu")
+                                  name.length < 3 || // Too short
+                                  /^[.\s:]+$/.test(name); // Only punctuation/spaces
+            
+            // Check for common garbage patterns in name
+            const hasGarbageWords = /\b(wesc|awl|deblt|lleven|atc|el)\b/i.test(name);
 
-            if (hasLetters && isValidPrice && name.length > 0) {
-                console.log('Adding item:', name, quantity, price);
+            if (hasLetters && isValidPrice && isReasonableQuantity && hasMoreLettersThanDigits && !hasOCRGarbage && !hasGarbageWords && name.length > 0) {
+                console.log('✓ Adding item:', name, 'qty:', quantity, 'price:', price);
                 items.push({
                     id: itemId++,
                     name: name,
@@ -710,7 +1032,14 @@ function parseReceipt(text) {
                 });
                 total += price;
             } else {
-                console.log('Rejected item:', name, 'hasLetters:', hasLetters, 'isValidPrice:', isValidPrice);
+                console.log('✗ Rejected item:', name, 'price:', price, {
+                    hasLetters,
+                    isValidPrice,
+                    isReasonableQuantity,
+                    hasMoreLettersThanDigits,
+                    hasOCRGarbage,
+                    hasGarbageWords
+                });
             }
 
             pendingName = null;
@@ -763,6 +1092,7 @@ function displayExtractedItems(items) {
                             Qty: ${item.quantity} × ${getCurrencySymbol()} ${item.unit_price.toFixed(2)} =
                             <span class="font-semibold">${getCurrencySymbol()} ${item.total_price.toFixed(2)}</span>
                         </p>
+                        ${item.source_file ? `<p class="text-xs text-gray-500 mt-1">📎 From: ${escapeHtml(item.source_file)}</p>` : ''}
                     </div>
                     <button type="button" class="edit-item-btn text-blue-600 hover:text-blue-700 font-semibold text-sm px-3 py-1 border border-blue-300 rounded hover:bg-blue-50" data-item-id="${item.id}">
                         ✏️ Edit
