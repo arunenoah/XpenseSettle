@@ -1175,20 +1175,20 @@ function displayExtractedItems(items) {
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs font-semibold text-gray-700 mb-1">Item Name</label>
-                        <input type="text" class="edit-name w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${escapeHtml(item.name)}" />
+                        <input type="text" name="edit_name_${item.id}" class="edit-name w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${escapeHtml(item.name)}" disabled />
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Qty</label>
-                            <input type="number" class="edit-qty w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.quantity}" min="1" step="1" />
+                            <input type="number" name="edit_qty_${item.id}" class="edit-qty w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.quantity}" min="1" step="1" disabled />
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Unit Price</label>
-                            <input type="number" class="edit-unit-price w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.unit_price.toFixed(2)}" min="0" step="0.01" />
+                            <input type="number" name="edit_unit_price_${item.id}" class="edit-unit-price w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.unit_price.toFixed(2)}" min="0" step="0.01" disabled />
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-gray-700 mb-1">Total</label>
-                            <input type="number" class="edit-total-price w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.total_price.toFixed(2)}" min="0" step="0.01" />
+                            <input type="number" name="edit_total_price_${item.id}" class="edit-total-price w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${item.total_price.toFixed(2)}" min="0" step="0.01" disabled />
                         </div>
                     </div>
                     <div class="flex gap-2">
@@ -1220,6 +1220,11 @@ function attachItemEventListeners() {
             const itemDiv = document.getElementById(`item-${itemId}`);
             itemDiv.querySelector('.item-display').classList.add('hidden');
             itemDiv.querySelector('.item-edit').classList.remove('hidden');
+            
+            // Enable inputs when editing
+            itemDiv.querySelectorAll('.item-edit input').forEach(input => {
+                input.disabled = false;
+            });
         });
     });
 
@@ -1230,6 +1235,11 @@ function attachItemEventListeners() {
             const itemDiv = document.getElementById(`item-${itemId}`);
             itemDiv.querySelector('.item-display').classList.remove('hidden');
             itemDiv.querySelector('.item-edit').classList.add('hidden');
+            
+            // Disable inputs when not editing
+            itemDiv.querySelectorAll('.item-edit input').forEach(input => {
+                input.disabled = true;
+            });
         });
     });
 
