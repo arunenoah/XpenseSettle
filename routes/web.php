@@ -11,14 +11,15 @@ use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\NotificationController;
 use Illuminate\Support\Facades\Route;
 
+// Landing page
 Route::get('/', function () {
-    // Redirect based on authentication status
-    if (auth()->check()) {
-        return redirect()->route('dashboard');
-    }
-    // Unauthenticated users are redirected to login page
-    return redirect()->route('login');
+    return view('home');
 })->name('home');
+
+// Home route (alias for landing page)
+Route::get('/home', function () {
+    return view('home');
+});
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
