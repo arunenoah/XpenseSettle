@@ -263,14 +263,22 @@
                             <h4 class="font-bold text-gray-900 mb-2">OCR Limit Reached</h4>
                             <p class="text-sm text-gray-600 mb-4">You've used all 5 free OCR scans for this trip. Upgrade to continue scanning receipts!</p>
                             <div class="grid grid-cols-2 gap-4">
-                                <a href="/pricing" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-bold text-center">
-                                    🎫 Trip Pass - $1.99
-                                </a>
-                                <a href="/pricing" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-bold text-center">
-                                    ⭐ Lifetime - $14.99
-                                </a>
+                                <!-- Testing: Manual activation buttons (replace with payment in production) -->
+                                <form action="{{ route('groups.activate-trip-pass', $group) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-bold text-center">
+                                        🎫 Activate Trip Pass (Test)
+                                    </button>
+                                </form>
+                                <form action="{{ route('user.activate-lifetime') }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-bold text-center">
+                                        ⭐ Activate Lifetime (Test)
+                                    </button>
+                                </form>
                             </div>
-                            <p class="text-xs text-gray-500 mt-3">Or add items manually below</p>
+                            <p class="text-xs text-gray-500 mt-3">Testing mode - Click to activate instantly</p>
+                            <p class="text-xs text-gray-400 mt-1">In production, this will redirect to payment</p>
                         </div>
                     </div>
                 @endif
