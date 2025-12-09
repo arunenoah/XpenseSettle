@@ -11,7 +11,11 @@ class Group extends Model
     /** @use HasFactory<\Database\Factories\GroupFactory> */
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['created_by', 'name', 'icon', 'description', 'currency'];
+    protected $fillable = ['created_by', 'name', 'icon', 'description', 'currency', 'plan', 'plan_expires_at', 'ocr_scans_used'];
+
+    protected $casts = [
+        'plan_expires_at' => 'datetime',
+    ];
 
     /**
      * Get the user who created the group.
