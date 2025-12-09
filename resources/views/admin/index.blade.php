@@ -60,46 +60,46 @@
                         <div class="space-y-4">
                             @foreach($user['groups'] as $group)
                                 <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex-1">
-                                            <div class="flex items-center gap-3 mb-2">
-                                                <h4 class="font-semibold text-gray-900">{{ $group['name'] }}</h4>
-                                                <span class="px-3 py-1 rounded-full text-xs font-bold {{ $group['plan'] === 'trip_pass' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
-                                                    {{ $group['plan'] === 'trip_pass' ? '🎫 Trip Pass' : 'Free' }}
-                                                </span>
-                                                <span class="text-sm text-gray-600">{{ $group['members_count'] }} members</span>
-                                            </div>
-                                            
-                                            <div class="text-sm text-gray-600 space-y-1">
-                                                <p>OCR Scans Used: <span class="font-semibold">{{ $group['ocr_scans_used'] }}/{{ $group['plan'] === 'trip_pass' ? '∞' : '5' }}</span></p>
-                                                @if($group['plan_expires_at'])
-                                                    <p>Expires: <span class="font-semibold">{{ \Carbon\Carbon::parse($group['plan_expires_at'])->format('M d, Y') }}</span></p>
-                                                @endif
-                                            </div>
+                                    <!-- Single row with all elements -->
+                                    <div class="flex items-center justify-between gap-6">
+                                        <!-- Left: Group Name & Info -->
+                                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                                            <h4 class="font-semibold text-gray-900 whitespace-nowrap">{{ $group['name'] }}</h4>
+                                            <span class="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap {{ $group['plan'] === 'trip_pass' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }}">
+                                                {{ $group['plan'] === 'trip_pass' ? '🎫 Trip Pass' : 'Free' }}
+                                            </span>
+                                            <span class="text-sm text-gray-600 whitespace-nowrap">{{ $group['members_count'] }} members</span>
                                         </div>
 
-                                        <div class="flex gap-2">
+                                        <!-- Middle: OCR Info -->
+                                        <div class="text-sm text-gray-600 whitespace-nowrap">
+                                            <span>OCR Scans Used: <span class="font-semibold">{{ $group['ocr_scans_used'] }}/{{ $group['plan'] === 'trip_pass' ? '∞' : '5' }}</span></span>
+                                            @if($group['plan_expires_at'])
+                                                <span class="ml-4">Expires: <span class="font-semibold">{{ \Carbon\Carbon::parse($group['plan_expires_at'])->format('M d, Y') }}</span></span>
+                                            @endif
+                                        </div>
+
+                                        <!-- Right: Controls -->
+                                        <div class="flex items-center gap-2 flex-shrink-0">
                                             <!-- Update Group Plan -->
-                                            <form action="{{ route('admin.groups.update-plan', $group['id']) }}" method="POST" class="inline">
+                                            <form action="{{ route('admin.groups.update-plan', $group['id']) }}" method="POST" class="flex items-center gap-2">
                                                 @csrf
-                                                <div class="flex gap-2">
-                                                    <select name="plan" class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
-                                                        <option value="">Change Plan...</option>
-                                                        <option value="free">Set to Free</option>
-                                                        <option value="trip_pass">Activate Trip Pass</option>
-                                                    </select>
-                                                    <input type="number" name="days_valid" placeholder="Days" min="1" max="3650" value="365" class="w-20 px-2 py-2 border border-gray-300 rounded text-sm">
-                                                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                                                        Update
-                                                    </button>
-                                                </div>
+                                                <select name="plan" class="px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500">
+                                                    <option value="">Change Plan...</option>
+                                                    <option value="free">Set to Free</option>
+                                                    <option value="trip_pass">Activate Trip Pass</option>
+                                                </select>
+                                                <input type="number" name="days_valid" placeholder="365" min="1" max="3650" value="365" class="w-20 px-2 py-2 border border-gray-300 rounded text-sm text-center">
+                                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 font-semibold whitespace-nowrap">
+                                                    Update
+                                                </button>
                                             </form>
 
                                             <!-- Reset OCR Counter -->
                                             @if($group['ocr_scans_used'] > 0)
-                                                <form action="{{ route('admin.groups.reset-ocr', $group['id']) }}" method="POST" class="inline">
+                                                <form action="{{ route('admin.groups.reset-ocr', $group['id']) }}" method="POST">
                                                     @csrf
-                                                    <button type="submit" class="px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700" onclick="return confirm('Reset OCR counter to 0?')">
+                                                    <button type="submit" class="px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 font-semibold whitespace-nowrap" onclick="return confirm('Reset OCR counter to 0?')">
                                                         Reset OCR
                                                     </button>
                                                 </form>
