@@ -40,8 +40,8 @@ class AdminController extends Controller
 
         $user = auth()->user();
 
-        // Check if admin PIN matches
-        if ($user->admin_pin !== $request->admin_pin) {
+        // Check if admin PIN matches using Hash::check
+        if (!$user->admin_pin || !\Hash::check($request->admin_pin, $user->admin_pin)) {
             return back()->withErrors(['admin_pin' => 'Invalid admin PIN. Please try again.']);
         }
 

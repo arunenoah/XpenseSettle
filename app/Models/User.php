@@ -50,6 +50,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'pin' => 'hashed',
+            'admin_pin' => 'hashed',
             'plan_expires_at' => 'datetime',
         ];
     }

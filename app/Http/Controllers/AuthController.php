@@ -41,16 +41,24 @@ class AuthController extends Controller
             'pin' => 'required|string|digits:6',
         ]);
 
-        // Find user by PIN
-        $user = User::where('pin', $validated['pin'])->first();
+        // Get all users and check PIN hash against each
+        $users = User::all();
+        $authenticatedUser = null;
 
-        // Check if user exists
-        if ($user) {
-            Auth::login($user, $request->boolean('remember'));
+        foreach ($users as $user) {
+            if (Hash::check($validated['pin'], $user->pin)) {
+                $authenticatedUser = $user;
+                break;
+            }
+        }
+
+        // Check if user exists and PIN matches
+        if ($authenticatedUser) {
+            Auth::login($authenticatedUser, $request->boolean('remember'));
             $request->session()->regenerate();
 
             // Create Sanctum token for API access (mobile/Capacitor app)
-            $sanctumToken = $user->createToken('mobile')->plainTextToken;
+            $sanctumToken = $authenticatedUser->createToken('mobile')->plainTextToken;
             session(['sanctum_token' => $sanctumToken]);
 
             // Clear rate limiter on successful login
@@ -90,18 +98,32 @@ class AuthController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/'
             ],
-            'pin' => 'required|string|digits:6|confirmed|unique:users',
+            'pin' => [
+                'required',
+                'string',
+                'digits:6',
+                'confirmed',
+                function ($attribute, $value, $fail) {
+                    // Check if PIN is already in use by checking all users
+                    $users = User::all();
+                    foreach ($users as $user) {
+                        if (Hash::check($value, $user->pin)) {
+                            $fail('This PIN is already taken. Please choose a different one.');
+                            break;
+                        }
+                    }
+                },
+            ],
         ], [
             'password.regex' => 'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&#)',
             'pin.digits' => 'PIN must be exactly 6 digits.',
-            'pin.unique' => 'This PIN is already taken. Please choose a different one.',
         ]);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'pin' => $validated['pin'],
+            'pin' => $validated['pin'], // Auto-hashed by model cast
         ]);
 
         event(new Registered($user));
@@ -133,8 +155,8 @@ class AuthController extends Controller
                 'string',
                 'digits:6',
                 function ($attribute, $value, $fail) use ($user) {
-                    // Verify current PIN matches
-                    if ($value !== $user->pin) {
+                    // Verify current PIN matches using Hash::check
+                    if (!Hash::check($value, $user->pin)) {
                         $fail('The current PIN is incorrect.');
                     }
                 },
@@ -145,9 +167,13 @@ class AuthController extends Controller
                 'digits:6',
                 'different:current_pin',
                 function ($attribute, $value, $fail) {
-                    // Ensure new PIN is unique
-                    if (User::where('pin', $value)->where('id', '!=', auth()->id())->exists()) {
-                        $fail('This PIN is already taken by another user.');
+                    // Ensure new PIN is unique by checking all users
+                    $users = User::where('id', '!=', auth()->id())->get();
+                    foreach ($users as $otherUser) {
+                        if (Hash::check($value, $otherUser->pin)) {
+                            $fail('This PIN is already taken by another user.');
+                            break;
+                        }
                     }
                 },
             ],
@@ -162,7 +188,7 @@ class AuthController extends Controller
             'new_pin_confirmation.required' => 'PIN confirmation is required.',
         ]);
 
-        // Update the user's PIN
+        // Update the user's PIN (auto-hashed by model cast)
         $user->update([
             'pin' => $validated['new_pin'],
         ]);

@@ -21,7 +21,7 @@ class PlanTestSeeder extends Seeder
             [
                 'name' => 'Free User',
                 'password' => Hash::make('password'),
-                'pin' => '111111',
+                'pin' => Hash::make('111111'), // PIN is now hashed
                 'plan' => 'free',
             ]
         );
@@ -31,7 +31,7 @@ class PlanTestSeeder extends Seeder
             [
                 'name' => 'Trip Pass User',
                 'password' => Hash::make('password'),
-                'pin' => '222222',
+                'pin' => Hash::make('222222'), // PIN is now hashed
                 'plan' => 'free', // User plan is free, but group will have trip pass
             ]
         );
@@ -41,7 +41,7 @@ class PlanTestSeeder extends Seeder
             [
                 'name' => 'Lifetime User',
                 'password' => Hash::make('password'),
-                'pin' => '333333',
+                'pin' => Hash::make('333333'), // PIN is now hashed
                 'plan' => 'lifetime',
             ]
         );
