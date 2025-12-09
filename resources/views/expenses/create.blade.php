@@ -215,26 +215,65 @@
                     <ul id="files" class="space-y-2"></ul>
                 </div>
 
-                <!-- OCR Processing Button -->
-                <div id="ocr-section" class="mt-6 hidden bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-6">
-                    <div class="mb-4">
-                        <h4 class="font-bold text-gray-900 mb-2">✨ Smart Receipt Scanning (Our Superpower!)</h4>
-                        <p class="text-sm text-gray-600">Let our OCR extract all line items automatically and assign them to group members. Much faster than manual entry!</p>
-                    </div>
-                    <button
-                        type="button"
-                        id="process-ocr-btn"
-                        class="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-colors font-bold flex items-center justify-center gap-2 text-lg"
-                    >
-                        <span id="ocr-btn-text">🔍 Extract Line Items from Receipt</span>
-                        <span id="ocr-spinner" class="hidden">
-                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                <!-- Plan Status Badge -->
+                <div class="mt-4 flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-semibold text-gray-700">Current Plan:</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold 
+                            {{ $planName === 'Lifetime' ? 'bg-purple-100 text-purple-700' : ($planName === 'Trip Pass' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700') }}">
+                            {{ $planName }}
                         </span>
-                    </button>
+                    </div>
+                    @if($planName === 'Free')
+                        <span class="text-xs text-gray-600">{{ $remainingOCRScans }} OCR scans remaining</span>
+                    @else
+                        <span class="text-xs text-green-600">✓ Unlimited OCR scans</span>
+                    @endif
                 </div>
+
+                <!-- OCR Processing Button -->
+                @if($canUseOCR)
+                    <div id="ocr-section" class="mt-6 hidden bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-6">
+                        <div class="mb-4">
+                            <h4 class="font-bold text-gray-900 mb-2">✨ Smart Receipt Scanning (Our Superpower!)</h4>
+                            <p class="text-sm text-gray-600">Let our OCR extract all line items automatically and assign them to group members. Much faster than manual entry!</p>
+                            @if($planName === 'Free')
+                                <p class="text-xs text-orange-600 mt-2">⚠️ You have {{ $remainingOCRScans }} free scans remaining for this trip</p>
+                            @endif
+                        </div>
+                        <button
+                            type="button"
+                            id="process-ocr-btn"
+                            class="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 transition-colors font-bold flex items-center justify-center gap-2 text-lg"
+                        >
+                            <span id="ocr-btn-text">🔍 Extract Line Items from Receipt</span>
+                            <span id="ocr-spinner" class="hidden">
+                                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                @else
+                    <!-- Upgrade Prompt -->
+                    <div id="ocr-section" class="mt-6 hidden bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 rounded-lg p-6">
+                        <div class="text-center">
+                            <div class="text-4xl mb-3">🔒</div>
+                            <h4 class="font-bold text-gray-900 mb-2">OCR Limit Reached</h4>
+                            <p class="text-sm text-gray-600 mb-4">You've used all 5 free OCR scans for this trip. Upgrade to continue scanning receipts!</p>
+                            <div class="grid grid-cols-2 gap-4">
+                                <a href="/pricing" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-colors font-bold text-center">
+                                    🎫 Trip Pass - $1.99
+                                </a>
+                                <a href="/pricing" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-bold text-center">
+                                    ⭐ Lifetime - $14.99
+                                </a>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3">Or add items manually below</p>
+                        </div>
+                    </div>
+                @endif
 
                 <!-- Extracted Items Section -->
                 <div id="items-section" class="mt-6 hidden">
@@ -687,6 +726,17 @@ document.getElementById('process-ocr-btn').addEventListener('click', async funct
         document.getElementById('items-section').classList.remove('hidden');
 
         console.log('All items displayed successfully');
+
+        // Increment OCR scan counter for free users
+        @if($planName === 'Free')
+            fetch('{{ route("groups.increment-ocr", $group) }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                },
+            }).catch(err => console.error('Failed to increment OCR counter:', err));
+        @endif
 
     } catch (error) {
         console.error('OCR Error:', error);

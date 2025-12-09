@@ -61,6 +61,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/groups/{group}/members/{member}/family-count', [GroupController::class, 'updateFamilyCount'])->name('groups.members.update-family-count');
     Route::delete('/groups/{group}/members/{member}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
     Route::delete('/groups/{group}/leave', [GroupController::class, 'leaveGroup'])->name('groups.members.leave');
+    
+    // Plan Management
+    Route::post('/groups/{group}/increment-ocr', [GroupController::class, 'incrementOCR'])->name('groups.increment-ocr');
 
     // Expenses Management (nested under groups)
     Route::get('/groups/{group}/expenses/create', [ExpenseController::class, 'create'])->name('groups.expenses.create');
