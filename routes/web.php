@@ -106,7 +106,13 @@ Route::middleware('auth')->group(function () {
 
 // Super Admin Routes (only for arun@example.com)
 Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\AdminController::class, 'index'])->name('index');
+    // PIN Verification
+    Route::get('/verify', [\App\Http\Controllers\AdminController::class, 'showPinVerification'])->name('verify');
+    Route::post('/verify', [\App\Http\Controllers\AdminController::class, 'verifyPin'])->name('verify.submit');
+    Route::post('/logout', [\App\Http\Controllers\AdminController::class, 'logout'])->name('logout');
+    
+    // Admin Dashboard (requires PIN verification)
+    Route::get('/', [\App\Http\Controllers\AdminController::class, 'index'])->name('dashboard');
     Route::post('/users/{user}/plan', [\App\Http\Controllers\AdminController::class, 'updateUserPlan'])->name('users.update-plan');
     Route::post('/groups/{group}/plan', [\App\Http\Controllers\AdminController::class, 'updateGroupPlan'])->name('groups.update-plan');
     Route::post('/groups/{group}/reset-ocr', [\App\Http\Controllers\AdminController::class, 'resetOCRCounter'])->name('groups.reset-ocr');

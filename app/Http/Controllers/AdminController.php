@@ -17,10 +17,60 @@ class AdminController extends Controller
     }
 
     /**
+     * Show admin PIN verification page
+     */
+    public function showPinVerification()
+    {
+        // Check if already verified in this session
+        if (session('admin_verified')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return view('admin.verify-pin');
+    }
+
+    /**
+     * Verify admin PIN
+     */
+    public function verifyPin(Request $request)
+    {
+        $request->validate([
+            'admin_pin' => 'required|string|size:6',
+        ]);
+
+        $user = auth()->user();
+
+        // Check if admin PIN matches
+        if ($user->admin_pin !== $request->admin_pin) {
+            return back()->withErrors(['admin_pin' => 'Invalid admin PIN. Please try again.']);
+        }
+
+        // Set session flag for admin access
+        session(['admin_verified' => true, 'admin_verified_at' => now()]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Admin access granted!');
+    }
+
+    /**
+     * Logout from admin panel
+     */
+    public function logout()
+    {
+        session()->forget(['admin_verified', 'admin_verified_at']);
+        return redirect()->route('dashboard')->with('success', 'Logged out from admin panel');
+    }
+
+    /**
      * Show admin dashboard with all users and their plans
      */
     public function index()
     {
+        // Check if admin session is still valid (30 minutes)
+        if (session('admin_verified_at') && now()->diffInMinutes(session('admin_verified_at')) > 30) {
+            session()->forget(['admin_verified', 'admin_verified_at']);
+            return redirect()->route('admin.verify')->with('error', 'Admin session expired. Please verify again.');
+        }
+
         $users = User::with(['createdGroups' => function($query) {
             $query->withCount('members');
         }])->get()->map(function($user) {
