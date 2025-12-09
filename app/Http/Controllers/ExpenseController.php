@@ -7,17 +7,20 @@ use App\Models\Group;
 use App\Services\ActivityService;
 use App\Services\ExpenseService;
 use App\Services\NotificationService;
+use App\Services\PlanService;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
     private ExpenseService $expenseService;
     private NotificationService $notificationService;
+    private PlanService $planService;
 
-    public function __construct(ExpenseService $expenseService, NotificationService $notificationService)
+    public function __construct(ExpenseService $expenseService, NotificationService $notificationService, PlanService $planService)
     {
         $this->expenseService = $expenseService;
         $this->notificationService = $notificationService;
+        $this->planService = $planService;
     }
 
     /**
@@ -33,7 +36,12 @@ class ExpenseController extends Controller
         // Get all group members for split selection
         $members = $group->members()->get();
 
-        return view('expenses.create', compact('group', 'members'));
+        // Get plan information
+        $canUseOCR = $this->planService->canUseOCR($group);
+        $remainingOCRScans = $this->planService->getRemainingOCRScans($group);
+        $planName = $this->planService->getPlanName($group);
+
+        return view('expenses.create', compact('group', 'members', 'canUseOCR', 'remainingOCRScans', 'planName'));
     }
 
     /**

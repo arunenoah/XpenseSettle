@@ -7,17 +7,20 @@ use App\Models\GroupMember;
 use App\Models\User;
 use App\Services\GroupService;
 use App\Services\NotificationService;
+use App\Services\PlanService;
 use Illuminate\Http\Request;
 
 class GroupController extends Controller
 {
     private GroupService $groupService;
     private NotificationService $notificationService;
+    private PlanService $planService;
 
-    public function __construct(GroupService $groupService, NotificationService $notificationService)
+    public function __construct(GroupService $groupService, NotificationService $notificationService, PlanService $planService)
     {
         $this->groupService = $groupService;
         $this->notificationService = $notificationService;
+        $this->planService = $planService;
     }
 
     /**
@@ -371,5 +374,21 @@ class GroupController extends Controller
             ->delete();
 
         return redirect()->route('groups.index')->with('success', 'You have left the group');
+    }
+
+    /**
+     * Increment OCR scan counter for free users
+     */
+    public function incrementOCR(Group $group)
+    {
+        // Check if user is a member of the group
+        if (!$group->hasMember(auth()->user())) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+
+        // Increment OCR scan counter
+        $this->planService->incrementOCRScan($group);
+
+        return response()->json(['success' => true, 'remaining' => $this->planService->getRemainingOCRScans($group)]);
     }
 }
