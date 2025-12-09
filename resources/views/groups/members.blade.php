@@ -260,6 +260,9 @@
                 status.textContent = '✓';
                 status.className = 'text-xs font-semibold text-green-600';
                 
+                // Update the input value to match what was saved
+                input.value = data.family_count;
+                
                 // Flash the input green
                 input.classList.add('border-green-500', 'bg-green-50');
                 setTimeout(() => {
