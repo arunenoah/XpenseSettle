@@ -64,6 +64,10 @@ Route::middleware('auth')->group(function () {
     
     // Plan Management
     Route::post('/groups/{group}/increment-ocr', [GroupController::class, 'incrementOCR'])->name('groups.increment-ocr');
+    
+    // Testing: Manual plan activation (remove in production)
+    Route::post('/groups/{group}/activate-trip-pass', [GroupController::class, 'activateTripPass'])->name('groups.activate-trip-pass');
+    Route::post('/user/activate-lifetime', [GroupController::class, 'activateLifetime'])->name('user.activate-lifetime');
 
     // Expenses Management (nested under groups)
     Route::get('/groups/{group}/expenses/create', [ExpenseController::class, 'create'])->name('groups.expenses.create');

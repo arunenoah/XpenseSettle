@@ -391,4 +391,31 @@ class GroupController extends Controller
 
         return response()->json(['success' => true, 'remaining' => $this->planService->getRemainingOCRScans($group)]);
     }
+
+    /**
+     * Activate Trip Pass for a group (TESTING ONLY - Replace with payment integration)
+     */
+    public function activateTripPass(Group $group)
+    {
+        // Check if user is admin of the group
+        if (!$group->isAdmin(auth()->user())) {
+            return redirect()->back()->with('error', 'Only group admins can upgrade plans');
+        }
+
+        // Activate trip pass
+        $this->planService->activateTripPass($group);
+
+        return redirect()->back()->with('success', 'Trip Pass activated! You now have unlimited OCR scans for this group.');
+    }
+
+    /**
+     * Activate Lifetime plan for user (TESTING ONLY - Replace with payment integration)
+     */
+    public function activateLifetime()
+    {
+        // Activate lifetime plan
+        $this->planService->activateLifetimePlan(auth()->user());
+
+        return redirect()->back()->with('success', 'Lifetime plan activated! You now have unlimited access to all features across all groups.');
+    }
 }
