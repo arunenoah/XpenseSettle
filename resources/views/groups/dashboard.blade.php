@@ -284,7 +284,12 @@
                             <div class="flex items-center gap-3 flex-1">
                                 <span class="text-2xl">{{ $emoji }}</span>
                                 <div class="flex-1 min-w-0">
-                                    <p class="font-bold text-gray-900">{{ $item['user']->name }}</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="font-bold text-gray-900">{{ $item['user']->name }}</p>
+                                        @if(isset($item['is_contact']) && $item['is_contact'])
+                                            <span class="inline-block px-1.5 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">✨ Contact</span>
+                                        @endif
+                                    </div>
                                     <p class="text-sm {{ $textColor }} font-semibold">{{ $label }}</p>
                                 </div>
                             </div>

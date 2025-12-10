@@ -320,13 +320,8 @@ class DashboardController extends Controller
                 continue;
             }
 
-            // Handle regular splits (equal, custom) - only process user splits, skip contacts
+            // Handle regular splits (equal, custom)
             foreach ($expense->splits as $split) {
-                // Skip contact splits - they don't participate in settlement calculations
-                if ($split->contact_id && !$split->user_id) {
-                    continue;
-                }
-
                 if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
                     // User is a participant and is not the payer
                     $payment = $split->payment;
@@ -343,7 +338,7 @@ class DashboardController extends Controller
                         $netBalances[$payerId]['net_amount'] += $split->share_amount;
                     }
                 } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
-                    // User is the payer, someone else (a user, not contact) is a participant
+                    // User is the payer, a user is a participant (owes user money)
                     $payment = $split->payment;
 
                     if (!$payment || $payment->status !== 'paid') {
@@ -357,6 +352,24 @@ class DashboardController extends Controller
                         }
                         $netBalances[$memberId]['net_amount'] -= $split->share_amount;
                     }
+                } elseif ($expense->payer_id === $user->id && $split->contact_id && !$split->user_id) {
+                    // User is the payer, a contact is a participant (owes user money)
+                    // Contacts always owe the payer, so we track this as negative (they owe user)
+                    $contactId = $split->contact_id;
+
+                    // Use contact_id as key with "contact_" prefix to avoid collision with user IDs
+                    $balanceKey = "contact_{$contactId}";
+
+                    if (!isset($netBalances[$balanceKey])) {
+                        $netBalances[$balanceKey] = [
+                            'user' => $split->contact,
+                            'is_contact' => true,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                        ];
+                    }
+                    // Negative amount means contact owes the user
+                    $netBalances[$balanceKey]['net_amount'] -= $split->share_amount;
                 }
             }
         }
