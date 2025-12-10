@@ -232,11 +232,21 @@ class DashboardController extends Controller
             ->get();
 
         // Calculate family statistics
-        $totalFamilyCount = $group->members()->sum('family_count') ?: $group->members()->count();
+        // Get total family count: user family_count + 1 for each user, plus contact family_count + 1 for each contact
+        $userFamilyCount = $group->members()->sum('family_count') ?: 0;
+        $userCount = $group->members()->count();
+        $userTotalHeadcount = $userCount + $userFamilyCount;
+
+        // Add contact family counts
+        $contactFamilyCount = $group->contacts()->sum('family_count') ?: 0;
+        $contactCount = $group->contacts()->count();
+        $contactTotalHeadcount = $contactCount + $contactFamilyCount;
+
+        $totalFamilyCount = $userTotalHeadcount + $contactTotalHeadcount;
         $totalExpenses = $expenses->sum('amount');
         $totalFamilyCost = $totalExpenses;
         $perHeadCost = $totalFamilyCount > 0 ? $totalExpenses / $totalFamilyCount : 0;
-        $memberCount = $group->members()->count();
+        $memberCount = $userCount + $contactCount;
         $perMemberShare = $memberCount > 0 ? $totalExpenses / $memberCount : 0;
 
         return view('groups.dashboard', [
