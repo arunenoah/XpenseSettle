@@ -12,13 +12,18 @@ class GroupMemberService
     /**
      * Add a contact as a group member.
      */
-    public function addContactMember(Group $group, string $name, ?string $email = null, ?string $phone = null, string $role = 'member'): GroupMember
+    public function addContactMember(Group $group, string $name, ?string $email = null, ?string $phone = null, string $role = 'member', int $familyCount = 0): GroupMember
     {
         // Create or find contact
         $contact = Contact::firstOrCreate(
             ['group_id' => $group->id, 'email' => $email],
-            ['name' => $name, 'phone' => $phone]
+            ['name' => $name, 'phone' => $phone, 'family_count' => $familyCount]
         );
+
+        // If contact already exists, update family_count
+        if ($contact->wasRecentlyCreated === false) {
+            $contact->update(['family_count' => $familyCount]);
+        }
 
         // Add to group members if not already exists
         return GroupMember::firstOrCreate(

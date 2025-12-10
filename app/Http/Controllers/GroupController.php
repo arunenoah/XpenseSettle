@@ -250,6 +250,7 @@ class GroupController extends Controller
             'contact_name' => 'required|string|max:255',
             'contact_email' => 'nullable|email|max:255',
             'contact_phone' => 'nullable|string|max:20',
+            'contact_family_count' => 'nullable|integer|min:0|max:20',
         ]);
 
         try {
@@ -259,7 +260,8 @@ class GroupController extends Controller
                 $validated['contact_name'],
                 $validated['contact_email'],
                 $validated['contact_phone'],
-                'member'
+                'member',
+                $validated['contact_family_count'] ?? 0
             );
 
             return redirect()->back()->with('success', $validated['contact_name'] . ' has been added for bill splitting! ✨');
