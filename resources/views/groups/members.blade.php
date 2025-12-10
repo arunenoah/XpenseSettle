@@ -121,9 +121,9 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">👨‍👩‍👧‍👦 Family Count (for headcount-based splitting)</label>
-                                <input type="number" name="contact_family_count" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., 2" min="0" max="20" value="0">
-                                <p class="text-xs text-gray-500 mt-1">Number of additional family members (beyond the contact itself). Total headcount = 1 + family count</p>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">👨‍👩‍👧‍👦 Total Headcount (for splitting by people)</label>
+                                <input type="number" name="contact_family_count" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., 2" min="1" max="20" value="1">
+                                <p class="text-xs text-gray-500 mt-1">Total number of people this contact represents (including the contact). E.g., 2 = contact + 1 family member</p>
                             </div>
                             <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 font-bold shadow-lg">
                                 Add Contact

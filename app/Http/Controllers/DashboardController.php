@@ -232,15 +232,22 @@ class DashboardController extends Controller
             ->get();
 
         // Calculate family statistics
-        // Get total family count: user family_count + 1 for each user, plus contact family_count + 1 for each contact
-        $userFamilyCount = $group->members()->sum('family_count') ?: 0;
+        // family_count is the total headcount for that member/contact (not additional)
+        // Get total headcount from users and contacts
+        $userTotalHeadcount = $group->members()->sum('family_count') ?: 0;
+        // If no family_count set, default to 1 per user
         $userCount = $group->members()->count();
-        $userTotalHeadcount = $userCount + $userFamilyCount;
+        if ($userTotalHeadcount == 0) {
+            $userTotalHeadcount = $userCount;
+        }
 
-        // Add contact family counts
-        $contactFamilyCount = $group->contacts()->sum('family_count') ?: 0;
+        // Add contact headcounts
+        $contactTotalHeadcount = $group->contacts()->sum('family_count') ?: 0;
         $contactCount = $group->contacts()->count();
-        $contactTotalHeadcount = $contactCount + $contactFamilyCount;
+        // If no family_count set, default to 1 per contact
+        if ($contactTotalHeadcount == 0) {
+            $contactTotalHeadcount = $contactCount;
+        }
 
         $totalFamilyCount = $userTotalHeadcount + $contactTotalHeadcount;
         $totalExpenses = $expenses->sum('amount');
