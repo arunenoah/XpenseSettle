@@ -10,7 +10,7 @@ class Contact extends Model
     /** @use HasFactory<\Database\Factories\ContactFactory> */
     use HasFactory;
 
-    protected $fillable = ['group_id', 'name', 'email', 'phone'];
+    protected $fillable = ['group_id', 'name', 'email', 'phone', 'family_count'];
 
     /**
      * Get the group this contact belongs to.

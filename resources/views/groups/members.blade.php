@@ -116,6 +116,11 @@
                                     <input type="tel" name="contact_phone" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., +1 234 567 8900">
                                 </div>
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">👨‍👩‍👧‍👦 Family Count (for headcount-based splitting)</label>
+                                <input type="number" name="contact_family_count" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., 2" min="0" max="20" value="0">
+                                <p class="text-xs text-gray-500 mt-1">Number of additional family members (beyond the contact itself). Total headcount = 1 + family count</p>
+                            </div>
                             <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 font-bold shadow-lg">
                                 Add Contact
                             </button>
@@ -202,6 +207,15 @@
                                     @else
                                         <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $groupMember->family_count ?? 0 }}</span>
                                     @endif
+                                </div>
+                            @elseif($groupMember->isContact())
+                                <!-- Family count for contacts -->
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="text-xs text-gray-500 flex items-center gap-1">
+                                        <span class="text-base">👨‍👩‍👧‍👦</span>
+                                        <span class="hidden sm:inline">Family Count:</span>
+                                    </span>
+                                    <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $groupMember->contact->family_count ?? 0 }}</span>
                                 </div>
                             @endif
                         </div>
