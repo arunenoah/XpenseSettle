@@ -101,7 +101,7 @@ class PaymentController extends Controller
         $expenses = \App\Models\Expense::where('group_id', $group->id)
             ->with([
                 'splits' => function ($q) {
-                    $q->with(['payment', 'user']);
+                    $q->with(['payment', 'user', 'contact']);
                 },
                 'payer'
             ])
@@ -115,12 +115,18 @@ class PaymentController extends Controller
             }
 
             // Skip expenses where user is both payer and sole participant (self-payment)
-            if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $user->id) {
+            $firstSplit = $expense->splits->first();
+            if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $firstSplit && $firstSplit->user_id === $user->id) {
                 continue;
             }
 
-            // Handle regular splits (equal, custom)
+            // Handle regular splits (equal, custom) - only process user splits, skip contacts
             foreach ($expense->splits as $split) {
+                // Skip contact splits - they don't participate in settlement calculations
+                if ($split->contact_id && !$split->user_id) {
+                    continue;
+                }
+
                 if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
                     // User is a participant and is not the payer
                     $payment = $split->payment;
@@ -142,8 +148,8 @@ class PaymentController extends Controller
                             'type' => 'you_owe',  // User owes the payer
                         ];
                     }
-                } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
-                    // User is the payer, someone else is a participant
+                } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
+                    // User is the payer, someone else (a user, not contact) is a participant
                     $payment = $split->payment;
 
                     if (!$payment || $payment->status !== 'paid') {
