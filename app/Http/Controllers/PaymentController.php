@@ -67,9 +67,11 @@ class PaymentController extends Controller
                 $query->latest();
             },
             'expenses.splits.user',
+            'expenses.splits.contact',
             'expenses.splits.payment',
             'expenses.payer',
-            'members'
+            'members',
+            'contacts'
         ]);
 
         // Check if user is admin
@@ -169,6 +171,24 @@ class PaymentController extends Controller
                             'type' => 'they_owe',  // Member owes the user (who paid)
                         ];
                     }
+                } elseif ($expense->payer_id === $user->id && $split->contact_id && !$split->user_id) {
+                    // User is the payer, a contact is a participant (contacts owe user money)
+                    $contactId = $split->contact_id;
+                    if (!isset($netBalances[$contactId])) {
+                        $netBalances[$contactId] = [
+                            'user' => $split->contact,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                            'expenses' => [],
+                            'is_contact' => true,
+                        ];
+                    }
+                    $netBalances[$contactId]['net_amount'] -= $split->share_amount;
+                    $netBalances[$contactId]['expenses'][] = [
+                        'title' => $expense->title,
+                        'amount' => $split->share_amount,
+                        'type' => 'they_owe',  // Contact owes the user (who paid)
+                    ];
                 }
             }
         }
@@ -278,6 +298,7 @@ class PaymentController extends Controller
                     'status' => $data['status'],
                     'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
                     'split_ids' => $splitIds,  // Split IDs for all expenses in this settlement (used for marking as paid)
+                    'is_contact' => $data['is_contact'] ?? false,  // Flag to indicate if this is a contact
                 ];
             }
         }
