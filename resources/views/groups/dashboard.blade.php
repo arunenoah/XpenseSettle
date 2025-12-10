@@ -407,7 +407,7 @@
                                     </h3>
                                     <div class="flex items-center gap-2 mt-2">
                                         <span class="text-sm font-semibold text-gray-700">
-                                            👤 {{ $payment->split->user->name }} paid
+                                            👤 {{ $payment->split->getMemberName() }} paid
                                         </span>
                                         <span class="text-gray-400">→</span>
                                         <span class="text-sm font-semibold text-gray-700">

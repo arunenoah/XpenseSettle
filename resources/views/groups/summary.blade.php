@@ -397,7 +397,7 @@
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                 <div>
                                     <p class="font-semibold text-gray-900">
-                                        {{ $payment->split->user->name }} paid {{ $payment->split->expense->payer->name }}
+                                        {{ $payment->split->getMemberName() }} paid {{ $payment->split->expense->payer->name }}
                                     </p>
                                     <p class="text-sm text-gray-600">{{ $payment->split->expense->title }}</p>
                                 </div>

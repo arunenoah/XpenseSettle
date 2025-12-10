@@ -113,7 +113,10 @@
                         @foreach($members as $member)
                             <div class="flex items-center gap-3">
                                 <label for="split-{{ $member->id }}" class="flex-1 text-sm font-medium text-gray-700">
-                                    {{ $member->name }}
+                                    {{ $member->getMemberName() }}
+                                    @if($member->isContact())
+                                        <span class="ml-2 inline-block px-2 py-0.5 bg-cyan-100 text-cyan-800 rounded text-xs font-semibold">✨ Contact</span>
+                                    @endif
                                 </label>
                                 <div class="relative flex-1">
                                     <span class="absolute right-3 top-2 sm:top-3 text-gray-600 text-sm">

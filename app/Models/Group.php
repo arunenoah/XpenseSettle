@@ -44,6 +44,24 @@ class Group extends Model
     }
 
     /**
+     * Get contacts in this group.
+     */
+    public function contacts()
+    {
+        return $this->hasMany(Contact::class);
+    }
+
+    /**
+     * Get all members (users + contacts) with proper relationship loading.
+     */
+    public function allMembers()
+    {
+        return $this->groupMembers()
+                    ->with(['user', 'contact'])
+                    ->orderBy('created_at');
+    }
+
+    /**
      * Get expenses in this group.
      */
     public function expenses()

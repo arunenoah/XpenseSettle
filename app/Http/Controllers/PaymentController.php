@@ -361,7 +361,7 @@ class PaymentController extends Controller
             }
         }
 
-        // For each member, calculate their personal settlement
+        // For each member (users only, not contacts), calculate their personal settlement
         foreach ($group->members as $member) {
             $settlement = $this->calculateSettlement($group, $member);
 

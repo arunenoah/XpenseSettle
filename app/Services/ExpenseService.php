@@ -76,22 +76,31 @@ class ExpenseService
      */
     private function createSplits(Expense $expense, array $splits): void
     {
-        foreach ($splits as $userId => $data) {
-            // Handle both simple amount and detailed split data
-            if (is_array($data)) {
-                ExpenseSplit::create([
-                    'expense_id' => $expense->id,
-                    'user_id' => $userId,
-                    'share_amount' => $data['amount'] ?? 0,
-                    'percentage' => $data['percentage'] ?? null,
-                ]);
-            } else {
-                ExpenseSplit::create([
-                    'expense_id' => $expense->id,
-                    'user_id' => $userId,
-                    'share_amount' => $data,
-                ]);
+        foreach ($splits as $groupMemberId => $data) {
+            // Get the GroupMember to determine if it's a user or contact
+            $groupMember = \App\Models\GroupMember::find($groupMemberId);
+
+            if (!$groupMember) {
+                continue; // Skip if group member not found
             }
+
+            // Handle both simple amount and detailed split data
+            $splitData = [
+                'expense_id' => $expense->id,
+                'share_amount' => is_array($data) ? ($data['amount'] ?? 0) : $data,
+                'percentage' => is_array($data) ? ($data['percentage'] ?? null) : null,
+            ];
+
+            // Set either user_id or contact_id based on member type
+            if ($groupMember->isActiveUser()) {
+                $splitData['user_id'] = $groupMember->user_id;
+                $splitData['contact_id'] = null;
+            } else {
+                $splitData['user_id'] = null;
+                $splitData['contact_id'] = $groupMember->contact_id;
+            }
+
+            ExpenseSplit::create($splitData);
         }
     }
 
@@ -248,9 +257,18 @@ class ExpenseService
         $settlement = [];
 
         foreach ($expense->splits as $split) {
-            if ($split->user_id !== $expense->payer_id) {
+            // Only add settlement if the split is not the payer (and exists)
+            if ($split->user_id && $split->user_id !== $expense->payer_id) {
                 $settlement[] = [
                     'from' => $split->user,
+                    'to' => $expense->payer,
+                    'amount' => $split->share_amount,
+                    'paid' => $split->payment && $split->payment->status === 'paid',
+                ];
+            } elseif ($split->contact_id) {
+                // Handle contact splits - they always owe the payer
+                $settlement[] = [
+                    'from' => $split->contact,
                     'to' => $expense->payer,
                     'amount' => $split->share_amount,
                     'paid' => $split->payment && $split->payment->status === 'paid',

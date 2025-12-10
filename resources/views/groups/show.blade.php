@@ -72,7 +72,12 @@
                                 <div class="mt-2 space-y-1 pl-4">
                                     @foreach($expense->splits as $split)
                                         <div class="flex justify-between items-center py-1">
-                                            <span class="text-sm text-gray-600">{{ $split->user->name }}</span>
+                                            <span class="text-sm text-gray-600">
+                                                {{ $split->getMemberName() }}
+                                                @if($split->contact_id)
+                                                    <span class="text-xs text-cyan-600">(Contact)</span>
+                                                @endif
+                                            </span>
                                             <span class="text-sm font-semibold text-gray-900">{{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($split->share_amount, 2) }}</span>
                                         </div>
                                     @endforeach
