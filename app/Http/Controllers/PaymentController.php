@@ -399,13 +399,18 @@ class PaymentController extends Controller
                             }
                         }
                     } else {
-                        // Member owes a user
-                        $personId = $item['user']->id;
-                        $result[$member->id]['owes'][$personId] = [
-                            'user' => $item['user'],
-                            'is_contact' => false,
-                            'amount' => round($amount, 2),
-                        ];
+                        // Member owes a user - find the GroupMember ID for this user
+                        $targetUserId = $item['user']->id;
+                        foreach ($result as $gmKey => $gmData) {
+                            if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
+                                $result[$member->id]['owes'][$gmKey] = [
+                                    'user' => $item['user'],
+                                    'is_contact' => false,
+                                    'amount' => round($amount, 2),
+                                ];
+                                break;
+                            }
+                        }
                     }
                 } else if ($amount < 0) {
                     // Someone owes member - only handle if it's a user owing the member
@@ -444,15 +449,21 @@ class PaymentController extends Controller
                     // Find the GroupMember for this contact
                     foreach ($result as $gmKey => $gmData) {
                         if ($gmData['is_contact'] && $gmData['user']->id === $contactId) {
-                            // Contact owes user
-                            if (!isset($result[$gmKey]['owes'])) {
-                                $result[$gmKey]['owes'] = [];
+                            // Contact owes user - find the GroupMember ID for this user
+                            $targetUserId = $user->id;
+                            foreach ($result as $targetGmKey => $targetGmData) {
+                                if (!$targetGmData['is_contact'] && $targetGmData['user']->id === $targetUserId) {
+                                    if (!isset($result[$gmKey]['owes'])) {
+                                        $result[$gmKey]['owes'] = [];
+                                    }
+                                    $result[$gmKey]['owes'][$targetGmKey] = [
+                                        'user' => $user,
+                                        'is_contact' => false,
+                                        'amount' => round(abs($item['net_amount']), 2),
+                                    ];
+                                    break;
+                                }
                             }
-                            $result[$gmKey]['owes'][$user->id] = [
-                                'user' => $user,
-                                'is_contact' => false,
-                                'amount' => round(abs($item['net_amount']), 2),
-                            ];
                             break;
                         }
                     }
