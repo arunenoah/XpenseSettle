@@ -34,15 +34,19 @@
 
             <!-- Member Avatars and Info -->
             <div class="flex items-center gap-4">
-                <span class="text-xs font-semibold text-gray-600 uppercase">{{ $group->members->count() }} Members</span>
+                @php
+                    $allMembers = $group->allMembers()->with(['user', 'contact'])->get();
+                    $totalMemberCount = $allMembers->count();
+                @endphp
+                <span class="text-xs font-semibold text-gray-600 uppercase">{{ $totalMemberCount }} Members</span>
                 <div class="flex items-center gap-2">
-                    @foreach($group->members->take(5) as $member)
-                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $member->name }}">
-                            <span class="text-xs font-bold text-blue-700">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                    @foreach($allMembers->take(5) as $groupMember)
+                        <div class="w-8 h-8 rounded-full {{ $groupMember->isContact() ? 'bg-cyan-100' : 'bg-blue-100' }} flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm" title="{{ $groupMember->getMemberName() }}{{ $groupMember->isContact() ? ' (Contact)' : '' }}">
+                            <span class="text-xs font-bold {{ $groupMember->isContact() ? 'text-cyan-700' : 'text-blue-700' }}">{{ strtoupper(substr($groupMember->getMemberName(), 0, 1)) }}</span>
                         </div>
                     @endforeach
-                    @if($group->members->count() > 5)
-                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $group->members->count() - 5 }}</span>
+                    @if($totalMemberCount > 5)
+                        <span class="text-xs font-semibold text-gray-600 ml-1">+{{ $totalMemberCount - 5 }}</span>
                     @endif
                 </div>
             </div>
