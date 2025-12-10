@@ -282,7 +282,8 @@ class DashboardController extends Controller
                     // User owes this person (item['user']) - they are the payer
                     if ($expense->payer_id === $otherUserId) {
                         foreach ($expense->splits as $split) {
-                            if ($split->user_id === $user->id) {
+                            // Only include user splits, skip contacts
+                            if ($split->user_id === $user->id && !$split->contact_id) {
                                 // Include split ID for marking as paid
                                 $splitIds[] = $split->id;
                             }
@@ -314,12 +315,18 @@ class DashboardController extends Controller
             }
 
             // Skip expenses where user is both payer and sole participant (self-payment)
-            if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $expense->splits->first()->user_id === $user->id) {
+            $firstSplit = $expense->splits->first();
+            if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $firstSplit && $firstSplit->user_id === $user->id) {
                 continue;
             }
 
-            // Handle regular splits (equal, custom)
+            // Handle regular splits (equal, custom) - only process user splits, skip contacts
             foreach ($expense->splits as $split) {
+                // Skip contact splits - they don't participate in settlement calculations
+                if ($split->contact_id && !$split->user_id) {
+                    continue;
+                }
+
                 if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
                     // User is a participant and is not the payer
                     $payment = $split->payment;
@@ -335,8 +342,8 @@ class DashboardController extends Controller
                         }
                         $netBalances[$payerId]['net_amount'] += $split->share_amount;
                     }
-                } elseif ($expense->payer_id === $user->id && $split->user_id !== $user->id) {
-                    // User is the payer, someone else is a participant
+                } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
+                    // User is the payer, someone else (a user, not contact) is a participant
                     $payment = $split->payment;
 
                     if (!$payment || $payment->status !== 'paid') {
