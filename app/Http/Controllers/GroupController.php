@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\User;
+use App\Services\GroupMemberService;
 use App\Services\GroupService;
 use App\Services\NotificationService;
 use App\Services\PlanService;
@@ -84,7 +86,7 @@ class GroupController extends Controller
 
         // Get recent expenses with relationships
         $expenses = $group->expenses()
-            ->with('payer', 'splits', 'comments')
+            ->with('payer', 'splits.user', 'splits.contact', 'comments')
             ->latest()
             ->paginate(10);
 
@@ -195,7 +197,10 @@ class GroupController extends Controller
         $currentMemberIds = $group->members()->pluck('user_id');
         $availableUsers = \App\Models\User::whereNotIn('id', $currentMemberIds)->get();
 
-        return view('groups.members', compact('group', 'availableUsers'));
+        // Get all members (users + contacts) with relationships loaded
+        $allMembers = $group->allMembers()->get();
+
+        return view('groups.members', compact('group', 'availableUsers', 'allMembers'));
     }
 
     /**
@@ -229,6 +234,38 @@ class GroupController extends Controller
         $this->notificationService->notifyUserAddedToGroup($user, $group, auth()->user());
 
         return redirect()->back()->with('success', $user->name . ' has been added to the group! 🎉');
+    }
+
+    /**
+     * Add a contact to the group (for bill splitting only, no group access).
+     */
+    public function addContact(Request $request, Group $group)
+    {
+        // Check authorization
+        if (!$group->isAdmin(auth()->user())) {
+            return redirect()->back()->with('error', 'Only admins can add contacts');
+        }
+
+        $validated = $request->validate([
+            'contact_name' => 'required|string|max:255',
+            'contact_email' => 'nullable|email|max:255',
+            'contact_phone' => 'nullable|string|max:20',
+        ]);
+
+        try {
+            $service = new GroupMemberService();
+            $service->addContactMember(
+                $group,
+                $validated['contact_name'],
+                $validated['contact_email'],
+                $validated['contact_phone'],
+                'member'
+            );
+
+            return redirect()->back()->with('success', $validated['contact_name'] . ' has been added for bill splitting! ✨');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Failed to add contact: ' . $e->getMessage());
+        }
     }
 
     /**

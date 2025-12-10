@@ -56,113 +56,182 @@
     <div class="px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-7xl mx-auto space-y-6">
 
-            <!-- Add New Member -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
-            <span class="text-2xl">➕</span>
-            <span>Add New Member</span>
-        </h2>
-        
-        <form action="{{ route('groups.members.add', $group) }}" method="POST" class="flex gap-3">
-            @csrf
-            <div class="flex-1">
-                <select name="user_id" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all" required>
-                    <option value="">Select a friend to add...</option>
-                    @foreach($availableUsers as $user)
-                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-bold shadow-lg">
-                Add Member
-            </button>
-        </form>
+            <!-- Add New Member / Contact -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="flex border-b border-gray-200">
+                    <button onclick="switchTab('user-tab', 'contact-tab')" id="user-tab-btn" class="flex-1 px-4 py-4 text-center font-semibold text-gray-900 border-b-2 border-purple-600 transition-all">
+                        👤 Add User Member
+                    </button>
+                    <button onclick="switchTab('contact-tab', 'user-tab')" id="contact-tab-btn" class="flex-1 px-4 py-4 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-all">
+                        ✨ Add Contact
+                    </button>
+                </div>
 
-                @if($availableUsers->isEmpty())
-                    <p class="mt-3 text-sm text-gray-600 text-center">
-                        🎉 All users are already members of this group!
-                    </p>
-                @endif
+                <div class="p-6">
+                    <!-- Add User Member Tab -->
+                    <div id="user-tab" class="block">
+                        <h3 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                            <span>👤</span> <span>Add existing user with full group access</span>
+                        </h3>
+                        <form action="{{ route('groups.members.add', $group) }}" method="POST" class="flex gap-3">
+                            @csrf
+                            <div class="flex-1">
+                                <select name="user_id" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all" required>
+                                    <option value="">Select a friend to add...</option>
+                                    @foreach($availableUsers as $user)
+                                        <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 font-bold shadow-lg">
+                                Add User
+                            </button>
+                        </form>
+
+                        @if($availableUsers->isEmpty())
+                            <p class="mt-4 text-sm text-gray-600 text-center bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                🎉 All users are already members of this group!
+                            </p>
+                        @endif
+                    </div>
+
+                    <!-- Add Contact Tab -->
+                    <div id="contact-tab" class="hidden">
+                        <h3 class="text-sm font-semibold text-gray-600 mb-2 flex items-center gap-2">
+                            <span>✨</span> <span>Add contact for bill splitting only (no group access)</span>
+                        </h3>
+                        <form action="{{ route('groups.contacts.add', $group) }}" method="POST" class="space-y-3">
+                            @csrf
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                <input type="text" name="contact_name" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., Mom, Dad, John" required>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Email (Optional)</label>
+                                    <input type="email" name="contact_email" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., mom@example.com">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Phone (Optional)</label>
+                                    <input type="tel" name="contact_phone" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all" placeholder="e.g., +1 234 567 8900">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all transform hover:scale-105 font-bold shadow-lg">
+                                Add Contact
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <!-- Current Members -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 class="text-xl font-black text-gray-900 mb-4 flex items-center gap-2">
             <span class="text-2xl">👥</span>
-            <span>Current Members ({{ $group->members->count() }})</span>
+            <span>Current Members ({{ $allMembers->count() }})</span>
         </h2>
 
         <div class="space-y-3">
-            @foreach($group->members as $member)
+            @forelse($allMembers as $groupMember)
                 <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
                     <div class="flex items-center gap-4 flex-1">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
-                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                        <div class="w-10 h-10 rounded-full {{ $groupMember->isActiveUser() ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-cyan-400 to-blue-500' }} flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($groupMember->getMemberName(), 0, 1)) }}</span>
                         </div>
                         <div class="flex-1">
                             <p class="font-semibold text-gray-900 flex items-center gap-2">
-                                {{ $member->name }}
-                                @if($member->pivot->role === 'admin')
+                                {{ $groupMember->getMemberName() }}
+                                @if($groupMember->isContact())
+                                    <span class="px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">
+                                        ✨ Contact
+                                    </span>
+                                @endif
+                                @if($groupMember->role === 'admin')
                                     <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded">
                                         👑 Admin
                                     </span>
                                 @endif
-                                @if($member->id === auth()->id())
+                                @if($groupMember->user_id === auth()->id())
                                     <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
                                         You
                                     </span>
                                 @endif
                             </p>
-                            <p class="text-sm text-gray-600">{{ $member->email }}</p>
-                            <div class="flex items-center gap-2 mt-2">
-                                <span class="text-xs text-gray-500 flex items-center gap-1">
-                                    <span class="text-base">👨‍👩‍👧‍👦</span>
-                                    <span class="hidden sm:inline">Family Count:</span>
-                                </span>
-                                @if($group->isAdmin(auth()->user()))
-                                    <form action="{{ route('groups.members.update-family-count', [$group, $member->id]) }}" 
-                                          method="POST" 
-                                          class="inline-flex items-center gap-1"
-                                          onsubmit="updateFamilyCount(event, {{ $member->id }})">
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="number" 
-                                               name="family_count" 
-                                               id="family_count_{{ $member->id }}"
-                                               value="{{ $member->pivot->family_count ?? 1 }}" 
-                                               min="1" 
-                                               max="20" 
-                                               class="w-12 sm:w-16 px-1 sm:px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-center font-semibold">
-                                        <button type="submit" 
-                                                id="update_btn_{{ $member->id }}"
-                                                class="w-7 h-7 sm:w-auto sm:h-auto sm:px-2 sm:py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95"
-                                                title="Update family count">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            <span class="hidden sm:inline text-xs font-semibold">Update</span>
-                                        </button>
-                                        <span id="status_{{ $member->id }}" class="text-base sm:text-xs font-semibold"></span>
-                                    </form>
-                                @else
-                                    <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $member->pivot->family_count ?? 1 }}</span>
+                            @if($groupMember->isActiveUser())
+                                <p class="text-sm text-gray-600">{{ $groupMember->user->email }}</p>
+                            @else
+                                @if($groupMember->contact->email)
+                                    <p class="text-sm text-gray-600">{{ $groupMember->contact->email }}</p>
                                 @endif
-                            </div>
+                                @if($groupMember->contact->phone)
+                                    <p class="text-sm text-gray-600">{{ $groupMember->contact->phone }}</p>
+                                @endif
+                            @endif
+
+                            @if($groupMember->isActiveUser())
+                                <div class="flex items-center gap-2 mt-2">
+                                    <span class="text-xs text-gray-500 flex items-center gap-1">
+                                        <span class="text-base">👨‍👩‍👧‍👦</span>
+                                        <span class="hidden sm:inline">Family Count:</span>
+                                    </span>
+                                    @if($group->isAdmin(auth()->user()))
+                                        <form action="{{ route('groups.members.update-family-count', [$group, $groupMember->user_id]) }}"
+                                              method="POST"
+                                              class="inline-flex items-center gap-1"
+                                              onsubmit="updateFamilyCount(event, {{ $groupMember->user_id }})">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="number"
+                                                   name="family_count"
+                                                   id="family_count_{{ $groupMember->user_id }}"
+                                                   value="{{ $groupMember->family_count ?? 0 }}"
+                                                   min="1"
+                                                   max="20"
+                                                   class="w-12 sm:w-16 px-1 sm:px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-center font-semibold">
+                                            <button type="submit"
+                                                    id="update_btn_{{ $groupMember->user_id }}"
+                                                    class="w-7 h-7 sm:w-auto sm:h-auto sm:px-2 sm:py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95"
+                                                    title="Update family count">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <span class="hidden sm:inline text-xs font-semibold">Update</span>
+                                            </button>
+                                            <span id="status_{{ $groupMember->user_id }}" class="text-base sm:text-xs font-semibold"></span>
+                                        </form>
+                                    @else
+                                        <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $groupMember->family_count ?? 0 }}</span>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
 
-                    @if($group->isAdmin(auth()->user()) && $member->id !== auth()->id())
-                        <form action="{{ route('groups.members.remove', [$group, $member->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $member->name }} from this group?');">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-red-500 hover:bg-red-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Remove member">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                <span class="hidden sm:inline text-sm font-semibold">Remove</span>
-                            </button>
-                        </form>
-                    @elseif($member->id === auth()->id() && $member->pivot->role !== 'admin')
+                    @if($group->isAdmin(auth()->user()))
+                        @if($groupMember->isActiveUser() && $groupMember->user_id !== auth()->id())
+                            <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $groupMember->getMemberName() }} from this group?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-red-500 hover:bg-red-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Remove member">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span class="hidden sm:inline text-sm font-semibold">Remove</span>
+                                </button>
+                            </form>
+                        @elseif($groupMember->isContact())
+                            <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $groupMember->getMemberName() }} from this group?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-red-500 hover:bg-red-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Remove contact">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span class="hidden sm:inline text-sm font-semibold">Remove</span>
+                                </button>
+                            </form>
+                        @endif
+                    @elseif($groupMember->isActiveUser() && $groupMember->user_id === auth()->id() && $groupMember->role !== 'admin')
                         <form action="{{ route('groups.members.leave', $group) }}" method="POST" onsubmit="return confirm('Are you sure you want to leave this group?');">
                             @csrf
                             @method('DELETE')
@@ -175,7 +244,11 @@
                         </form>
                     @endif
                 </div>
-            @endforeach
+            @empty
+                <div class="text-center py-8">
+                    <p class="text-gray-600">No members yet. Add a user or contact to get started!</p>
+                </div>
+            @endforelse
             </div>
         </div>
     </div>
@@ -214,6 +287,25 @@
     </div>
 
     <script>
+    function switchTab(activeTabId, inactiveTabId) {
+        // Show active tab, hide inactive tab
+        document.getElementById(activeTabId).classList.remove('hidden');
+        document.getElementById(inactiveTabId).classList.add('hidden');
+
+        // Update button styles
+        if (activeTabId === 'user-tab') {
+            document.getElementById('user-tab-btn').classList.add('text-gray-900', 'border-b-purple-600');
+            document.getElementById('user-tab-btn').classList.remove('text-gray-500', 'border-b-transparent');
+            document.getElementById('contact-tab-btn').classList.remove('text-gray-900', 'border-b-purple-600');
+            document.getElementById('contact-tab-btn').classList.add('text-gray-500', 'border-b-transparent');
+        } else {
+            document.getElementById('contact-tab-btn').classList.add('text-gray-900', 'border-b-purple-600');
+            document.getElementById('contact-tab-btn').classList.remove('text-gray-500', 'border-b-transparent');
+            document.getElementById('user-tab-btn').classList.remove('text-gray-900', 'border-b-purple-600');
+            document.getElementById('user-tab-btn').classList.add('text-gray-500', 'border-b-transparent');
+        }
+    }
+
     function showExpensesModal() {
         document.getElementById('expensesModal').classList.remove('hidden');
         document.getElementById('expensesModal').classList.add('flex');

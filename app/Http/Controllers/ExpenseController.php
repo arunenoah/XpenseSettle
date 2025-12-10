@@ -33,8 +33,8 @@ class ExpenseController extends Controller
             abort(403, 'You are not a member of this group');
         }
 
-        // Get all group members for split selection
-        $members = $group->members()->get();
+        // Get all group members (users + contacts) for split selection
+        $members = $group->allMembers()->get();
 
         // Get plan information
         $canUseOCR = $this->planService->canUseOCR($group);
@@ -68,11 +68,14 @@ class ExpenseController extends Controller
         ]);
 
         try {
+            // Get all members (users + contacts) for validation
+            $allMembers = $group->allMembers()->get();
+
             // Add group and payer info
             $validated['splits'] = $this->processSplits(
                 $request->get('split_type'),
                 $request->get('splits'),
-                $group->members()->pluck('users.id')->toArray(),
+                $allMembers,
                 $validated['amount']
             );
 
@@ -136,7 +139,7 @@ class ExpenseController extends Controller
         }
 
         // Load relationships
-        $expense->load('payer', 'splits.user', 'comments.user', 'attachments', 'items.assignedTo');
+        $expense->load('payer', 'splits.user', 'splits.contact', 'comments.user', 'attachments', 'items.assignedTo');
 
         // Calculate settlement
         $settlement = $this->expenseService->getExpenseSettlement($expense);
@@ -164,13 +167,26 @@ class ExpenseController extends Controller
             abort(403, 'Cannot edit a fully paid expense');
         }
 
-        // Get group members for split selection
-        $members = $group->members()->get();
+        // Get group members for split selection (both users and contacts)
+        $members = $group->allMembers()->get();
 
-        // Get current splits
-        $currentSplits = $expense->splits()
-            ->pluck('share_amount', 'user_id')
-            ->toArray();
+        // Get current splits - map by GroupMember ID
+        $currentSplits = [];
+        foreach ($expense->splits as $split) {
+            // Find the corresponding GroupMember for this split
+            $groupMember = $group->groupMembers()
+                ->when($split->user_id, function ($q) use ($split) {
+                    return $q->where('user_id', $split->user_id);
+                })
+                ->when($split->contact_id && !$split->user_id, function ($q) use ($split) {
+                    return $q->where('contact_id', $split->contact_id);
+                })
+                ->first();
+
+            if ($groupMember) {
+                $currentSplits[$groupMember->id] = $split->share_amount;
+            }
+        }
 
         // Load attachments
         $expense->load('attachments');
@@ -284,22 +300,23 @@ class ExpenseController extends Controller
      * @param float $totalAmount
      * @return array
      */
-    private function processSplits(string $splitType, ?array $splits, array $memberIds, float $totalAmount): array
+    private function processSplits(string $splitType, ?array $splits, $members, float $totalAmount): array
     {
         if ($splitType === 'equal') {
             // Equal split among all members
-            $splitAmount = round($totalAmount / count($memberIds), 2);
+            $memberCount = count($members);
+            $splitAmount = round($totalAmount / $memberCount, 2);
             $result = [];
 
-            foreach ($memberIds as $memberId) {
-                $result[$memberId] = $splitAmount;
+            foreach ($members as $member) {
+                $result[$member->id] = $splitAmount;
             }
 
             // Handle rounding issues
             $totalSplit = array_sum($result);
-            if ($totalSplit !== $totalAmount) {
+            if (abs($totalSplit - $totalAmount) > 0.01) {
                 $diff = round($totalAmount - $totalSplit, 2);
-                $result[$memberIds[0]] += $diff;
+                $result[$members[0]->id] += $diff;
             }
 
             return $result;
@@ -307,9 +324,9 @@ class ExpenseController extends Controller
             // Custom split - validate that it matches total amount
             $customSplits = [];
 
-            foreach ($memberIds as $memberId) {
-                $customSplits[$memberId] = isset($splits[$memberId])
-                    ? round((float) $splits[$memberId], 2)
+            foreach ($members as $member) {
+                $customSplits[$member->id] = isset($splits[$member->id])
+                    ? round((float) $splits[$member->id], 2)
                     : 0;
             }
 

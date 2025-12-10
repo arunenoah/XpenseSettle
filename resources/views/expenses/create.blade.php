@@ -148,8 +148,11 @@
                     <div class="space-y-3">
                         @foreach($members as $member)
                             <div class="flex items-center gap-3">
-                                <label for="split-{{ $member->id }}" class="flex-1 text-sm font-medium text-gray-700">
-                                    {{ $member->name }}
+                                <label for="split-{{ $member->id }}" class="flex-1 text-sm font-medium text-gray-700 flex items-center gap-2">
+                                    <span>{{ $member->getMemberName() }}</span>
+                                    @if($member->isContact())
+                                        <span class="text-xs px-2 py-0.5 bg-cyan-100 text-cyan-800 rounded">Contact</span>
+                                    @endif
                                 </label>
                                 <div class="relative flex-1">
                                     <span class="absolute right-3 top-2 sm:top-3 text-gray-600 text-sm">
@@ -556,7 +559,7 @@ document.addEventListener('DOMContentLoaded', toggleCustomSplits);
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 
 <script>
-const members = {!! json_encode($members->map(fn($m) => ['id' => $m->id, 'name' => $m->name])->values()) !!};
+const members = {!! json_encode($members->map(fn($m) => ['id' => $m->id, 'name' => $m->getMemberName(), 'isContact' => $m->isContact()])->values()) !!};
 let extractedItems = [];
 let currentFile = null;
 

@@ -56,9 +56,9 @@
                     <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div class="flex-1">
                             <p class="font-semibold text-gray-900">
-                                {{ $item['from']->name }}
+                                {{ $item['from']?->name ?? 'Unknown' }}
                                 <span class="text-gray-600 font-normal">owes</span>
-                                {{ $item['to']->name }}
+                                {{ $item['to']?->name ?? 'Unknown' }}
                             </p>
                         </div>
                         <div class="text-right">
@@ -128,7 +128,12 @@
         <div class="space-y-2">
             @forelse($expense->splits as $split)
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <span class="text-gray-900">{{ $split->user->name }}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-900">{{ $split->getMemberName() }}</span>
+                        @if($split->contact_id)
+                            <span class="text-xs px-2 py-0.5 bg-cyan-100 text-cyan-800 rounded">Contact</span>
+                        @endif
+                    </div>
                     <span class="font-semibold text-gray-900">
                         {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($split->share_amount, 2) }}
                     </span>
