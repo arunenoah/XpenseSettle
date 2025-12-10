@@ -265,13 +265,23 @@
                                                         $amount = $fromData['owes'][$toMemberId]['amount'];
                                                         $color = 'red'; // Row person owes column person
                                                     }
+                                                    // Check if toMember owes fromMember (Column owes Row, shown as green)
+                                                    elseif (isset($toData['owes'][$fromMemberId])) {
+                                                        $amount = $toData['owes'][$fromMemberId]['amount'];
+                                                        $color = 'green'; // Column person owes row person
+                                                    }
                                                 @endphp
 
                                                 @if($amount > 0)
                                                     @if($color === 'red')
                                                         <!-- Red: Row person owes column person -->
                                                         <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-xs">
-                                                            {{ number_format($amount, 2) }}
+                                                            ${{ number_format($amount, 2) }}
+                                                        </span>
+                                                    @elseif($color === 'green')
+                                                        <!-- Green: Column person owes row person -->
+                                                        <span class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-xs">
+                                                            ${{ number_format($amount, 2) }}
                                                         </span>
                                                     @else
                                                         <span class="text-gray-400">—</span>

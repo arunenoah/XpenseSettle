@@ -122,11 +122,14 @@ class PaymentController extends Controller
                 continue;
             }
 
-            // Handle regular splits (equal, custom) - only process user splits, skip contacts
+            // Handle regular splits (equal, custom) - process user splits and contact splits where user is payer
             foreach ($expense->splits as $split) {
-                // Skip contact splits - they don't participate in settlement calculations
+                // For contact splits, only process if user is the payer
                 if ($split->contact_id && !$split->user_id) {
-                    continue;
+                    // This is a pure contact split - skip unless user is payer
+                    if ($expense->payer_id !== $user->id) {
+                        continue;
+                    }
                 }
 
                 if ($split->user_id === $user->id && $split->user_id !== $expense->payer_id) {
@@ -398,6 +401,19 @@ class PaymentController extends Controller
         foreach ($group->members as $member) {
             $settlement = $this->calculateSettlement($group, $member);
 
+            // Find the GroupMember ID for this user
+            $memberGroupMemberId = null;
+            foreach ($result as $gmKey => $gmData) {
+                if (!$gmData['is_contact'] && $gmData['user']->id === $member->id) {
+                    $memberGroupMemberId = $gmKey;
+                    break;
+                }
+            }
+
+            if (!$memberGroupMemberId) {
+                continue; // Skip if GroupMember not found
+            }
+
             // Convert settlement to matrix
             foreach ($settlement as $item) {
                 // Get the target person/contact info
@@ -411,7 +427,7 @@ class PaymentController extends Controller
                         $contactId = $item['user']->id;
                         foreach ($result as $key => $entry) {
                             if ($entry['is_contact'] && $entry['user']->id === $contactId) {
-                                $result[$member->id]['owes'][$key] = [
+                                $result[$memberGroupMemberId]['owes'][$key] = [
                                     'user' => $item['user'],
                                     'is_contact' => true,
                                     'amount' => round($amount, 2),
@@ -424,7 +440,7 @@ class PaymentController extends Controller
                         $targetUserId = $item['user']->id;
                         foreach ($result as $gmKey => $gmData) {
                             if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
-                                $result[$member->id]['owes'][$gmKey] = [
+                                $result[$memberGroupMemberId]['owes'][$gmKey] = [
                                     'user' => $item['user'],
                                     'is_contact' => false,
                                     'amount' => round($amount, 2),
@@ -445,7 +461,7 @@ class PaymentController extends Controller
                                 if (!isset($result[$gmKey]['owes'])) {
                                     $result[$gmKey]['owes'] = [];
                                 }
-                                $result[$gmKey]['owes'][$member->id] = [
+                                $result[$gmKey]['owes'][$memberGroupMemberId] = [
                                     'user' => $group->members->find($member->id),
                                     'is_contact' => false,
                                     'amount' => round(abs($amount), 2),
@@ -762,7 +778,7 @@ class PaymentController extends Controller
         }
 
         // Load group with all necessary relationships
-        $group->load(['members', 'expenses.splits.user', 'expenses.splits.payment', 'expenses.payer']);
+        $group->load(['members', 'contacts', 'expenses.splits.user', 'expenses.splits.contact', 'expenses.splits.payment', 'expenses.payer']);
 
         // Calculate overall settlement matrix for all group members
         $overallSettlement = $this->calculateGroupSettlementMatrix($group);
