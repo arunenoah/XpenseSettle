@@ -100,7 +100,7 @@ class SettlementController extends Controller
         // to get the minimal settlement list
         $expenses = $group->expenses()
             ->where('split_type', '!=', 'itemwise')
-            ->with('payer', 'splits.user', 'splits.payment')
+            ->with('payer', 'splits.user', 'splits.contact', 'splits.payment')
             ->get();
 
         // Get confirmed settlements

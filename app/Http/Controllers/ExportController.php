@@ -27,7 +27,7 @@ class ExportController extends Controller
         }
 
         $expenses = $group->expenses()
-            ->with('payer', 'splits.user', 'splits.payment')
+            ->with('payer', 'splits.user', 'splits.contact', 'splits.payment')
             ->orderBy('date', 'desc')
             ->get();
 
@@ -36,7 +36,7 @@ class ExportController extends Controller
         $csv[] = ['Date', 'Title', 'Description', 'Amount', 'Payer', 'Split Type', 'Status', 'Participants', 'Paid Count'];
 
         foreach ($expenses as $expense) {
-            $participants = $expense->splits->pluck('user.name')->join(', ');
+            $participants = $expense->splits->map(fn($split) => $split->getMemberName())->join(', ');
             $paidCount = $expense->splits->filter(function ($split) {
                 return $split->payment && $split->payment->status === 'paid';
             })->count();
@@ -186,7 +186,7 @@ class ExportController extends Controller
         }
 
         $expenses = $group->expenses()
-            ->with('payer', 'splits.user', 'splits.payment')
+            ->with('payer', 'splits.user', 'splits.contact', 'splits.payment')
             ->orderBy('date', 'desc')
             ->get();
 
@@ -247,7 +247,7 @@ class ExportController extends Controller
 
                 $csv[] = [
                     '',
-                    $split->user->name,
+                    $split->getMemberName(),
                     number_format($split->share_amount, 2),
                     $status,
                     $paidDate,
