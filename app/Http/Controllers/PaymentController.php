@@ -386,9 +386,10 @@ class PaymentController extends Controller
                 if ($amount > 0) {
                     // Member owes someone
                     if ($targetIsContact) {
-                        // Member owes a contact - find contact in result
+                        // Member owes a contact - find contact in result by matching the contact object
+                        $contactId = $item['user']->id;
                         foreach ($result as $key => $entry) {
-                            if ($entry['is_contact'] && $entry['user']->id === $item['user']->id) {
+                            if ($entry['is_contact'] && $entry['user']->id === $contactId) {
                                 $result[$member->id]['owes'][$key] = [
                                     'user' => $item['user'],
                                     'is_contact' => true,
@@ -407,24 +408,57 @@ class PaymentController extends Controller
                         ];
                     }
                 } else if ($amount < 0) {
-                    // Someone owes member (only for users, not contacts)
-                    $targetId = $targetIsContact ? null : $item['user']->id;
-                    if ($targetId) {
-                        if (!isset($result[$targetId]['owes'])) {
-                            $result[$targetId]['owes'] = [];
+                    // Someone owes member - only handle if it's a user owing the member
+                    if (!$targetIsContact && $item['user']) {
+                        // Find which GroupMember corresponds to this user
+                        $targetUserId = $item['user']->id;
+                        foreach ($result as $gmKey => $gmData) {
+                            // Find if this is the user we're looking for
+                            if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
+                                // This user owes the member
+                                if (!isset($result[$gmKey]['owes'])) {
+                                    $result[$gmKey]['owes'] = [];
+                                }
+                                $result[$gmKey]['owes'][$member->id] = [
+                                    'user' => $group->members->find($member->id),
+                                    'is_contact' => false,
+                                    'amount' => round(abs($amount), 2),
+                                ];
+                                break;
+                            }
                         }
-                        $result[$targetId]['owes'][$member->id] = [
-                            'user' => $group->members->find($member->id),
-                            'is_contact' => false,
-                            'amount' => round(abs($amount), 2),
-                        ];
                     }
                 }
             }
         }
 
-        // For contacts who owe users, add their debts
-        // Process from the user side (already handled above via calculateSettlement)
+        // Handle contacts who owe users
+        // For each user, check their settlement to see if they're owed money by contacts
+        foreach ($group->members as $user) {
+            $settlement = $this->calculateSettlement($group, $user);
+
+            foreach ($settlement as $item) {
+                // If it's a contact and amount is negative (contact owes user)
+                if (isset($item['is_contact']) && $item['is_contact'] && $item['net_amount'] < 0) {
+                    $contactId = $item['user']->id;
+                    // Find the GroupMember for this contact
+                    foreach ($result as $gmKey => $gmData) {
+                        if ($gmData['is_contact'] && $gmData['user']->id === $contactId) {
+                            // Contact owes user
+                            if (!isset($result[$gmKey]['owes'])) {
+                                $result[$gmKey]['owes'] = [];
+                            }
+                            $result[$gmKey]['owes'][$user->id] = [
+                                'user' => $user,
+                                'is_contact' => false,
+                                'amount' => round(abs($item['net_amount']), 2),
+                            ];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         return $result;
     }
