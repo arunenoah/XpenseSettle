@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{group}/members', [GroupController::class, 'addMember'])->name('groups.members.add');
     Route::post('/groups/{group}/contacts', [GroupController::class, 'addContact'])->name('groups.contacts.add');
     Route::patch('/groups/{group}/members/{member}/family-count', [GroupController::class, 'updateFamilyCount'])->name('groups.members.update-family-count');
+    Route::patch('/groups/{group}/contacts/{contact}/family-count', [GroupController::class, 'updateContactFamilyCount'])->name('groups.contacts.update-family-count');
     Route::delete('/groups/{group}/members/{member}', [GroupController::class, 'removeMember'])->name('groups.members.remove');
     Route::delete('/groups/{group}/leave', [GroupController::class, 'leaveGroup'])->name('groups.members.leave');
     

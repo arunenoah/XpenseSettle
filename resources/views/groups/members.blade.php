@@ -215,7 +215,34 @@
                                         <span class="text-base">👨‍👩‍👧‍👦</span>
                                         <span class="hidden sm:inline">Family Count:</span>
                                     </span>
-                                    <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $groupMember->contact->family_count ?? 0 }}</span>
+                                    @if($group->isAdmin(auth()->user()))
+                                        <form action="{{ route('groups.contacts.update-family-count', [$group, $groupMember->contact_id]) }}"
+                                              method="POST"
+                                              class="inline-flex items-center gap-1"
+                                              onsubmit="updateContactFamilyCount(event, {{ $groupMember->contact_id }})">
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="number"
+                                                   name="family_count"
+                                                   id="contact_family_count_{{ $groupMember->contact_id }}"
+                                                   value="{{ $groupMember->contact->family_count ?? 0 }}"
+                                                   min="0"
+                                                   max="20"
+                                                   class="w-12 sm:w-16 px-1 sm:px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-200 text-center font-semibold">
+                                            <button type="submit"
+                                                    id="contact_update_btn_{{ $groupMember->contact_id }}"
+                                                    class="w-7 h-7 sm:w-auto sm:h-auto sm:px-2 sm:py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95"
+                                                    title="Update family count">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <span class="hidden sm:inline text-xs font-semibold">Update</span>
+                                            </button>
+                                            <span id="contact_status_{{ $groupMember->contact_id }}" class="text-base sm:text-xs font-semibold"></span>
+                                        </form>
+                                    @else
+                                        <span class="text-sm font-semibold text-purple-600 px-2 py-1 bg-purple-50 rounded">{{ $groupMember->contact->family_count ?? 0 }}</span>
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -394,6 +421,80 @@
             status.className = 'text-xs font-semibold text-red-600';
             input.value = originalValue;
             
+            input.classList.add('border-red-500', 'bg-red-50');
+            setTimeout(() => {
+                input.classList.remove('border-red-500', 'bg-red-50');
+                status.textContent = '';
+            }, 2000);
+        } finally {
+            // Re-enable button and restore original content
+            button.disabled = false;
+            button.innerHTML = originalButtonHTML;
+        }
+    }
+
+    async function updateContactFamilyCount(event, contactId) {
+        event.preventDefault();
+
+        const form = event.target;
+        const input = document.getElementById(`contact_family_count_${contactId}`);
+        const button = document.getElementById(`contact_update_btn_${contactId}`);
+        const status = document.getElementById(`contact_status_${contactId}`);
+        const originalValue = input.value;
+        const originalButtonHTML = button.innerHTML;
+
+        // Disable button and show loading spinner
+        button.disabled = true;
+        button.innerHTML = '<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+        status.textContent = '';
+        status.className = 'text-base sm:text-xs font-semibold';
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Success - show green checkmark
+                status.textContent = '✓';
+                status.className = 'text-xs font-semibold text-green-600';
+
+                // Update the input value to match what was saved
+                input.value = data.family_count;
+
+                // Flash the input green
+                input.classList.add('border-green-500', 'bg-green-50');
+                setTimeout(() => {
+                    input.classList.remove('border-green-500', 'bg-green-50');
+                    status.textContent = '';
+                }, 2000);
+            } else {
+                // Error - show red X and revert value
+                status.textContent = '✗';
+                status.className = 'text-xs font-semibold text-red-600';
+                input.value = originalValue;
+
+                // Flash the input red
+                input.classList.add('border-red-500', 'bg-red-50');
+                setTimeout(() => {
+                    input.classList.remove('border-red-500', 'bg-red-50');
+                    status.textContent = '';
+                }, 2000);
+            }
+        } catch (error) {
+            // Network error - show red X and revert
+            status.textContent = '✗';
+            status.className = 'text-xs font-semibold text-red-600';
+            input.value = originalValue;
+
             input.classList.add('border-red-500', 'bg-red-50');
             setTimeout(() => {
                 input.classList.remove('border-red-500', 'bg-red-50');
