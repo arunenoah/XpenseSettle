@@ -210,9 +210,14 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-xs sm:text-sm font-bold text-gray-900 truncate">{{ $balance['user']->name }}</p>
-                            @if($balance['user']->id === auth()->id())
-                                <span class="inline-block px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full whitespace-nowrap">You 👋</span>
-                            @endif
+                            <div class="flex gap-1 mt-1">
+                                @if($balance['is_contact'])
+                                    <span class="inline-block px-1.5 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full whitespace-nowrap">✨ Contact</span>
+                                @endif
+                                @if(!$balance['is_contact'] && $balance['user']->id === auth()->id())
+                                    <span class="inline-block px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-bold rounded-full whitespace-nowrap">You 👋</span>
+                                @endif
+                            </div>
                         </div>
                     </div>
 
