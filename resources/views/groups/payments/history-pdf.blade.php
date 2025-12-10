@@ -178,7 +178,7 @@
             <strong>Members:</strong>
             <div class="members-list">
                 @foreach($overallSettlement as $gmId => $data)
-                    <span class="member-badge">{{ $data['user']->name }}@if($data['is_contact']) ✨@endif</span>
+                    <span class="member-badge">{{ $data['user']->name }}@if($data['is_contact']) (C)@endif</span>
                 @endforeach
             </div>
         </div>
@@ -192,14 +192,14 @@
                 <tr>
                     <th>Person</th>
                     @foreach($overallSettlement as $toGmId => $toData)
-                        <th>{{ substr($toData['user']->name, 0, 10) }}@if($toData['is_contact'])✨@endif</th>
+                        <th>{{ substr($toData['user']->name, 0, 8) }}@if($toData['is_contact']) (C)@endif</th>
                     @endforeach
                 </tr>
             </thead>
             <tbody>
                 @foreach($overallSettlement as $fromGmId => $fromData)
                     <tr>
-                        <td style="font-weight: bold; text-align: left;">{{ $fromData['user']->name }}@if($fromData['is_contact'])✨@endif</td>
+                        <td style="font-weight: bold; text-align: left;">{{ $fromData['user']->name }}@if($fromData['is_contact']) (C)@endif</td>
                         @foreach($overallSettlement as $toGmId => $toData)
                             <td>
                                 @if($fromGmId === $toGmId)
