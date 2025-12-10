@@ -165,7 +165,7 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Total Members:</div>
-                <div class="info-value">{{ $group->members->count() }}</div>
+                <div class="info-value">{{ count($overallSettlement) }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">Total Expenses:</div>
@@ -177,8 +177,8 @@
         <div style="margin-top: 10px;">
             <strong>Members:</strong>
             <div class="members-list">
-                @foreach($group->members as $member)
-                    <span class="member-badge">{{ $member->name }}</span>
+                @foreach($overallSettlement as $gmId => $data)
+                    <span class="member-badge">{{ $data['user']->name }}@if($data['is_contact']) ✨@endif</span>
                 @endforeach
             </div>
         </div>
@@ -191,36 +191,36 @@
             <thead>
                 <tr>
                     <th>Person</th>
-                    @foreach($group->members as $member)
-                        <th>{{ substr($member->name, 0, 10) }}</th>
+                    @foreach($overallSettlement as $toGmId => $toData)
+                        <th>{{ substr($toData['user']->name, 0, 10) }}@if($toData['is_contact'])✨@endif</th>
                     @endforeach
                 </tr>
             </thead>
             <tbody>
-                @foreach($group->members as $fromUser)
+                @foreach($overallSettlement as $fromGmId => $fromData)
                     <tr>
-                        <td style="font-weight: bold; text-align: left;">{{ $fromUser->name }}</td>
-                        @foreach($group->members as $toUser)
+                        <td style="font-weight: bold; text-align: left;">{{ $fromData['user']->name }}@if($fromData['is_contact'])✨@endif</td>
+                        @foreach($overallSettlement as $toGmId => $toData)
                             <td>
-                                @if($fromUser->id === $toUser->id)
+                                @if($fromGmId === $toGmId)
                                     —
                                 @else
                                     @php
                                         $amount = 0;
                                         $class = '';
-                                        
-                                        // Check if fromUser owes toUser
-                                        if (isset($overallSettlement[$fromUser->id]['owes'][$toUser->id])) {
-                                            $amount = $overallSettlement[$fromUser->id]['owes'][$toUser->id]['amount'];
+
+                                        // Check if fromMember owes toMember
+                                        if (isset($fromData['owes'][$toGmId])) {
+                                            $amount = $fromData['owes'][$toGmId]['amount'];
                                             $class = 'owes';
                                         }
-                                        // Check if toUser owes fromUser
-                                        elseif (isset($overallSettlement[$toUser->id]['owes'][$fromUser->id])) {
-                                            $amount = $overallSettlement[$toUser->id]['owes'][$fromUser->id]['amount'];
+                                        // Check if toMember owes fromMember
+                                        elseif (isset($toData['owes'][$fromGmId])) {
+                                            $amount = $toData['owes'][$fromGmId]['amount'];
                                             $class = 'owed';
                                         }
                                     @endphp
-                                    
+
                                     @if($amount > 0)
                                         <span class="{{ $class }}">{{ number_format($amount, 2) }}</span>
                                     @else
