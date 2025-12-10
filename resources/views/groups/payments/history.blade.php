@@ -230,37 +230,40 @@
                         <thead>
                             <tr class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b-2 border-gray-200">
                                 <th class="px-4 sm:px-6 py-4 text-left font-bold text-gray-700">Person</th>
-                                @foreach($group->members as $member)
+                                @foreach($overallSettlement as $memberId => $data)
                                     <th class="px-4 sm:px-6 py-4 text-center font-bold text-gray-700 whitespace-nowrap">
-                                        {{ substr($member->name, 0, 3) }}
+                                        <div>{{ substr($data['user']->name, 0, 3) }}</div>
+                                        @if($data['is_contact'])
+                                            <div class="text-xs text-cyan-600">✨</div>
+                                        @endif
                                     </th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
-                            @foreach($group->members as $fromUser)
+                            @foreach($overallSettlement as $fromMemberId => $fromData)
                                 <tr class="hover:bg-gray-50 transition-all">
                                     <td class="px-4 sm:px-6 py-4 font-semibold text-gray-900">
-                                        {{ $fromUser->name }}
+                                        <div class="flex items-center gap-2">
+                                            <span>{{ $fromData['user']->name }}</span>
+                                            @if($fromData['is_contact'])
+                                                <span class="text-xs px-1 py-0.5 bg-cyan-100 text-cyan-700 rounded">✨ Contact</span>
+                                            @endif
+                                        </div>
                                     </td>
-                                    @foreach($group->members as $toUser)
+                                    @foreach($overallSettlement as $toMemberId => $toData)
                                         <td class="px-4 sm:px-6 py-4 text-center">
-                                            @if($fromUser->id === $toUser->id)
+                                            @if($fromMemberId === $toMemberId)
                                                 <span class="text-gray-400">—</span>
                                             @else
                                                 @php
                                                     $amount = 0;
-                                                    $color = 'gray'; // 'red' if fromUser owes toUser, 'green' if toUser owes fromUser
+                                                    $color = 'gray';
 
-                                                    // Check if fromUser owes toUser (Row owes Column)
-                                                    if (isset($overallSettlement[$fromUser->id]['owes'][$toUser->id])) {
-                                                        $amount = $overallSettlement[$fromUser->id]['owes'][$toUser->id]['amount'];
+                                                    // Check if fromMember owes toMember (Row owes Column)
+                                                    if (isset($fromData['owes'][$toMemberId])) {
+                                                        $amount = $fromData['owes'][$toMemberId]['amount'];
                                                         $color = 'red'; // Row person owes column person
-                                                    }
-                                                    // Otherwise check if toUser owes fromUser (Column owes Row)
-                                                    elseif (isset($overallSettlement[$toUser->id]['owes'][$fromUser->id])) {
-                                                        $amount = $overallSettlement[$toUser->id]['owes'][$fromUser->id]['amount'];
-                                                        $color = 'green'; // Column person owes row person
                                                     }
                                                 @endphp
 
@@ -268,11 +271,6 @@
                                                     @if($color === 'red')
                                                         <!-- Red: Row person owes column person -->
                                                         <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-xs">
-                                                            {{ number_format($amount, 2) }}
-                                                        </span>
-                                                    @elseif($color === 'green')
-                                                        <!-- Green: Column person owes row person -->
-                                                        <span class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-xs">
                                                             {{ number_format($amount, 2) }}
                                                         </span>
                                                     @else
