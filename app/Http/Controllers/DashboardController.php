@@ -187,7 +187,7 @@ class DashboardController extends Controller
 
         // Get all expenses in this group (with payment relationships for settlement calculation)
         $expenses = $group->expenses()
-            ->with('payer', 'splits.payment', 'splits.user')
+            ->with('payer', 'splits.payment', 'splits.user', 'splits.contact')
             ->latest()
             ->get();
 
@@ -267,7 +267,7 @@ class DashboardController extends Controller
 
         // Use passed expenses to avoid lazy loading
         if ($expenses === null) {
-            $expenses = $group->expenses()->with('payer', 'splits.payment', 'splits.user')->get();
+            $expenses = $group->expenses()->with('payer', 'splits.payment', 'splits.user', 'splits.contact')->get();
         }
 
         // Enrich settlement with split IDs
@@ -487,7 +487,7 @@ class DashboardController extends Controller
         // Get all expenses and advances in this group
         $expenses = $group->expenses()
             ->where('split_type', '!=', 'itemwise')  // Exclude itemwise from settlement
-            ->with('payer', 'splits.user', 'splits.payment')
+            ->with('payer', 'splits.user', 'splits.contact', 'splits.payment')
             ->get();
 
         $advances = \App\Models\Advance::where('group_id', $group->id)
