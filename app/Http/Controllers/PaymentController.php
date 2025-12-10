@@ -354,57 +354,77 @@ class PaymentController extends Controller
      */
     private function calculateGroupSettlementMatrix(Group $group)
     {
-        // Use personal settlement calculation for each member and build matrix
-        $matrix = [];
+        // Build settlement matrix including both users and contacts
+        $result = [];
 
-        // Initialize matrix
-        foreach ($group->members as $member) {
-            $matrix[$member->id] = [];
-            foreach ($group->members as $other) {
-                if ($member->id !== $other->id) {
-                    $matrix[$member->id][$other->id] = 0;
-                }
-            }
+        // Get all members (users and contacts)
+        $groupMembers = $group->allMembers()->with(['user', 'contact'])->get();
+
+        // Initialize result for all members
+        foreach ($groupMembers as $groupMember) {
+            $memberObj = $groupMember->isContact() ? $groupMember->contact : $groupMember->user;
+            if (!$memberObj) continue;
+
+            $result[$groupMember->id] = [
+                'user' => $memberObj,
+                'is_contact' => $groupMember->isContact(),
+                'owes' => []
+            ];
         }
 
-        // For each member (users only, not contacts), calculate their personal settlement
+        // For each USER only (not contacts), calculate their personal settlement
+        // Contacts don't have settlements since they can't make payments
         foreach ($group->members as $member) {
             $settlement = $this->calculateSettlement($group, $member);
 
             // Convert settlement to matrix
             foreach ($settlement as $item) {
-                $personId = $item['user']->id;
-                $amount = $item['net_amount']; // Positive = member owes, Negative = person owes member
+                // Get the target person/contact info
+                $targetIsContact = isset($item['is_contact']) && $item['is_contact'];
+                $amount = $item['net_amount'];
 
                 if ($amount > 0) {
-                    // Member owes personId
-                    $matrix[$member->id][$personId] = $amount;
+                    // Member owes someone
+                    if ($targetIsContact) {
+                        // Member owes a contact - find contact in result
+                        foreach ($result as $key => $entry) {
+                            if ($entry['is_contact'] && $entry['user']->id === $item['user']->id) {
+                                $result[$member->id]['owes'][$key] = [
+                                    'user' => $item['user'],
+                                    'is_contact' => true,
+                                    'amount' => round($amount, 2),
+                                ];
+                                break;
+                            }
+                        }
+                    } else {
+                        // Member owes a user
+                        $personId = $item['user']->id;
+                        $result[$member->id]['owes'][$personId] = [
+                            'user' => $item['user'],
+                            'is_contact' => false,
+                            'amount' => round($amount, 2),
+                        ];
+                    }
                 } else if ($amount < 0) {
-                    // PersonId owes member
-                    $matrix[$personId][$member->id] = abs($amount);
+                    // Someone owes member (only for users, not contacts)
+                    $targetId = $targetIsContact ? null : $item['user']->id;
+                    if ($targetId) {
+                        if (!isset($result[$targetId]['owes'])) {
+                            $result[$targetId]['owes'] = [];
+                        }
+                        $result[$targetId]['owes'][$member->id] = [
+                            'user' => $group->members->find($member->id),
+                            'is_contact' => false,
+                            'amount' => round(abs($amount), 2),
+                        ];
+                    }
                 }
             }
         }
 
-        // Convert to readable format with user data
-        // Only include positive amounts (actual debts)
-        $result = [];
-        foreach ($group->members as $fromUser) {
-            $result[$fromUser->id] = [
-                'user' => $fromUser,
-                'owes' => []
-            ];
-
-            foreach ($matrix[$fromUser->id] as $toUserId => $amount) {
-                if ($amount > 0) {
-                    $toUser = $group->members->find($toUserId);
-                    $result[$fromUser->id]['owes'][$toUserId] = [
-                        'user' => $toUser,
-                        'amount' => round($amount, 2),
-                    ];
-                }
-            }
-        }
+        // For contacts who owe users, add their debts
+        // Process from the user side (already handled above via calculateSettlement)
 
         return $result;
     }
