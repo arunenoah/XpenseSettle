@@ -345,6 +345,56 @@ class GroupController extends Controller
     }
 
     /**
+     * Update contact family count.
+     */
+    public function updateContactFamilyCount(Request $request, Group $group, Contact $contact)
+    {
+        // Check authorization
+        if (!$group->isAdmin(auth()->user())) {
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Only admins can update family count'], 403);
+            }
+            abort(403, 'Only admins can update family count');
+        }
+
+        // Verify contact belongs to this group
+        if ($contact->group_id !== $group->id) {
+            if ($request->wantsJson()) {
+                return response()->json(['error' => 'Contact does not belong to this group'], 404);
+            }
+            abort(404, 'Contact not found');
+        }
+
+        $validated = $request->validate([
+            'family_count' => 'required|integer|min:0|max:20',
+        ]);
+
+        try {
+            $contact->update([
+                'family_count' => $validated['family_count']
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Family count updated successfully!',
+                    'family_count' => $contact->family_count
+                ]);
+            }
+
+            return back()->with('success', 'Family count updated successfully!');
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Failed to update family count: ' . $e->getMessage()
+                ], 500);
+            }
+            return back()->with('error', 'Failed to update family count: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Update member role.
      */
     public function updateMemberRole(Request $request, Group $group, GroupMember $member)
