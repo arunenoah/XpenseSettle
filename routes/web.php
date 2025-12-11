@@ -9,6 +9,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Admin\AuditLogController;
 use Illuminate\Support\Facades\Route;
 
 // Root route - redirect to login for guests, dashboard for authenticated users
@@ -107,6 +108,11 @@ Route::middleware('auth')->group(function () {
 
     // Logout
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Audit Logs (only group admins can view their group's logs)
+    Route::get('/groups/{group}/audit-logs', [AuditLogController::class, 'groupAuditLogs'])->name('groups.audit-logs');
+    Route::get('/groups/{group}/audit-logs/filter', [AuditLogController::class, 'filterByAction'])->name('groups.audit-logs.filter');
+    Route::get('/groups/{group}/audit-logs/export-csv', [AuditLogController::class, 'exportCsv'])->name('admin.audit-logs.export');
 });
 
 // Super Admin Routes (only for arun@example.com)
