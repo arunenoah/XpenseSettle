@@ -202,14 +202,13 @@
                     <span>Net Balance</span>
                 </h3>
                 @php
-                    $theyOweMe = $peopleOweMe->sum('total_owed');
-                    $netBalance = $totalOwed - $theyOweMe;
+                    $theyOweMe = $totalTheyOweYou;
                 @endphp
-                @if($totalOwed > 0 || $theyOweMe > 0)
+                @if($totalYouOwe > 0 || $theyOweMe > 0)
                     <div class="relative" style="max-width: 180px; max-height: 180px; margin: 0 auto;">
                         <canvas id="balance-donut" width="180" height="180"></canvas>
                         <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <p class="text-2xl font-black text-gray-900">₹{{ number_format($totalOwed + $theyOweMe, 0) }}</p>
+                            <p class="text-2xl font-black text-gray-900">₹{{ number_format($totalYouOwe + $theyOweMe, 0) }}</p>
                             <p class="text-xs font-semibold text-gray-600">Total</p>
                         </div>
                     </div>
@@ -219,7 +218,7 @@
                                 <span class="w-3 h-3 bg-red-500 rounded-full"></span>
                                 <span class="font-semibold">You Owe</span>
                             </span>
-                            <span class="font-bold text-red-600">₹{{ number_format($totalOwed, 0) }}</span>
+                            <span class="font-bold text-red-600">₹{{ number_format($totalYouOwe, 0) }}</span>
                         </div>
                         <div class="flex items-center justify-between text-xs">
                             <span class="flex items-center gap-1">
@@ -238,7 +237,7 @@
                             data: {
                                 labels: ['You Owe', 'They Owe You'],
                                 datasets: [{
-                                    data: [{{ $totalOwed }}, {{ $theyOweMe }}],
+                                    data: [{{ $totalYouOwe }}, {{ $theyOweMe }}],
                                     backgroundColor: ['#EF4444', '#10B981'],
                                     borderWidth: 0
                                 }]
@@ -277,11 +276,11 @@
                 <div class="space-y-3">
                     <div class="bg-gradient-to-r from-red-50 to-red-100 rounded-lg p-3 border border-red-200">
                         <p class="text-xs font-semibold text-red-700 mb-1">You Owe</p>
-                        <p class="text-2xl font-black text-red-600">₹{{ number_format($totalOwed, 0) }}</p>
+                        <p class="text-2xl font-black text-red-600">₹{{ number_format($totalYouOwe, 0) }}</p>
                     </div>
                     <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
                         <p class="text-xs font-semibold text-green-700 mb-1">They Owe You</p>
-                        <p class="text-2xl font-black text-green-600">₹{{ number_format($theyOweMe, 0) }}</p>
+                        <p class="text-2xl font-black text-green-600">₹{{ number_format($totalTheyOweYou, 0) }}</p>
                     </div>
                 </div>
             </div>
