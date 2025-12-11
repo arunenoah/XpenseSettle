@@ -86,7 +86,10 @@ class PaymentController extends Controller
         // Get complete transaction history for the group
         $transactionHistory = $this->getGroupTransactionHistory($group);
 
-        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin', 'transactionHistory'));
+        // Calculate settlement suggestions (optimized payment instructions)
+        $settlementSuggestions = $this->calculateSettlementSuggestions($group);
+
+        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin', 'transactionHistory', 'settlementSuggestions'));
     }
 
     /**
@@ -509,6 +512,111 @@ class PaymentController extends Controller
         }
 
         return $result;
+    }
+
+    /**
+     * Calculate optimized settlement suggestions for a group.
+     * Returns simplified payment instructions to minimize transactions.
+     * Uses a greedy algorithm to match debtors with creditors.
+     */
+    private function calculateSettlementSuggestions(Group $group)
+    {
+        // Get all settlements first
+        $matrix = $this->calculateGroupSettlementMatrix($group);
+
+        $suggestions = [];
+
+        // Build lists of who owes and who is owed
+        $debtors = [];  // People who owe money: ['user_id' => ['name' => ..., 'amount' => ...]]
+        $creditors = [];  // People owed money: ['user_id' => ['name' => ..., 'amount' => ...]]
+
+        foreach ($matrix as $fromMemberId => $fromData) {
+            $totalOwed = 0;
+
+            // Sum up all amounts this person owes
+            if (isset($fromData['owes'])) {
+                foreach ($fromData['owes'] as $owesData) {
+                    $totalOwed += $owesData['amount'];
+                }
+            }
+
+            // Only include users (not contacts) in suggestions
+            if ($fromData['is_contact']) {
+                continue;
+            }
+
+            if ($totalOwed > 0.01) {
+                $debtors[$fromData['user']->id] = [
+                    'name' => $fromData['user']->name,
+                    'amount' => round($totalOwed, 2),
+                    'user_id' => $fromData['user']->id,
+                ];
+            }
+        }
+
+        // Calculate creditors from the personal settlement perspective
+        foreach ($group->members as $user) {
+            $settlement = $this->calculateSettlement($group, $user);
+            $totalOwedToUser = 0;
+
+            foreach ($settlement as $item) {
+                if ($item['net_amount'] < 0 && !($item['is_contact'] ?? false)) {
+                    // This person owes the user
+                    $totalOwedToUser += abs($item['net_amount']);
+                }
+            }
+
+            if ($totalOwedToUser > 0.01) {
+                $creditors[$user->id] = [
+                    'name' => $user->name,
+                    'amount' => round($totalOwedToUser, 2),
+                    'user_id' => $user->id,
+                ];
+            }
+        }
+
+        // Match debtors with creditors using a greedy algorithm
+        $debtorsList = array_values($debtors);
+        $creditorsList = array_values($creditors);
+
+        $debtorIdx = 0;
+        $creditorIdx = 0;
+
+        while ($debtorIdx < count($debtorsList) && $creditorIdx < count($creditorsList)) {
+            $debtor = $debtorsList[$debtorIdx];
+            $creditor = $creditorsList[$creditorIdx];
+
+            $debtAmount = $debtor['amount'];
+            $creditAmount = $creditor['amount'];
+
+            // Match the smaller of the two amounts
+            $payAmount = min($debtAmount, $creditAmount);
+
+            if ($payAmount > 0.01) {
+                $suggestions[] = [
+                    'from' => $debtor['name'],
+                    'from_id' => $debtor['user_id'],
+                    'to' => $creditor['name'],
+                    'to_id' => $creditor['user_id'],
+                    'amount' => round($payAmount, 2),
+                    'formatted_amount' => number_format(round($payAmount, 2), 2),
+                ];
+            }
+
+            // Update remaining amounts
+            $debtorsList[$debtorIdx]['amount'] -= $payAmount;
+            $creditorsList[$creditorIdx]['amount'] -= $payAmount;
+
+            // Move to next debtor or creditor if this one is settled
+            if ($debtorsList[$debtorIdx]['amount'] < 0.01) {
+                $debtorIdx++;
+            }
+            if ($creditorsList[$creditorIdx]['amount'] < 0.01) {
+                $creditorIdx++;
+            }
+        }
+
+        return $suggestions;
     }
 
     /**

@@ -56,160 +56,110 @@
     <x-group-tabs :group="$group" active="history" />
 
     <!-- Main Content -->
-    <div class="px-4 sm:px-6 lg:px-8 py-8">
-        <div class="max-w-7xl mx-auto space-y-6">
+    <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="max-w-7xl mx-auto space-y-8">
 
             <!-- Export Button Section (Desktop Only) -->
-            <div class="hidden sm:flex justify-end mb-4">
-                <a href="{{ route('groups.payments.export-pdf', $group) }}" 
+            <div class="hidden sm:flex justify-end">
+                <a href="{{ route('groups.payments.export-pdf', $group) }}"
                    download
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-all font-semibold shadow-md hover:shadow-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 active:bg-red-800 transition-all font-semibold text-sm shadow-md hover:shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    Export Statement as PDF
+                    Export PDF
                 </a>
             </div>
 
             <!-- Personal Settlement Section -->
             <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
                 @if(count($personalSettlement) > 0)
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full">
+                        <table class="w-full text-sm">
                             <thead>
                                 <tr class="bg-gray-50 border-b border-gray-200">
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Expense</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Bill by</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">They spent for me</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">I spent for them</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Final Balance</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Status</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Details</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Action</th>
-                            <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Attachment</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        @foreach($personalSettlement as $item)
-                            @php
-                                $isOwed = $item['net_amount'] > 0;
-                                // net_amount already includes advance reductions, don't double-subtract
-                                $finalAmount = abs($item['net_amount']);
-                                // Always show settlements
-                                $shouldShow = true;
+                                    <th class="px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Person</th>
+                                    <th class="px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Owed</th>
+                                    <th class="px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Balance</th>
+                                    <th class="px-3 sm:px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Status</th>
+                                    <th class="px-3 sm:px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach($personalSettlement as $item)
+                                    @php
+                                        $isOwed = $item['net_amount'] > 0;
+                                        $finalAmount = abs($item['net_amount']);
+                                        $shouldShow = true;
 
-                                // Calculate they spent for me vs I spent for them
-                                $theySpentForMe = 0;
-                                $iSpentForThem = 0;
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $expense) {
-                                        if ($expense['type'] === 'you_owe') {
-                                            $theySpentForMe += $expense['amount'];
-                                        } else {
-                                            $iSpentForThem += $expense['amount'];
+                                        $theySpentForMe = 0;
+                                        $iSpentForThem = 0;
+                                        if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                            foreach ($item['expenses'] as $expense) {
+                                                if ($expense['type'] === 'you_owe') {
+                                                    $theySpentForMe += $expense['amount'];
+                                                } else {
+                                                    $iSpentForThem += $expense['amount'];
+                                                }
+                                            }
                                         }
-                                    }
-                                }
-                            @endphp
-                            @if($shouldShow)
-                            <tr class="hover:bg-gray-50 transition-all">
-                                <!-- Expense Name -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <div class="flex flex-col gap-1">
-                                        @if(count($item['expenses']) > 0)
-                                            @foreach($item['expenses'] as $expense)
-                                                <p class="font-semibold text-gray-900 text-sm">{{ $expense['title'] }}</p>
-                                            @endforeach
-                                        @else
-                                            <p class="font-semibold text-gray-900">Settlement</p>
-                                        @endif
-                                    </div>
-                                </td>
+                                    @endphp
+                                    @if($shouldShow)
+                                    <tr class="hover:bg-blue-50 transition-colors">
+                                        <!-- Person -->
+                                        <td class="px-3 sm:px-4 py-3">
+                                            <div class="flex items-center gap-2">
+                                                <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
+                                                    <span class="text-xs font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
+                                                </div>
+                                                <span class="font-medium text-gray-900 truncate">{{ $item['user']->name }}</span>
+                                            </div>
+                                        </td>
 
-                                <!-- Bill by (Person Name) -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
-                                            <span class="text-sm font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
-                                        </div>
-                                        <span class="text-sm font-medium text-gray-900">{{ $item['user']->name }}</span>
-                                    </div>
-                                </td>
+                                        <!-- They spent for me -->
+                                        <td class="px-3 sm:px-4 py-3 text-right">
+                                            @if($theySpentForMe > 0)
+                                                <span class="font-bold text-red-600">${{ number_format($theySpentForMe, 2) }}</span>
+                                            @else
+                                                <span class="text-xs text-gray-400">—</span>
+                                            @endif
+                                        </td>
 
-                                <!-- They spent for me -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($theySpentForMe > 0)
-                                        <span class="font-bold text-red-600">${{ number_format($theySpentForMe, 2) }}</span>
-                                    @else
-                                        <span class="text-xs text-gray-500">—</span>
+                                        <!-- Balance -->
+                                        <td class="px-3 sm:px-4 py-3 text-right">
+                                            <p class="font-bold text-lg {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
+                                                {{ $isOwed ? '$' : '-$' }}{{ number_format(abs($finalAmount), 2) }}
+                                            </p>
+                                        </td>
+
+                                        <!-- Status -->
+                                        <td class="px-3 sm:px-4 py-3 text-center">
+                                            @if($isOwed)
+                                                <span class="inline-block px-2 py-1 bg-red-100 text-red-700 text-xs font-bold rounded">Owing</span>
+                                            @else
+                                                <span class="inline-block px-2 py-1 bg-green-100 text-green-700 text-xs font-bold rounded">Owed</span>
+                                            @endif
+                                        </td>
+
+                                        <!-- Action -->
+                                        <td class="px-3 sm:px-4 py-3 text-center">
+                                            @if($isOwed && isset($item['split_ids']) && count($item['split_ids']) > 0)
+                                                <button onclick="openPaymentModal('{{ $item['split_ids'][0] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold hover:bg-blue-200 transition-all">
+                                                    Pay
+                                                </button>
+                                            @else
+                                                <span class="text-xs text-gray-400">—</span>
+                                            @endif
+                                        </td>
+                                    </tr>
                                     @endif
-                                </td>
-
-                                <!-- I spent for them -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($iSpentForThem > 0)
-                                        <span class="font-bold text-green-600">${{ number_format($iSpentForThem, 2) }}</span>
-                                    @else
-                                        <span class="text-xs text-gray-500">—</span>
-                                    @endif
-                                </td>
-
-
-                                <!-- Balance (Final Amount) -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <p class="font-black text-lg {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
-                                        {{ $isOwed ? '$' : '-$' }}{{ number_format(abs($finalAmount), 2) }}
-                                    </p>
-                                </td>
-
-                                <!-- Status Badge -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($isOwed)
-                                        <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full">
-                                            😬 Pending Payment
-                                        </span>
-                                    @else
-                                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
-                                            ✓ They Owe You
-                                        </span>
-                                    @endif
-                                </td>
-
-                                <!-- Details -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <button onclick="openBreakdownModal('{{ $item['user']->name }}', {{ json_encode($item) }})" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">
-                                        👁️ View
-                                    </button>
-                                </td>
-
-                                <!-- Action -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    @if($isOwed && isset($item['split_ids']) && count($item['split_ids']) > 0)
-                                        <button onclick="openPaymentModal('{{ $item['split_ids'][0] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="inline-flex items-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
-                                            💳 Mark as paid
-                                        </button>
-                                    @elseif($isOwed)
-                                        <span class="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold cursor-not-allowed" title="No split found">
-                                            💳 Unable
-                                        </span>
-                                    @else
-                                        <span class="text-xs text-gray-500">—</span>
-                                    @endif
-                                </td>
-
-                                <!-- Attachment -->
-                                <td class="px-4 sm:px-6 py-4">
-                                    <span class="text-xs text-gray-500">if any</span>
-                                </td>
-                            </tr>
-                            @endif
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             @else
                 <!-- No Personal Settlement -->
                 <div class="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
@@ -221,153 +171,215 @@
         </div>
     </div>
 
+    <!-- Settlement Suggestions Section -->
+    @if(count($settlementSuggestions) > 0)
+    <div class="my-8">
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl shadow-lg overflow-hidden border-2 border-amber-200">
+            <div class="px-4 sm:px-6 py-6 sm:py-8">
+                <!-- Header -->
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="text-4xl">💡</span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Quick Settlement Plan</h2>
+                        <p class="text-sm text-gray-600 mt-1">Optimized payment instructions to settle all balances</p>
+                    </div>
+                </div>
+
+                <!-- Suggestions List -->
+                <div class="space-y-3">
+                    @foreach($settlementSuggestions as $index => $suggestion)
+                    <div class="bg-white rounded-xl p-4 sm:p-5 border-2 border-amber-100 hover:border-amber-300 hover:shadow-md transition-all">
+                        <div class="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                            <!-- Step Number -->
+                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center">
+                                <span class="text-lg font-bold text-white">{{ $index + 1 }}</span>
+                            </div>
+
+                            <!-- Payment Flow -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-3 flex-wrap">
+                                    <!-- From Person -->
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-red-400 to-red-500 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-xs font-bold text-white">{{ strtoupper(substr($suggestion['from'], 0, 1)) }}</span>
+                                        </div>
+                                        <span class="font-semibold text-gray-900 truncate">{{ $suggestion['from'] }}</span>
+                                    </div>
+
+                                    <!-- Arrow -->
+                                    <span class="text-gray-400 flex-shrink-0 hidden sm:inline">→</span>
+
+                                    <!-- Amount Badge -->
+                                    <div class="px-3 py-1 bg-gradient-to-r from-amber-200 to-orange-200 rounded-full">
+                                        <span class="font-black text-lg text-amber-900">${{ $suggestion['formatted_amount'] }}</span>
+                                    </div>
+
+                                    <!-- Arrow (Mobile) -->
+                                    <span class="text-gray-400 flex-shrink-0 sm:hidden">→</span>
+
+                                    <!-- To Person -->
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-500 flex items-center justify-center flex-shrink-0">
+                                            <span class="text-xs font-bold text-white">{{ strtoupper(substr($suggestion['to'], 0, 1)) }}</span>
+                                        </div>
+                                        <span class="font-semibold text-gray-900 truncate">{{ $suggestion['to'] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Copy Button -->
+                            <button onclick="copySuggestion('{{ $suggestion['from'] }} → {{ $suggestion['to'] }} ${{ $suggestion['formatted_amount'] }}')" class="flex-shrink-0 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all text-xs font-bold">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                <!-- Info Note -->
+                <div class="mt-6 p-4 bg-amber-100 rounded-lg border-l-4 border-amber-500">
+                    <p class="text-sm text-amber-900">
+                        <strong>💬 Tip:</strong> These are optimized payment instructions. Share these with your group members to settle all balances in the minimum number of transactions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Overall Settlement Matrix (visible to everyone) -->
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Overall Group Settlement</h2>
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="bg-gradient-to-r from-indigo-50 to-blue-50 border-b-2 border-gray-200">
-                                <th class="px-4 sm:px-6 py-4 text-left font-bold text-gray-700">Person</th>
-                                @foreach($overallSettlement as $memberId => $data)
-                                    <th class="px-4 sm:px-6 py-4 text-center font-bold text-gray-700 whitespace-nowrap">
-                                        <div>{{ substr($data['user']->name, 0, 3) }}</div>
-                                        @if($data['is_contact'])
-                                            <div class="text-xs text-cyan-600">✨</div>
+    <div>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Overall Group Settlement</h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="px-3 sm:px-4 py-3 text-left font-bold text-gray-600 text-xs uppercase">Person</th>
+                            @foreach($overallSettlement as $memberId => $data)
+                                <th class="px-2 sm:px-3 py-3 text-center font-bold text-gray-700 whitespace-nowrap text-xs sm:text-sm">
+                                    <div>{{ substr($data['user']->name, 0, 2) }}</div>
+                                    @if($data['is_contact'])
+                                        <div class="text-xs text-cyan-600">✨</div>
+                                    @endif
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($overallSettlement as $fromMemberId => $fromData)
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-3 sm:px-4 py-3 font-semibold text-gray-900 text-sm whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <span>{{ $fromData['user']->name }}</span>
+                                        @if($fromData['is_contact'])
+                                            <span class="text-xs px-1 py-0.5 bg-cyan-100 text-cyan-700 rounded">✨</span>
                                         @endif
-                                    </th>
+                                    </div>
+                                </td>
+                                @foreach($overallSettlement as $toMemberId => $toData)
+                                    <td class="px-2 sm:px-3 py-3 text-center">
+                                        @if($fromMemberId === $toMemberId)
+                                            <span class="text-gray-300">—</span>
+                                        @else
+                                            @php
+                                                $amount = 0;
+                                                $color = 'gray';
+
+                                                if (isset($fromData['owes'][$toMemberId])) {
+                                                    $amount = $fromData['owes'][$toMemberId]['amount'];
+                                                    $color = 'red';
+                                                }
+                                                elseif (isset($toData['owes'][$fromMemberId])) {
+                                                    $amount = $toData['owes'][$fromMemberId]['amount'];
+                                                    $color = 'green';
+                                                }
+                                            @endphp
+
+                                            @if($amount > 0)
+                                                @if($color === 'red')
+                                                    <span class="inline-block px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs whitespace-nowrap">
+                                                        ${{ number_format($amount, 2) }}
+                                                    </span>
+                                                @elseif($color === 'green')
+                                                    <span class="inline-block px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-xs whitespace-nowrap">
+                                                        ${{ number_format($amount, 2) }}
+                                                    </span>
+                                                @else
+                                                    <span class="text-gray-300">—</span>
+                                                @endif
+                                            @else
+                                                <span class="text-gray-300">—</span>
+                                            @endif
+                                        @endif
+                                    </td>
                                 @endforeach
                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            @foreach($overallSettlement as $fromMemberId => $fromData)
-                                <tr class="hover:bg-gray-50 transition-all">
-                                    <td class="px-4 sm:px-6 py-4 font-semibold text-gray-900">
-                                        <div class="flex items-center gap-2">
-                                            <span>{{ $fromData['user']->name }}</span>
-                                            @if($fromData['is_contact'])
-                                                <span class="text-xs px-1 py-0.5 bg-cyan-100 text-cyan-700 rounded">✨ Contact</span>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    @foreach($overallSettlement as $toMemberId => $toData)
-                                        <td class="px-4 sm:px-6 py-4 text-center">
-                                            @if($fromMemberId === $toMemberId)
-                                                <span class="text-gray-400">—</span>
-                                            @else
-                                                @php
-                                                    $amount = 0;
-                                                    $color = 'gray';
-
-                                                    // Check if fromMember owes toMember (Row owes Column)
-                                                    if (isset($fromData['owes'][$toMemberId])) {
-                                                        $amount = $fromData['owes'][$toMemberId]['amount'];
-                                                        $color = 'red'; // Row person owes column person
-                                                    }
-                                                    // Check if toMember owes fromMember (Column owes Row, shown as green)
-                                                    elseif (isset($toData['owes'][$fromMemberId])) {
-                                                        $amount = $toData['owes'][$fromMemberId]['amount'];
-                                                        $color = 'green'; // Column person owes row person
-                                                    }
-                                                @endphp
-
-                                                @if($amount > 0)
-                                                    @if($color === 'red')
-                                                        <!-- Red: Row person owes column person -->
-                                                        <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded font-bold text-xs">
-                                                            ${{ number_format($amount, 2) }}
-                                                        </span>
-                                                    @elseif($color === 'green')
-                                                        <!-- Green: Column person owes row person -->
-                                                        <span class="inline-block px-2 py-1 bg-green-100 text-green-700 rounded font-bold text-xs">
-                                                            ${{ number_format($amount, 2) }}
-                                                        </span>
-                                                    @else
-                                                        <span class="text-gray-400">—</span>
-                                                    @endif
-                                                @else
-                                                    <span class="text-gray-400">—</span>
-                                                @endif
-                                            @endif
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
 
     <!-- Transaction History Section -->
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">📜 All Group Transactions</h2>
+    <div>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">📜 Transaction History</h2>
         @if(count($transactionHistory) > 0)
-            <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full">
+                    <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-gradient-to-r from-purple-50 to-pink-50 border-b-2 border-gray-200">
-                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Date</th>
-                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Type</th>
-                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">From</th>
-                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Description</th>
-                                <th class="px-4 sm:px-6 py-4 text-left text-sm font-bold text-gray-700">Amount</th>
+                            <tr class="bg-gray-50 border-b border-gray-200">
+                                <th class="px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Date</th>
+                                <th class="px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Person</th>
+                                <th class="px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Details</th>
+                                <th class="px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Amount</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
+                        <tbody class="divide-y divide-gray-100">
                             @foreach($transactionHistory as $transaction)
                                 @php
                                     $isExpense = $transaction['type'] === 'expense';
                                 @endphp
-                                <tr class="hover:bg-gray-50 transition-all">
+                                <tr class="hover:bg-blue-50 transition-colors">
                                     <!-- Date -->
-                                    <td class="px-4 sm:px-6 py-4">
-                                        <span class="text-sm text-gray-600 font-medium">
-                                            {{ $transaction['timestamp']->format('M d, Y') }}
+                                    <td class="px-3 sm:px-4 py-3">
+                                        <span class="text-xs text-gray-600 font-medium">
+                                            {{ $transaction['timestamp']->format('M d') }}
                                         </span>
                                         <span class="text-xs text-gray-500 block">
                                             {{ $transaction['timestamp']->format('h:i A') }}
                                         </span>
                                     </td>
 
-                                    <!-- Type Badge -->
-                                    <td class="px-4 sm:px-6 py-4">
-                                        @if($isExpense)
-                                            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">
-                                                💰 Expense
-                                            </span>
-                                        @else
-                                            <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">
-                                                ✓ Payment
-                                            </span>
-                                        @endif
-                                    </td>
-
-                                    <!-- From -->
-                                    <td class="px-4 sm:px-6 py-4">
+                                    <!-- Person -->
+                                    <td class="px-3 sm:px-4 py-3">
                                         <div class="flex items-center gap-2">
-                                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
-                                                <span class="text-sm font-bold text-white">{{ strtoupper(substr($transaction['payer']->name, 0, 1)) }}</span>
+                                            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
+                                                <span class="text-xs font-bold text-white">{{ strtoupper(substr($transaction['payer']->name, 0, 1)) }}</span>
                                             </div>
-                                            <span class="text-sm font-medium text-gray-900">{{ $transaction['payer']->name }}</span>
+                                            <span class="text-xs font-medium text-gray-900 truncate">{{ $transaction['payer']->name }}</span>
                                         </div>
                                     </td>
 
-                                    <!-- Description -->
-                                    <td class="px-4 sm:px-6 py-4">
-                                        <div class="flex flex-col gap-1">
-                                            <p class="text-sm font-semibold text-gray-900">{{ $transaction['title'] }}</p>
-                                            @if(!$isExpense && isset($transaction['recipient']))
-                                                <p class="text-xs text-gray-600">→ to {{ $transaction['recipient']->name }}</p>
+                                    <!-- Details -->
+                                    <td class="px-3 sm:px-4 py-3">
+                                        <div class="flex flex-col gap-0.5">
+                                            @if($isExpense)
+                                                <span class="text-xs font-medium text-gray-900">{{ $transaction['title'] }}</span>
+                                                <span class="text-xs text-gray-500">💰 Added expense</span>
+                                            @else
+                                                <span class="text-xs font-medium text-gray-900">{{ $transaction['title'] }}</span>
+                                                @if(isset($transaction['recipient']))
+                                                    <span class="text-xs text-gray-500">✓ Payment to {{ $transaction['recipient']->name }}</span>
+                                                @endif
                                             @endif
                                         </div>
                                     </td>
 
                                     <!-- Amount -->
-                                    <td class="px-4 sm:px-6 py-4">
-                                        <p class="text-sm font-bold {{ $isExpense ? 'text-blue-600' : 'text-green-600' }}">
+                                    <td class="px-3 sm:px-4 py-3 text-right">
+                                        <p class="text-xs font-bold {{ $isExpense ? 'text-blue-600' : 'text-green-600' }}">
                                             ${{ number_format($transaction['amount'], 2) }}
                                         </p>
                                     </td>
@@ -378,10 +390,10 @@
                 </div>
             </div>
         @else
-            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl shadow-lg p-8 text-center border-2 border-purple-200">
-                <p class="text-6xl mb-4">📭</p>
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">No Transactions Yet</h2>
-                <p class="text-gray-600">No expenses or payments have been recorded in {{ $group->name }} yet.</p>
+            <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg shadow-sm p-8 text-center border-2 border-purple-200">
+                <p class="text-4xl mb-3">📭</p>
+                <h3 class="text-lg font-bold text-gray-900 mb-1">No Transactions Yet</h3>
+                <p class="text-sm text-gray-600">No expenses or payments have been recorded.</p>
             </div>
         @endif
     </div>
@@ -591,6 +603,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function copySuggestion(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show success feedback
+        const button = event.target.closest('button');
+        const originalText = button.textContent;
+        button.textContent = '✓ Copied!';
+        button.classList.add('bg-green-100', 'text-green-700');
+        button.classList.remove('bg-blue-100', 'text-blue-700');
+
+        setTimeout(function() {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-100', 'text-green-700');
+            button.classList.add('bg-blue-100', 'text-blue-700');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy:', err);
+    });
+}
 </script>
 
 <!-- Mark as Paid Modal -->
