@@ -124,20 +124,81 @@
             <!-- Split Type -->
             <div>
                 <label for="split_type" class="block text-sm font-semibold text-gray-700 mb-2">How to Split?</label>
-                <select
-                    id="split_type"
-                    name="split_type"
-                    class="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('split_type') ? 'border-red-500' : '' }}"
-                    onchange="toggleCustomSplits()"
-                    required
-                >
-                    <option value="equal" {{ old('split_type', 'equal') === 'equal' ? 'selected' : '' }}>Equal Split (divide evenly)</option>
-                    <option value="custom" {{ old('split_type') === 'custom' ? 'selected' : '' }}>Custom Split (specify amounts)</option>
-                </select>
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Equal Split Option -->
+                    <label class="relative flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50" id="option-equal">
+                        <input
+                            type="radio"
+                            name="split_type"
+                            value="equal"
+                            {{ old('split_type', 'equal') === 'equal' ? 'checked' : '' }}
+                            onchange="toggleCustomSplits()"
+                            class="mt-1"
+                            required
+                        />
+                        <div class="ml-3 flex-1">
+                            <p class="font-semibold text-gray-900">Equal Split</p>
+                            <p class="text-xs text-gray-600 mt-1">Divide evenly among members</p>
+                        </div>
+                    </label>
+
+                    <!-- Custom Split Option -->
+                    <label class="relative flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50" id="option-custom">
+                        <input
+                            type="radio"
+                            name="split_type"
+                            value="custom"
+                            {{ old('split_type') === 'custom' ? 'checked' : '' }}
+                            onchange="toggleCustomSplits()"
+                            class="mt-1"
+                            required
+                        />
+                        <div class="ml-3 flex-1">
+                            <p class="font-semibold text-gray-900">Custom Split</p>
+                            <p class="text-xs text-gray-600 mt-1">Specify amounts per person</p>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Hidden input to maintain form compatibility -->
+                <input type="hidden" id="split_type" name="split_type_hidden" value="{{ old('split_type', 'equal') }}" />
                 @error('split_type')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
+
+            <script>
+            // Update styling on load and when options change
+            document.querySelectorAll('input[name="split_type"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    updateSplitTypeUI();
+                });
+            });
+
+            function updateSplitTypeUI() {
+                const equalOption = document.getElementById('option-equal');
+                const customOption = document.getElementById('option-custom');
+                const equalRadio = equalOption.querySelector('input');
+                const customRadio = customOption.querySelector('input');
+
+                if (equalRadio.checked) {
+                    equalOption.classList.add('border-blue-500', 'bg-blue-50', 'border-2');
+                    equalOption.classList.remove('border-gray-200');
+                    customOption.classList.remove('border-blue-500', 'bg-blue-50');
+                    customOption.classList.add('border-gray-200');
+                } else {
+                    customOption.classList.add('border-blue-500', 'bg-blue-50', 'border-2');
+                    customOption.classList.remove('border-gray-200');
+                    equalOption.classList.remove('border-blue-500', 'bg-blue-50');
+                    equalOption.classList.add('border-gray-200');
+                }
+            }
+
+            // Initialize on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                updateSplitTypeUI();
+            });
+            </script>
 
             <!-- Custom Splits Section -->
             <div id="custom-splits" class="hidden">
@@ -288,47 +349,49 @@
 
                 <!-- Extracted Items Section -->
                 <div id="items-section" class="mt-6 hidden">
-                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6 mb-6">
-                        <h3 class="font-bold text-green-900 mb-2 text-lg">✅ Line Items Extracted</h3>
-                        <p class="text-sm text-green-800 mb-4">
-                            <strong>Step 2:</strong> Assign items to group members. Items without an assignee will be split equally.
-                        </p>
+                    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-4 sm:p-6 mb-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="text-2xl">✅</span>
+                            <div>
+                                <h3 class="font-bold text-green-900 text-lg">Line Items Extracted</h3>
+                                <p class="text-xs text-green-700">Assign to members • Items without assignee split equally</p>
+                            </div>
+                        </div>
 
-                        <!-- Items Display -->
-                        <div id="items-list" class="space-y-3 mb-4">
+                        <!-- Items Display as Pills -->
+                        <div id="items-list" class="flex flex-wrap gap-2 mb-4 bg-white p-3 rounded-lg border border-green-200">
                             <!-- Populated by JavaScript -->
                         </div>
 
-                        <!-- Add Item Button -->
-                        <button
-                            type="button"
-                            id="add-item-btn"
-                            class="w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold text-sm mb-4 border border-blue-300"
-                        >
-                            + Add Missing Item
-                        </button>
-
-                        <!-- OCR Confidence -->
-                        <div id="ocr-warning" class="text-xs text-orange-600 mt-3 p-2 bg-orange-50 rounded border border-orange-200 hidden">
-                            ⚠️ <span id="warning-text"></span>
+                        <!-- Summary Row -->
+                        <div class="flex items-center justify-between gap-3 mb-4 p-3 bg-white rounded-lg border border-green-200">
+                            <div>
+                                <p class="text-xs text-gray-600">Total from receipt</p>
+                                <p class="font-bold text-lg text-green-600">
+                                    $<span id="ocr-total">0.00</span>
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                id="add-item-btn"
+                                class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-semibold text-xs flex items-center gap-1 flex-shrink-0"
+                            >
+                                + Add
+                            </button>
                         </div>
 
-                        <!-- Summary -->
-                        <div class="mt-4 pt-4 border-t border-green-200">
-                            <p class="text-sm">
-                                <strong>Total from receipt:</strong>
-                                <span id="ocr-total" class="font-semibold">0.00</span>
-                                {{ $group->currency }}
-                            </p>
+                        <!-- OCR Confidence Warning -->
+                        <div id="ocr-warning" class="text-xs text-orange-600 mb-4 p-2 bg-orange-50 rounded border border-orange-200 hidden">
+                            ⚠️ <span id="warning-text"></span>
                         </div>
 
                         <!-- Use Extracted Button -->
                         <button
                             type="button"
                             id="use-extracted-btn"
-                            class="mt-4 w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                            class="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors font-semibold text-sm flex items-center justify-center gap-2"
                         >
-                            Use These Items & Auto-Split
+                            <span>✓ Use Items & Auto-Split</span>
                         </button>
                     </div>
                 </div>
@@ -1139,37 +1202,39 @@ function displayExtractedItems(items) {
     items.forEach(item => {
         total += item.total_price;
 
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'p-4 bg-white border border-green-200 rounded-lg';
-        itemDiv.id = `item-${item.id}`;
+        const assignedMember = members.find(m => m.id == item.assigned_to);
+        const assignedName = assignedMember ? assignedMember.name : 'Unassigned';
+        const pillColor = assignedMember ? 'bg-blue-100 border-blue-300' : 'bg-gray-100 border-gray-300';
+        const textColor = assignedMember ? 'text-blue-900' : 'text-gray-900';
 
-        // Display mode
-        const displayHtml = `
-            <div class="item-display">
-                <div class="flex items-start gap-3 mb-3">
-                    <div class="flex-1">
-                        <p class="font-semibold text-gray-900">${escapeHtml(item.name)}</p>
-                        <p class="text-sm text-gray-600">
-                            Qty: ${item.quantity} × ${getCurrencySymbol()} ${item.unit_price.toFixed(2)} =
-                            <span class="font-semibold">${getCurrencySymbol()} ${item.total_price.toFixed(2)}</span>
-                        </p>
-                        ${item.source_file ? `<p class="text-xs text-gray-500 mt-1">📎 From: ${escapeHtml(item.source_file)}</p>` : ''}
-                    </div>
-                    <button type="button" class="edit-item-btn text-blue-600 hover:text-blue-700 font-semibold text-sm px-3 py-1 border border-blue-300 rounded hover:bg-blue-50" data-item-id="${item.id}">
-                        ✏️ Edit
-                    </button>
-                </div>
+        const itemPill = document.createElement('div');
+        itemPill.className = `group relative inline-flex flex-wrap gap-1 items-center px-3 py-2 rounded-full border-2 ${pillColor} cursor-pointer hover:shadow-md transition-all`;
+        itemPill.id = `item-${item.id}`;
+        itemPill.title = `${item.name} - Qty: ${item.quantity} @ ${getCurrencySymbol()}${item.unit_price.toFixed(2)}`;
 
-                <div class="flex items-center gap-2">
-                    <select class="item-member text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500 flex-1" data-item-id="${item.id}">
-                        <option value="">Not assigned</option>
-                        ${members.map(m => `<option value="${m.id}" ${item.assigned_to == m.id ? 'selected' : ''}>${m.name}</option>`).join('')}
-                    </select>
-                    <button type="button" class="delete-item-btn text-red-600 hover:text-red-700 font-semibold px-2 py-1" data-item-id="${item.id}">
-                        ✕ Delete
-                    </button>
-                </div>
+        // Pill HTML with compact display
+        const pillHtml = `
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold text-sm ${textColor}">
+                    ${escapeHtml(item.name.length > 15 ? item.name.substring(0, 12) + '...' : item.name)}
+                </span>
+                <span class="text-xs font-bold text-gray-600">
+                    ${getCurrencySymbol()}${item.total_price.toFixed(2)}
+                </span>
+                <span class="text-xs px-1.5 py-0.5 bg-white rounded-full text-gray-700 font-semibold">
+                    ${assignedName.split(' ')[0]}
+                </span>
             </div>
+
+            <!-- Hidden tooltip with full details -->
+            <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-2 px-3 whitespace-nowrap z-10">
+                <div class="font-semibold">${escapeHtml(item.name)}</div>
+                <div>Qty: ${item.quantity} × ${getCurrencySymbol()}${item.unit_price.toFixed(2)}</div>
+                <div class="mt-1">Assign to: ${assignedName}</div>
+            </div>
+
+            <!-- Click to edit overlay -->
+            <input type="hidden" class="item-member-hidden" data-item-id="${item.id}" value="${item.assigned_to || ''}" />
         `;
 
         // Edit mode
@@ -1206,159 +1271,89 @@ function displayExtractedItems(items) {
             </div>
         `;
 
-        itemDiv.innerHTML = displayHtml + editHtml;
-        itemsList.appendChild(itemDiv);
+        itemPill.innerHTML = pillHtml;
+
+        // Add click handler to open edit modal
+        itemPill.addEventListener('click', function() {
+            openItemEditModal(item);
+        });
+
+        itemsList.appendChild(itemPill);
     });
 
     updateOCRTotal();
     attachItemEventListeners();
 }
 
-// Attach event listeners for edit/delete/save
+// Open item edit modal for pill-based UI
+function openItemEditModal(item) {
+    const modal = document.getElementById('add-item-modal');
+    document.getElementById('new-item-name').value = item.name;
+    document.getElementById('new-item-qty').value = item.quantity;
+    document.getElementById('new-item-unit-price').value = item.unit_price.toFixed(2);
+    document.getElementById('new-item-total').value = item.total_price.toFixed(2);
+
+    const confirmBtn = document.getElementById('add-item-confirm-btn');
+    confirmBtn.textContent = '✓ Update Item';
+    confirmBtn.onclick = function() {
+        updateItemFromModal(item.id);
+    };
+
+    modal.classList.remove('hidden');
+    document.getElementById('new-item-name').focus();
+}
+
+function updateItemFromModal(itemId) {
+    const name = document.getElementById('new-item-name').value.trim();
+    const qty = parseInt(document.getElementById('new-item-qty').value) || 1;
+    const unitPrice = parseFloat(document.getElementById('new-item-unit-price').value) || 0;
+
+    if (!name) {
+        alert('Item name cannot be empty');
+        return;
+    }
+
+    if (qty <= 0 || unitPrice < 0) {
+        alert('Please enter valid quantities and prices');
+        return;
+    }
+
+    // Update item
+    const item = extractedItems.find(i => i.id == itemId);
+    if (item) {
+        item.name = name;
+        item.quantity = qty;
+        item.unit_price = unitPrice;
+        item.total_price = (qty * unitPrice).toFixed(2);
+    }
+
+    displayExtractedItems(extractedItems);
+    document.getElementById('add-item-modal').classList.add('hidden');
+}
+
+// Attach event listeners for item functionality
 function attachItemEventListeners() {
-    // Edit button
-    document.querySelectorAll('.edit-item-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const itemDiv = document.getElementById(`item-${itemId}`);
-            itemDiv.querySelector('.item-display').classList.add('hidden');
-            itemDiv.querySelector('.item-edit').classList.remove('hidden');
-            
-            // Enable inputs when editing
-            itemDiv.querySelectorAll('.item-edit input').forEach(input => {
-                input.disabled = false;
-            });
-        });
+    // Right-click context menu or delete button on pills
+    // For now, items can be edited by clicking on them or through "Add Missing Item" button
+
+    // Add Item Button - Reset modal for new items
+    document.getElementById('add-item-btn').addEventListener('click', function() {
+        document.getElementById('new-item-name').value = '';
+        document.getElementById('new-item-qty').value = '1';
+        document.getElementById('new-item-unit-price').value = '';
+        document.getElementById('new-item-total').value = '';
+
+        const confirmBtn = document.getElementById('add-item-confirm-btn');
+        confirmBtn.textContent = '✓ Add Item';
+        confirmBtn.onclick = addNewItemFromModal;
+
+        document.getElementById('add-item-modal').classList.remove('hidden');
+        document.getElementById('new-item-name').focus();
     });
 
-    // Cancel button
-    document.querySelectorAll('.cancel-item-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const itemDiv = document.getElementById(`item-${itemId}`);
-            itemDiv.querySelector('.item-display').classList.remove('hidden');
-            itemDiv.querySelector('.item-edit').classList.add('hidden');
-            
-            // Disable inputs when not editing
-            itemDiv.querySelectorAll('.item-edit input').forEach(input => {
-                input.disabled = true;
-            });
-        });
-    });
-
-    // Real-time total calculation on quantity/price change
-    document.querySelectorAll('.edit-qty, .edit-unit-price').forEach(input => {
-        input.addEventListener('change', function() {
-            const itemDiv = this.closest('.item-edit');
-            const qtyInput = itemDiv.querySelector('.edit-qty');
-            const unitPriceInput = itemDiv.querySelector('.edit-unit-price');
-            const totalPriceInput = itemDiv.querySelector('.edit-total-price');
-
-            const qty = parseInt(qtyInput.value) || 0;
-            const unitPrice = parseFloat(unitPriceInput.value) || 0;
-            const calculatedTotal = (qty * unitPrice).toFixed(2);
-
-            totalPriceInput.value = calculatedTotal;
-        });
-
-        // Update receipt total as user types
-        input.addEventListener('input', function() {
-            const itemDiv = this.closest('.item-edit');
-            const qtyInput = itemDiv.querySelector('.edit-qty');
-            const unitPriceInput = itemDiv.querySelector('.edit-unit-price');
-            const totalPriceInput = itemDiv.querySelector('.edit-total-price');
-
-            const qty = parseInt(qtyInput.value) || 0;
-            const unitPrice = parseFloat(unitPriceInput.value) || 0;
-            const calculatedTotal = (qty * unitPrice).toFixed(2);
-
-            totalPriceInput.value = calculatedTotal;
-            updateOCRTotal();
-        });
-    });
-
-    // Update total when total price is manually edited
-    document.querySelectorAll('.edit-total-price').forEach(input => {
-        input.addEventListener('input', updateOCRTotal);
-    });
-
-    // Save button
-    document.querySelectorAll('.save-item-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const itemDiv = document.getElementById(`item-${itemId}`);
-
-            const name = itemDiv.querySelector('.edit-name').value.trim();
-            const qty = parseInt(itemDiv.querySelector('.edit-qty').value) || 1;
-            const unitPrice = parseFloat(itemDiv.querySelector('.edit-unit-price').value) || 0;
-            const totalPrice = parseFloat(itemDiv.querySelector('.edit-total-price').value) || 0;
-
-            if (!name) {
-                alert('Item name cannot be empty');
-                return;
-            }
-
-            if (qty <= 0 || unitPrice < 0 || totalPrice < 0) {
-                alert('Please enter valid quantities and prices');
-                return;
-            }
-
-            // Update item in extractedItems array
-            const item = extractedItems.find(i => i.id == itemId);
-            if (item) {
-                item.name = name;
-                item.quantity = qty;
-                item.unit_price = unitPrice;
-                item.total_price = totalPrice;
-            }
-
-            // Re-render to update display
-            displayExtractedItems(extractedItems);
-
-            // Auto-update splits if in custom split mode
-            if (document.getElementById('split_type').value === 'custom') {
-                updateSplitsFromItems();
-            }
-        });
-    });
-
-    // Delete button
-    document.querySelectorAll('.delete-item-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            if (confirm('Delete this item?')) {
-                extractedItems = extractedItems.filter(i => i.id != itemId);
-                displayExtractedItems(extractedItems);
-
-                // Auto-update splits if in custom split mode
-                if (document.getElementById('split_type').value === 'custom') {
-                    updateSplitsFromItems();
-                }
-            }
-        });
-    });
-
-    // Member assignment dropdown - save and update splits
-    document.querySelectorAll('.item-member').forEach(select => {
-        select.addEventListener('change', function() {
-            const itemId = this.dataset.itemId;
-            const memberId = this.value ? parseInt(this.value) : null;
-
-            // Update item's assigned_to in extractedItems
-            const item = extractedItems.find(i => i.id == itemId);
-            if (item) {
-                item.assigned_to = memberId;
-            }
-
-            // Auto-update splits if already in split mode
-            const splitType = document.getElementById('split_type').value;
-            const customSplitsDiv = document.getElementById('custom-splits');
-
-            if (splitType === 'custom' && customSplitsDiv && !customSplitsDiv.classList.contains('hidden')) {
-                updateSplitsFromItems();
-            }
-        });
-    });
+    // Quantity/Price calculation in modal
+    document.getElementById('new-item-qty').addEventListener('change', calculateItemTotal);
+    document.getElementById('new-item-unit-price').addEventListener('change', calculateItemTotal);
 }
 
 // Update OCR total display
