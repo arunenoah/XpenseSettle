@@ -62,27 +62,23 @@ class DashboardController extends Controller
             });
 
         // Calculate totals across all groups
-        $totalOwed = 0;
-        $totalPaid = 0;
+        $totalYouOwe = 0;      // Total amount user owes to others
+        $totalTheyOweYou = 0;  // Total amount others owe to user
         $pendingCount = 0;
 
         foreach ($user->groups as $group) {
-            // Get payment stats from splits
-            $stats = $this->paymentService->getPaymentStats($user, $group->id);
-            $totalOwed += $stats['pending_amount'];
-            $totalPaid += $stats['paid_amount'];
+            // Get personal settlement for this group
+            $settlement = $this->calculateSettlementForDashboard($group, $user);
 
-            // Add itemwise expense amounts (only count towards payer's total paid)
-            $itemwiseExpenses = \App\Models\Expense::where('group_id', $group->id)
-                ->where('split_type', 'itemwise')
-                ->get();
-
-            foreach ($itemwiseExpenses as $expense) {
-                if ($user->id === $expense->payer_id) {
-                    // User is the payer - count full amount as paid
-                    $totalPaid += $expense->amount;
+            // Calculate totals from settlement
+            foreach ($settlement as $item) {
+                if ($item['net_amount'] > 0) {
+                    // User owes this person
+                    $totalYouOwe += $item['net_amount'];
+                } else if ($item['net_amount'] < 0) {
+                    // This person owes user
+                    $totalTheyOweYou += abs($item['net_amount']);
                 }
-                // If user is NOT the payer, itemwise expenses don't affect settlement
             }
 
             $pendingCount += $pendingPayments
@@ -91,6 +87,9 @@ class DashboardController extends Controller
                 })
                 ->count();
         }
+
+        // Calculate net balance
+        $netBalance = $totalTheyOweYou - $totalYouOwe;
 
         // Get recent expenses across all groups (exclude deleted groups)
         $recentExpenses = Expense::whereHas('group', function ($q) {
@@ -155,12 +154,34 @@ class DashboardController extends Controller
             'pendingPayments' => $pendingPayments,
             'paidPayments' => $paidPayments,
             'peopleOweMe' => $peopleOweMe,
-            'totalOwed' => $totalOwed,
-            'totalPaid' => $totalPaid,
+            'totalYouOwe' => round($totalYouOwe, 2),
+            'totalTheyOweYou' => round($totalTheyOweYou, 2),
+            'netBalance' => round($netBalance, 2),
             'pendingCount' => $pendingCount,
             'recentExpenses' => $recentExpenses,
             'userExpenses' => $userExpenses,
         ]);
+    }
+
+    /**
+     * Calculate settlement for dashboard - simplified wrapper around calculateSettlement.
+     * Returns array of settlement items with net_amount.
+     */
+    private function calculateSettlementForDashboard(Group $group, $user)
+    {
+        // Load all necessary relationships for settlement calculation
+        $group->load([
+            'expenses' => function ($q) {
+                $q->latest();
+            },
+            'expenses.splits.user',
+            'expenses.splits.contact',
+            'expenses.splits.payment',
+            'expenses.payer',
+            'members',
+        ]);
+
+        return $this->calculateSettlement($group, $user);
     }
 
     /**
