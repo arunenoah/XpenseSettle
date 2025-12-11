@@ -11,17 +11,38 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('expense_splits', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('expense_id')->constrained('expenses')->onDelete('cascade');
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
-            $table->foreignId('contact_id')->nullable()->constrained('contacts')->onDelete('cascade');
-            $table->decimal('share_amount', 10, 2);
-            $table->decimal('percentage', 5, 2)->nullable();
-            $table->timestamps();
+        // Check if table exists before modifying
+        if (Schema::hasTable('expense_splits')) {
+            Schema::table('expense_splits', function (Blueprint $table) {
+                // Add contact_id if it doesn't exist
+                if (!Schema::hasColumn('expense_splits', 'contact_id')) {
+                    $table->foreignId('contact_id')->nullable()->constrained('contacts')->onDelete('cascade')->after('user_id');
+                }
+                // Make user_id nullable if it isn't already
+                if (Schema::hasColumn('expense_splits', 'user_id')) {
+                    // Alter to make user_id nullable
+                    try {
+                        DB::statement('ALTER TABLE expense_splits MODIFY user_id BIGINT UNSIGNED NULL');
+                    } catch (\Exception $e) {
+                        // Already nullable or MySQL version doesn't support this
+                    }
+                }
+            });
 
-            $table->unique(['expense_id', 'user_id', 'contact_id']);
-        });
+            // Drop old unique constraint and add new one
+            Schema::table('expense_splits', function (Blueprint $table) {
+                try {
+                    $table->dropUnique(['expense_id', 'user_id']);
+                } catch (\Exception $e) {
+                    // Constraint doesn't exist, continue
+                }
+            });
+
+            Schema::table('expense_splits', function (Blueprint $table) {
+                // Add new unique constraint
+                $table->unique(['expense_id', 'user_id', 'contact_id']);
+            });
+        }
     }
 
     /**
@@ -29,6 +50,19 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('expense_splits');
+        // Don't drop the table, just reverse the changes
+        if (Schema::hasTable('expense_splits')) {
+            Schema::table('expense_splits', function (Blueprint $table) {
+                try {
+                    $table->dropUnique(['expense_id', 'user_id', 'contact_id']);
+                } catch (\Exception $e) {
+                    // Constraint doesn't exist
+                }
+
+                $table->unique(['expense_id', 'user_id']);
+            });
+
+            // Note: We're NOT dropping contact_id column to preserve any data that may have been added
+        }
     }
 };
