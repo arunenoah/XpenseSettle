@@ -290,54 +290,6 @@
     </div>
     @endif
 
-    <!-- Advanced Details Section -->
-    <div class="section">
-        <div class="section-title">Advanced Details</div>
-        <div class="info-grid">
-            <div class="info-row">
-                <div class="info-label">Total Expenses:</div>
-                <div class="info-value">${{ number_format($totalExpenses, 2) }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Number of Transactions:</div>
-                <div class="info-value">{{ count($transactionHistory) }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Average Expense Amount:</div>
-                <div class="info-value">
-                    @php
-                        $avgExpense = count($transactionHistory) > 0 ? ($totalExpenses / count($transactionHistory)) : 0;
-                    @endphp
-                    ${{ number_format($avgExpense, 2) }}
-                </div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Number of Categories:</div>
-                <div class="info-value">{{ count($categoryBreakdown) }}</div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Highest Spending Category:</div>
-                <div class="info-value">
-                    @php
-                        $highest = reset($categoryBreakdown);
-                        if ($highest) {
-                            echo ($categoryIcons[$highest['category']] ?? '📝') . ' ' . $highest['category'] . ' - $' . number_format($highest['total'], 2);
-                        }
-                    @endphp
-                </div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">Report Generated:</div>
-                <div class="info-value">{{ now()->format('F d, Y \a\t h:i A') }}</div>
-            </div>
-        </div>
-
-        <div style="margin-top: 15px; padding: 10px; background-color: #F3F4F6; border-left: 3px solid #4F46E5;">
-            <p style="font-size: 9px; color: #1F2937; margin: 0;">
-                <strong>Report Summary:</strong> This report provides a comprehensive overview of all group expenses, including settlement details, transaction history, and category-wise expense breakdown. All amounts are in the group's default currency.
-            </p>
-        </div>
-    </div>
 
     <!-- Detailed Expenses by Category -->
     @if(count($categoryBreakdown) > 0)
