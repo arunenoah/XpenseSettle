@@ -940,7 +940,7 @@ function copySuggestion(text) {
     </script>
 
     <!-- Received Payment Modal -->
-    <div id="receivedPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div id="receivedPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none; visibility: hidden;">
         <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-gray-900">Mark Payment Received</h2>
@@ -991,7 +991,12 @@ function copySuggestion(text) {
     <script>
     // Received Payment Modal Functions
     function openReceivedPaymentModal(memberName, memberId, isUser, suggestedAmount = null) {
+        console.log('Opening modal for:', memberName, suggestedAmount);
         const modal = document.getElementById('receivedPaymentModal');
+        if (!modal) {
+            console.error('Modal not found!');
+            return;
+        }
         document.getElementById('modalMemberName').textContent = memberName;
         document.getElementById('memberIdInput').value = memberId;
 
@@ -1000,21 +1005,31 @@ function copySuggestion(text) {
             document.getElementById('amountInput').value = suggestedAmount;
         }
 
+        modal.style.display = 'flex';
+        modal.style.visibility = 'visible';
         modal.classList.remove('hidden');
-        modal.classList.add('flex');
+        console.log('Modal opened');
     }
 
     function closeReceivedPaymentModal() {
         const modal = document.getElementById('receivedPaymentModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        document.getElementById('receivedPaymentForm').reset();
+        if (modal) {
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            modal.classList.add('hidden');
+            document.getElementById('receivedPaymentForm').reset();
+        }
     }
 
     // Close modal when clicking outside
-    document.getElementById('receivedPaymentModal')?.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeReceivedPaymentModal();
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('receivedPaymentModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeReceivedPaymentModal();
+                }
+            });
         }
     });
     </script>
