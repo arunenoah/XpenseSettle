@@ -338,12 +338,14 @@ class PaymentController extends Controller
 
                 if ($senderId === $user->id && isset($netBalances[$recipientId])) {
                     // CASE 1: User is the SENDER of the advance to recipient
-                    // The advance reduces what they owe to the recipient
-                    // ADD (not subtract!) because: if negative (owes), adding positive makes it less negative (owes less)
-                    // Example: User owes recipient -$284.52. User sends $200 advance.
-                    // -$284.52 + $200 = -$84.52 (owes less)
-                    // NOT -$284.52 - $200 = -$484.52 (would owe MORE - wrong!)
-                    $netBalances[$recipientId]['net_amount'] += $senderAdvanceCredit;
+                    // The advance reduces what they owe (or increases what they're owed)
+                    // If positive (user owes recipient): subtract to reduce debt
+                    // If negative (recipient owes user): add to reduce what's owed to them
+                    if ($netBalances[$recipientId]['net_amount'] >= 0) {
+                        $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
+                    } else {
+                        $netBalances[$recipientId]['net_amount'] += $senderAdvanceCredit;
+                    }
 
                     // Track advance per sender-recipient pair
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
@@ -356,14 +358,14 @@ class PaymentController extends Controller
 
                 } elseif ($recipientId === $user->id && isset($netBalances[$senderId])) {
                     // CASE 2: User is the RECIPIENT of the advance from sender
-                    // The advance reduces what they owe to the sender
-                    // NOTE: In recipient's settlement, the amount is POSITIVE (user owes sender)
-                    // So we SUBTRACT the advance to reduce the positive debt
-                    // Example: When calculating Dhana's settlement, Dhana owes Arun +$284.52
-                    // Arun sends $200 advance to Dhana:
-                    // +$284.52 - $200 = +$84.52 (Dhana now owes less)
-                    // NOT +$284.52 + $200 = +$484.52 (would owe MORE - wrong!)
-                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
+                    // The advance reduces what they owe (or increases what they're owed)
+                    // If positive (user owes sender): subtract to reduce debt
+                    // If negative (sender owes user): add to reduce what's owed to them
+                    if ($netBalances[$senderId]['net_amount'] >= 0) {
+                        $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
+                    } else {
+                        $netBalances[$senderId]['net_amount'] += $senderAdvanceCredit;
+                    }
 
                     // Track this as an advance received
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
