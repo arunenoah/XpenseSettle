@@ -645,13 +645,34 @@ function closeExpensesModal(event) {
     }
 }
 
-// Event listener for show expenses modal button
+// Event listeners for modals
 document.addEventListener('DOMContentLoaded', function() {
+    // Show expenses modal
     const showExpensesBtn = document.querySelector('[data-show-expenses-modal="true"]');
     if (showExpensesBtn) {
         showExpensesBtn.addEventListener('click', function(e) {
             e.preventDefault();
             showExpensesModal();
+        });
+    }
+
+    // Close modal buttons
+    document.querySelectorAll('[data-close-button="true"]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const modalFunc = this.getAttribute('data-modal-func');
+            if (modalFunc === 'closeExpensesModal') {
+                closeExpensesModal();
+            }
+        });
+    });
+
+    // Close modal by clicking background
+    const expensesModal = document.getElementById('expensesModal');
+    if (expensesModal) {
+        expensesModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeExpensesModal(e);
+            }
         });
     }
 });
