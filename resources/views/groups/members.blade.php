@@ -256,8 +256,10 @@
                     <div class="flex items-center gap-2 ml-4">
                         @if(!$groupMember->isContact() || $groupMember->isContact())
                             <button type="button"
-                                    class="px-3 py-2 text-xs sm:text-sm bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-semibold transition-all"
-                                    onclick="openReceivedPaymentModal('{{ $groupMember->getMemberName() }}', {{ $groupMember->isContact() ? $groupMember->contact->id : $groupMember->user->id }}, {{ $groupMember->isContact() ? 'false' : 'true' }})">
+                                    class="mark-paid-btn px-3 py-2 text-xs sm:text-sm bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-semibold transition-all"
+                                    data-member-name="{{ $groupMember->getMemberName() }}"
+                                    data-member-id="{{ $groupMember->isContact() ? $groupMember->contact->id : $groupMember->user->id }}"
+                                    data-is-user="{{ $groupMember->isContact() ? 'false' : 'true' }}">
                                 💰 Mark Paid
                             </button>
                         @endif
@@ -580,7 +582,7 @@
         }
     }
 
-    // Received Payment Modal
+    // Received Payment Modal Functions
     function openReceivedPaymentModal(memberName, memberId, isUser) {
         console.log('Opening modal for:', memberName, memberId, isUser);
         const modal = document.getElementById('receivedPaymentModal');
@@ -606,10 +608,28 @@
         }
     }
 
-    // Close modal when clicking outside
+    // Initialize event listeners when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
+        // Mark Paid buttons
+        document.querySelectorAll('.mark-paid-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const memberName = this.getAttribute('data-member-name');
+                const memberId = this.getAttribute('data-member-id');
+                const isUser = this.getAttribute('data-is-user');
+                openReceivedPaymentModal(memberName, memberId, isUser);
+            });
+        });
+
+        // Close button in modal
         const modal = document.getElementById('receivedPaymentModal');
         if (modal) {
+            // Close button
+            modal.querySelectorAll('[data-close-modal]').forEach(btn => {
+                btn.addEventListener('click', closeReceivedPaymentModal);
+            });
+
+            // Click outside modal
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeReceivedPaymentModal();
@@ -624,7 +644,7 @@
         <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-gray-900">Mark Payment Received</h2>
-                <button type="button" onclick="closeReceivedPaymentModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                <button type="button" data-close-modal class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
 
             <p class="text-gray-600 mb-4">Recording payment from <strong id="modalMemberName"></strong></p>
