@@ -6,6 +6,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ReceivedPaymentController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\SettlementController;
 use App\Http\Controllers\NotificationController;
@@ -86,6 +87,11 @@ Route::middleware('auth')->group(function () {
     // Advances Management (nested under groups)
     Route::post('/groups/{group}/advances', [AdvanceController::class, 'store'])->name('groups.advances.store');
     Route::delete('/groups/{group}/advances/{advance}', [AdvanceController::class, 'destroy'])->name('groups.advances.destroy');
+
+    // Received Payments Management (nested under groups)
+    Route::post('/groups/{group}/received-payments', [ReceivedPaymentController::class, 'store'])->name('groups.received-payments.store');
+    Route::delete('/groups/{group}/received-payments/{receivedPayment}', [ReceivedPaymentController::class, 'destroy'])->name('groups.received-payments.destroy');
+    Route::get('/groups/{group}/members/{user}/received-payments', [ReceivedPaymentController::class, 'getForMember'])->name('groups.received-payments.member');
 
     // Settlement Management (nested under groups)
     Route::post('/groups/{group}/settlements/confirm', [SettlementController::class, 'confirmSettlement'])->name('groups.settlements.confirm');
