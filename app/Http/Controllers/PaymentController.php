@@ -231,14 +231,14 @@ class PaymentController extends Controller
                     }
 
                     // Advance payment reduces what recipient owes
-                    // If net_amount is positive (user owes recipient): subtract to reduce debt
-                    // If net_amount is negative (recipient owes user): add to reduce their debt
-                    if ($netBalances[$recipientId]['net_amount'] >= 0) {
-                        $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
-                    } else {
-                        // Negative amount: adding makes it less negative (reduces what recipient owes)
-                        $netBalances[$recipientId]['net_amount'] += $advanceAmount;
-                    }
+                    // User paid advance to recipient - recipient now owes less (more negative or less positive)
+                    $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
+                    $netBalances[$recipientId]['expenses'][] = [
+                        'title' => 'Advance received',
+                        'amount' => $advanceAmount,
+                        'type' => 'advance_received',
+                        'advance' => $advanceAmount,
+                    ];
                 }
             }
 
@@ -264,14 +264,15 @@ class PaymentController extends Controller
                     }
 
                     // Sender paid advance to user - reduces what user owes to sender
-                    // If net_amount is positive (user owes sender): subtract to reduce debt
+                    // If net_amount is positive (user owes sender): subtract to reduce debt or flip to negative
                     // If net_amount is negative (sender owes user): add to reduce what sender owes
-                    if ($netBalances[$senderId]['net_amount'] >= 0) {
-                        $netBalances[$senderId]['net_amount'] -= $advanceAmount;
-                    } else {
-                        // Negative amount: adding makes it less negative (reduces what sender owes)
-                        $netBalances[$senderId]['net_amount'] += $advanceAmount;
-                    }
+                    $netBalances[$senderId]['net_amount'] -= $advanceAmount;
+                    $netBalances[$senderId]['expenses'][] = [
+                        'title' => 'Advance paid',
+                        'amount' => $advanceAmount,
+                        'type' => 'advance',
+                        'advance' => $advanceAmount,
+                    ];
                 }
             }
         }
