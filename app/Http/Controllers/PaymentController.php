@@ -431,13 +431,28 @@ class PaymentController extends Controller
                     // Member owes someone
                     if ($targetIsContact) {
                         // Member owes a contact - find contact in result by matching the contact object
+
                         $contactId = $item['user']->id;
                         foreach ($result as $key => $entry) {
                             if ($entry['is_contact'] && $entry['user']->id === $contactId) {
+                                // Generate breakdown for contact owed
+                                $breakdownContact = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $exp) {
+                                        if ($exp['type'] !== 'advance') {
+                                            $breakdownContact .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
+                                        } else {
+                                            $breakdownContact .= "\n- Advance paid: -$" . number_format($exp['amount'], 2);
+                                        }
+                                    }
+                                }
+                                $breakdownContact .= "\n\nFinal: $" . number_format(round($amount, 2), 2);
+
                                 $result[$memberGroupMemberId]['owes'][$key] = [
                                     'user' => $item['user'],
                                     'is_contact' => true,
                                     'amount' => round($amount, 2),
+                                    'breakdown' => $breakdownContact,
                                 ];
                                 break;
                             }
@@ -447,19 +462,68 @@ class PaymentController extends Controller
                         $targetUserId = $item['user']->id;
                         foreach ($result as $gmKey => $gmData) {
                             if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
+                                $breakdown = "User spent: $" . number_format(abs($item['net_amount']), 2);
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $exp) {
+                                        if ($exp['type'] !== 'advance') {
+                                            $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
+                                        } else {
+                                            $breakdown .= "\n- Advance paid: -$" . number_format($exp['amount'], 2);
+                                        }
+                                    }
+                                }
+                                $breakdown .= "\n\nFinal: $" . number_format(round($amount, 2), 2);
+
                                 $result[$memberGroupMemberId]['owes'][$gmKey] = [
                                     'user' => $item['user'],
                                     'is_contact' => false,
                                     'amount' => round($amount, 2),
+                                    'breakdown' => $breakdown,
                                 ];
                                 break;
                             }
                         }
                     }
                 } else if ($amount < 0) {
-                    // Someone owes member - only handle if it's a user owing the member
-                    if (!$targetIsContact && $item['user']) {
-                        // Find which GroupMember corresponds to this user
+                    // Someone owes member (negative amount means member is owed money)
+                    if ($targetIsContact) {
+                        // A contact owes the member (Arun) - find the contact in result and store that Arun is owed money
+
+                        $contactId = $item['user']->id;
+                        foreach ($result as $key => $entry) {
+                            if ($entry['is_contact'] && $entry['user']->id === $contactId) {
+                                // Generate breakdown - the member is owed by this contact
+                                $breakdown = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $exp) {
+                                        if ($exp['type'] !== 'advance') {
+                                            $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
+                                        } else {
+                                            $breakdown .= "\n- Advance received: -$" . number_format($exp['amount'], 2);
+                                        }
+                                    }
+                                }
+                                $breakdown .= "\n\nFinal: $" . number_format(round(abs($amount), 2), 2);
+
+                                // Contact owes member - store in contact's owes array
+                                \Log::info('Storing breakdown in owes array', [
+                                    'key' => $key,
+                                    'memberGroupMemberId' => $memberGroupMemberId,
+                                    'breakdown' => $breakdown,
+                                    'breakdown_length' => strlen($breakdown)
+                                ]);
+
+                                $result[$key]['owes'][$memberGroupMemberId] = [
+                                    'user' => $result[$memberGroupMemberId]['user'],
+                                    'is_contact' => false,
+                                    'amount' => round(abs($amount), 2),
+                                    'breakdown' => $breakdown,
+                                ];
+                                break;
+                            }
+                        }
+                    } else if ($item['user']) {
+                        // A user owes the member - find which GroupMember corresponds to this user
                         $targetUserId = $item['user']->id;
                         foreach ($result as $gmKey => $gmData) {
                             // Find if this is the user we're looking for
@@ -468,10 +532,25 @@ class PaymentController extends Controller
                                 if (!isset($result[$gmKey]['owes'])) {
                                     $result[$gmKey]['owes'] = [];
                                 }
+
+                                // Generate breakdown string - this user owes the current member money
+                                $breakdown = $gmData['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $exp) {
+                                        if ($exp['type'] !== 'advance') {
+                                            $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
+                                        } else {
+                                            $breakdown .= "\n- Advance received: -$" . number_format($exp['amount'], 2);
+                                        }
+                                    }
+                                }
+                                $breakdown .= "\n\nFinal: $" . number_format(round(abs($amount), 2), 2);
+
                                 $result[$gmKey]['owes'][$memberGroupMemberId] = [
                                     'user' => $group->members->find($member->id),
                                     'is_contact' => false,
                                     'amount' => round(abs($amount), 2),
+                                    'breakdown' => $breakdown,
                                 ];
                                 break;
                             }
@@ -500,11 +579,15 @@ class PaymentController extends Controller
                                     if (!isset($result[$gmKey]['owes'])) {
                                         $result[$gmKey]['owes'] = [];
                                     }
-                                    $result[$gmKey]['owes'][$targetGmKey] = [
-                                        'user' => $user,
-                                        'is_contact' => false,
-                                        'amount' => round(abs($item['net_amount']), 2),
-                                    ];
+
+                                    // Only update if not already set (to preserve breakdown from previous processing)
+                                    if (!isset($result[$gmKey]['owes'][$targetGmKey])) {
+                                        $result[$gmKey]['owes'][$targetGmKey] = [
+                                            'user' => $user,
+                                            'is_contact' => false,
+                                            'amount' => round(abs($item['net_amount']), 2),
+                                        ];
+                                    }
                                     break;
                                 }
                             }
