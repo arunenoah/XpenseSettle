@@ -134,7 +134,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="@nonce()">
     // Restrict input to numeric only
     document.querySelectorAll('input[type="password"]').forEach(input => {
         input.addEventListener('input', function() {

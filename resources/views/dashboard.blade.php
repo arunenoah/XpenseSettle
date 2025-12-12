@@ -229,7 +229,7 @@
                         </div>
                     </div>
                     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <script>
+                    <script nonce="@nonce()">
                     (function() {
                         const ctx = document.getElementById('balance-donut').getContext('2d');
                         new Chart(ctx, {
@@ -432,7 +432,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="@nonce()">
 function toggleSection(sectionId) {
     const content = document.getElementById(sectionId + '-content');
     const icon = document.getElementById(sectionId + '-icon');

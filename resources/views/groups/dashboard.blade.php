@@ -577,7 +577,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="@nonce()">
 // Toggle section collapse/expand
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
