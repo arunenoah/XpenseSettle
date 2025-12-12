@@ -43,16 +43,19 @@ class SecurityHeaders
         );
 
         // Content Security Policy - Prevent XSS and injection attacks
+        // Removed unsafe-inline and unsafe-eval for better security
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
+               "script-src 'self' blob: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
                "worker-src 'self' blob:; " .
-               "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; " .
+               "style-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com; " .
                "img-src 'self' data: https: blob:; " .
-               "font-src 'self' data: https:; " .
+               "font-src 'self' data: https: https://fonts.gstatic.com; " .
                "connect-src 'self' https: blob: data:; " .
                "frame-ancestors 'none'; " .
                "base-uri 'self'; " .
-               "form-action 'self'";
+               "form-action 'self'; " .
+               "upgrade-insecure-requests; " .
+               "block-all-mixed-content";
 
         $response->header('Content-Security-Policy', $csp);
 
@@ -66,11 +69,25 @@ class SecurityHeaders
             $response->header('Expect-CT', 'max-age=86400, enforce');
         }
 
+        // Public Key Pinning - Pin certificate keys (production only)
+        if (config('app.env') === 'production') {
+            $response->header('Public-Key-Pins', "max-age=2592000; pin-sha256=\"<your-cert-sha256-here>\"; pin-sha256=\"<backup-cert-sha256-here>\"; includeSubDomains");
+        }
+
         // Remove server identification header
         $response->headers->remove('Server');
 
-        // Additional headers
+        // Additional headers for enhanced security
         $response->header('X-Permitted-Cross-Domain-Policies', 'none');
+
+        // Cross-Origin-Embedder-Policy - require cross-origin resources to be explicitly allowed
+        $response->header('Cross-Origin-Embedder-Policy', 'require-corp');
+
+        // Cross-Origin-Opener-Policy - isolate the browsing context
+        $response->header('Cross-Origin-Opener-Policy', 'same-origin');
+
+        // Cross-Origin-Resource-Policy - control cross-origin resource sharing
+        $response->header('Cross-Origin-Resource-Policy', 'same-origin');
 
         return $response;
     }
