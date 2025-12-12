@@ -96,12 +96,18 @@
 
                                         $theySpentForMe = 0;
                                         $iSpentForThem = 0;
+                                        $paymentReceived = 0;
+                                        $paymentSent = 0;
                                         if (isset($item['expenses']) && count($item['expenses']) > 0) {
                                             foreach ($item['expenses'] as $expense) {
                                                 if ($expense['type'] === 'you_owe') {
                                                     $theySpentForMe += $expense['amount'];
-                                                } else {
+                                                } elseif ($expense['type'] === 'they_owe') {
                                                     $iSpentForThem += $expense['amount'];
+                                                } elseif ($expense['type'] === 'payment_received') {
+                                                    $paymentReceived += $expense['amount'];
+                                                } elseif ($expense['type'] === 'payment_sent') {
+                                                    $paymentSent += $expense['amount'];
                                                 }
                                             }
                                         }
@@ -114,7 +120,21 @@
                                                 <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center flex-shrink-0">
                                                     <span class="text-xs font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
                                                 </div>
-                                                <span class="font-medium text-gray-900 truncate">{{ $item['user']->name }}</span>
+                                                <div>
+                                                    <a href="{{ route('groups.payments.member-received-payments', [$group, $item['user']]) }}" class="font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                                                        {{ $item['user']->name }}
+                                                    </a>
+                                                    @if($paymentReceived > 0 || $paymentSent > 0)
+                                                        <div class="text-xs text-gray-500 mt-1">
+                                                            @if($paymentReceived > 0)
+                                                                <span class="inline-block bg-green-50 text-green-700 px-2 py-1 rounded mr-1">💰 Rcvd: ${{ number_format($paymentReceived, 2) }}</span>
+                                                            @endif
+                                                            @if($paymentSent > 0)
+                                                                <span class="inline-block bg-blue-50 text-blue-700 px-2 py-1 rounded">📤 Sent: ${{ number_format($paymentSent, 2) }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             </div>
                                         </td>
 
@@ -954,6 +974,12 @@ function copySuggestion(text) {
 
             <p class="text-gray-600 mb-4">Recording payment from <strong id="modalMemberName"></strong></p>
 
+            @if ($errors->has('amount'))
+                <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-red-700 font-semibold">{{ $errors->first('amount') }}</p>
+                </div>
+            @endif
+
             <form id="receivedPaymentForm" action="{{ route('groups.received-payments.store', $group) }}" method="POST" class="space-y-4">
                 @csrf
 
@@ -962,8 +988,12 @@ function copySuggestion(text) {
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Received ($)</label>
                     <input type="number" id="amountInput" name="amount" step="0.01" min="0.01" required
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
-                           placeholder="0.00">
+                           class="w-full px-4 py-2 border {{ $errors->has('amount') ? 'border-red-500' : 'border-gray-300' }} rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                           placeholder="0.00"
+                           value="{{ old('amount') }}">
+                    @if ($errors->has('amount'))
+                        <p class="text-xs text-red-600 mt-1">{{ $errors->first('amount') }}</p>
+                    @endif
                 </div>
 
                 <div>

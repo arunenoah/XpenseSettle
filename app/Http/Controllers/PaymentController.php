@@ -273,6 +273,50 @@ class PaymentController extends Controller
             }
         }
 
+        // Account for received payments
+        // These reduce what the user owes to others (payment received FROM them)
+        $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->where('to_user_id', $user->id)
+            ->with(['fromUser'])
+            ->get();
+
+        foreach ($receivedPayments as $receivedPayment) {
+            $fromUserId = $receivedPayment->from_user_id;
+
+            // If this person is in the settlement, reduce what the user owes them
+            if (isset($netBalances[$fromUserId])) {
+                // Subtract received payment from what user owes to this person
+                $netBalances[$fromUserId]['net_amount'] -= $receivedPayment->amount;
+                $netBalances[$fromUserId]['expenses'][] = [
+                    'title' => 'Payment Received',
+                    'amount' => $receivedPayment->amount,
+                    'type' => 'payment_received',  // Special type for received payments
+                ];
+            }
+        }
+
+        // Account for payments sent to others
+        // These increase what others owe to the user (payment sent TO them)
+        $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->where('from_user_id', $user->id)
+            ->with(['toUser'])
+            ->get();
+
+        foreach ($sentPayments as $sentPayment) {
+            $toUserId = $sentPayment->to_user_id;
+
+            // If this person is in the settlement, increase what they owe user
+            if (isset($netBalances[$toUserId])) {
+                // Subtract from their balance (makes it more negative - they owe more to user)
+                $netBalances[$toUserId]['net_amount'] -= $sentPayment->amount;
+                $netBalances[$toUserId]['expenses'][] = [
+                    'title' => 'Payment Sent',
+                    'amount' => $sentPayment->amount,
+                    'type' => 'payment_sent',  // Special type for sent payments
+                ];
+            }
+        }
+
         // Convert to settlement array, filtering out zero balances
         // Positive net_amount = user owes this person
         // Negative net_amount = this person owes user (we show as positive amount they owe)
@@ -1049,5 +1093,38 @@ class PaymentController extends Controller
             'Pragma' => 'no-cache',
             'Expires' => '0',
         ]);
+    }
+
+    /**
+     * Get received payments for a specific member in a group.
+     * Shows both payments received FROM and TO the member.
+     */
+    public function getReceivedPayments(Group $group, User $member)
+    {
+        // Check if user is member of group
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        // Check if the target member is in the group
+        if (!$group->hasMember($member)) {
+            abort(404, 'Member not found in this group');
+        }
+
+        // Get payments received by this member FROM others
+        $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->where('to_user_id', $member->id)
+            ->with(['fromUser'])
+            ->orderBy('received_date', 'desc')
+            ->get();
+
+        // Get payments sent BY this member TO others
+        $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->where('from_user_id', $member->id)
+            ->with(['toUser'])
+            ->orderBy('received_date', 'desc')
+            ->get();
+
+        return view('groups.payments.member-received-payments', compact('group', 'member', 'receivedPayments', 'sentPayments'));
     }
 }

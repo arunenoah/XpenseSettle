@@ -27,14 +27,68 @@ class ReceivedPaymentController extends Controller
         ]);
 
         // Verify the from_user is a member of the group
-        if (!$group->hasMember(User::find($validated['from_user_id']))) {
+        $fromUser = User::find($validated['from_user_id']);
+        if (!$group->hasMember($fromUser)) {
             abort(403, 'User is not a member of this group');
+        }
+
+        // Calculate amount this user owes to the payer (from_user)
+        // Load necessary relationships for settlement calculation
+        $group->load([
+            'expenses' => function ($query) {
+                $query->latest();
+            },
+            'expenses.splits.user',
+            'expenses.splits.contact',
+            'expenses.splits.payment',
+            'expenses.payer',
+            'members',
+            'contacts'
+        ]);
+
+        // Calculate settlement between the authenticated user and the from_user
+        $user = auth()->user();
+        $amountOwed = 0;
+
+        // Get expenses where from_user is payer and current user owes
+        $expenses = \App\Models\Expense::where('group_id', $group->id)
+            ->where('payer_id', $fromUser->id)
+            ->with(['splits' => function ($q) use ($user) {
+                $q->with(['payment', 'user']);
+                $q->where('user_id', $user->id); // Only get splits for current user
+            }])
+            ->get();
+
+        foreach ($expenses as $expense) {
+            if ($expense->splits->isNotEmpty()) {
+                foreach ($expense->splits as $split) {
+                    // Only count unpaid splits
+                    if (!$split->payment || $split->payment->status !== 'paid') {
+                        $amountOwed += $split->share_amount;
+                    }
+                }
+            }
+        }
+
+        // Subtract any received payments already recorded
+        $alreadyReceived = ReceivedPayment::where('group_id', $group->id)
+            ->where('from_user_id', $fromUser->id)
+            ->where('to_user_id', $user->id)
+            ->sum('amount');
+
+        $remainingOwed = $amountOwed - $alreadyReceived;
+
+        // Validate that the amount doesn't exceed what is owed
+        if ($validated['amount'] > $remainingOwed) {
+            return redirect()->back()
+                ->withErrors(['amount' => "Amount cannot exceed ${remainingOwed} owed. You've already received ${alreadyReceived}."])
+                ->withInput();
         }
 
         ReceivedPayment::create([
             'group_id' => $group->id,
             'from_user_id' => $validated['from_user_id'],
-            'to_user_id' => auth()->user()->id,
+            'to_user_id' => $user->id,
             'amount' => $validated['amount'],
             'received_date' => $validated['received_date'],
             'description' => $validated['description'] ?? null,

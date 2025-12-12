@@ -92,6 +92,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/groups/{group}/received-payments', [ReceivedPaymentController::class, 'store'])->name('groups.received-payments.store');
     Route::delete('/groups/{group}/received-payments/{receivedPayment}', [ReceivedPaymentController::class, 'destroy'])->name('groups.received-payments.destroy');
     Route::get('/groups/{group}/members/{user}/received-payments', [ReceivedPaymentController::class, 'getForMember'])->name('groups.received-payments.member');
+    Route::get('/groups/{group}/payments/member/{member}/received-payments', [PaymentController::class, 'getReceivedPayments'])->name('groups.payments.member-received-payments');
 
     // Settlement Management (nested under groups)
     Route::post('/groups/{group}/settlements/confirm', [SettlementController::class, 'confirmSettlement'])->name('groups.settlements.confirm');
