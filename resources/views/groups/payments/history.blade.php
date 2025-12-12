@@ -833,12 +833,14 @@ function copySuggestion(text) {
     function initSettlementBreakdown() {
         const buttons = document.querySelectorAll('.settlement-btn');
         const modal = document.getElementById('breakdownModal');
-        const breakdownContent = modal ? modal.querySelector('#breakdownContent') : null;
+        const breakdownContent = document.getElementById('breakdownContent');
 
         if (!modal) {
             console.log('Settlement breakdown modal not found');
             return;
         }
+
+        console.log('Modal and content element found: ' + (breakdownContent ? 'yes' : 'no'));
 
         buttons.forEach((btn, idx) => {
             btn.addEventListener('click', function(e) {
@@ -847,33 +849,82 @@ function copySuggestion(text) {
                 if (encodedBreakdown) {
                     try {
                         const breakdown = atob(encodedBreakdown);
+                        console.log('Decoded breakdown: ' + breakdown);
+
                         if (breakdownContent) {
-                            breakdownContent.innerText = breakdown;
+                            console.log('Setting content');
+                            // Convert newlines to <br> tags and escape HTML
+                            let htmlContent = breakdown
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;')
+                                .replace(/\n/g, '<br>');
+
+                            console.log('HTML content: ' + htmlContent);
+
+                            // Set the inner HTML
+                            breakdownContent.innerHTML = htmlContent;
+
+                            console.log('Content set via innerHTML');
+                            console.log('Element innerHTML: ' + breakdownContent.innerHTML);
                         }
+
+                        // Show modal with inline styles to override Tailwind
                         modal.classList.remove('hidden');
-                        modal.classList.add('flex');
+                        modal.style.display = 'flex';
+                        modal.style.visibility = 'visible';
+                        modal.style.opacity = '1';
+
+                        // Debug: Check the content element's actual computed styles
+                        setTimeout(() => {
+                            const computedColor = window.getComputedStyle(breakdownContent).color;
+                            const computedDisplay = window.getComputedStyle(breakdownContent).display;
+                            const computedVisibility = window.getComputedStyle(breakdownContent).visibility;
+                            const computedOpacity = window.getComputedStyle(breakdownContent).opacity;
+
+                            console.log('After modal display:');
+                            console.log('Content color: ' + computedColor);
+                            console.log('Content display: ' + computedDisplay);
+                            console.log('Content visibility: ' + computedVisibility);
+                            console.log('Content opacity: ' + computedOpacity);
+                            console.log('Content textContent: ' + breakdownContent.textContent.substring(0, 30));
+                        }, 100);
+
+                        console.log('Modal displayed with inline styles');
                     } catch(e) {
-                        console.log('Error decoding breakdown: ' + e);
+                        console.log('Error: ' + e);
                     }
                 }
             });
         });
 
-        const closeButtons = modal.querySelectorAll('[data-close-breakdown]');
-        closeButtons.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            });
-        });
+        // Close button function
+        function closeModal() {
+            console.log('Closing modal');
+            modal.style.display = 'none';
+            modal.style.visibility = 'hidden';
+            modal.style.opacity = '0';
+        }
 
+        // Use event delegation - attach one handler to modal that catches all clicks
         modal.addEventListener('click', function(e) {
-            if (e.target.id === 'breakdownModal') {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
+            console.log('Modal click detected on: ' + e.target.tagName);
+
+            // If clicking on close button (check by tag name and not on content area)
+            if (e.target.tagName === 'BUTTON') {
+                console.log('Button clicked, closing modal');
+                closeModal();
+                return false;
+            }
+
+            // Also close if clicking the modal background itself (the dark overlay)
+            if (e.target === modal) {
+                console.log('Modal overlay clicked');
+                closeModal();
             }
         });
+
+        console.log('Modal event listeners attached');
     }
 
     // Run immediately if DOM is ready, otherwise wait
@@ -891,7 +942,7 @@ function copySuggestion(text) {
                 <h2 class="text-xl font-bold text-gray-900">Settlement Breakdown</h2>
                 <button data-close-breakdown type="button" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
-            <div id="breakdownContent" class="text-sm text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded border border-gray-200" style="max-height: 300px; overflow-y: auto;"></div>
+            <div id="breakdownContent" style="max-height: 300px; overflow-y: auto; min-height: 80px; color: #000; background-color: #f9fafb; padding: 16px; font-family: 'Courier New', monospace; border: 1px solid #d1d5db; border-radius: 4px; font-size: 13px; line-height: 1.5;"></div>
             <div class="mt-6">
                 <button data-close-breakdown type="button" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">Close</button>
             </div>
