@@ -121,16 +121,6 @@ class ReceivedPaymentController extends Controller
             }
         }
 
-        // Get targetUser's family count for received payment adjustment
-        $targetUserFamilyCount = $group->members()
-            ->where('user_id', $targetUser->id)
-            ->first()
-            ?->pivot
-            ?->family_count ?? 1;
-
-        if ($targetUserFamilyCount <= 0) {
-            $targetUserFamilyCount = 1;
-        }
 
         // Account for advances that benefit the current user
         // Advances are divided by sender's family count to get per-person credit
