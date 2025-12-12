@@ -51,20 +51,47 @@ class ExpenseService
      */
     private function createEqualSplits(Expense $expense, Group $group): void
     {
-        $members = $group->members()->select('users.id', 'users.name', 'users.email')->get();
-        $memberCount = count($members);
+        // Load members with family_count from pivot
+        $members = $group->members()
+            ->select('users.id', 'users.name', 'users.email')
+            ->withPivot('family_count')
+            ->get();
 
-        if ($memberCount === 0) {
+        if ($members->isEmpty()) {
             return;
         }
 
-        $splitAmount = $expense->amount / $memberCount;
-
+        // Calculate total headcount (considering family_count for each member)
+        $totalHeadcount = 0;
         foreach ($members as $member) {
+            // Get family_count from pivot data, default to 1 if not set or 0
+            $familyCount = $member->pivot->family_count ?? 1;
+            if ($familyCount <= 0) {
+                $familyCount = 1; // Ensure minimum of 1 person per member
+            }
+            $totalHeadcount += $familyCount;
+        }
+
+        if ($totalHeadcount === 0) {
+            return;
+        }
+
+        // Calculate per-headcount split amount (e.g., $100 / 10 people = $10 per person)
+        $perHeadcountAmount = $expense->amount / $totalHeadcount;
+
+        // Create splits: each member's share = per-headcount amount * their family count
+        foreach ($members as $member) {
+            $familyCount = $member->pivot->family_count ?? 1;
+            if ($familyCount <= 0) {
+                $familyCount = 1;
+            }
+
+            $shareAmount = $perHeadcountAmount * $familyCount;
+
             ExpenseSplit::create([
                 'expense_id' => $expense->id,
                 'user_id' => $member->id,
-                'share_amount' => round($splitAmount, 2),
+                'share_amount' => round($shareAmount, 2),
             ]);
         }
     }
