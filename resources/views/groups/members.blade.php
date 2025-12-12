@@ -252,6 +252,17 @@
                         </div>
                     </div>
 
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2 ml-4">
+                        @if(!$groupMember->isContact() || $groupMember->isContact())
+                            <button type="button"
+                                    class="px-3 py-2 text-xs sm:text-sm bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-semibold transition-all"
+                                    onclick="openReceivedPaymentModal('{{ $groupMember->getMemberName() }}', {{ $groupMember->isContact() ? $groupMember->contact->id : $groupMember->user->id }}, {{ $groupMember->isContact() ? 'false' : 'true' }})">
+                                💰 Mark Paid
+                            </button>
+                        @endif
+                    </div>
+
                     @if($group->isAdmin(auth()->user()))
                         @if($groupMember->isActiveUser() && $groupMember->user_id !== auth()->id())
                             <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" class="remove-member-form" data-member-name="{{ $groupMember->getMemberName() }}">
@@ -568,7 +579,80 @@
             button.innerHTML = originalButtonHTML;
         }
     }
+
+    // Received Payment Modal
+    function openReceivedPaymentModal(memberName, memberId, isUser) {
+        const modal = document.getElementById('receivedPaymentModal');
+        document.getElementById('modalMemberName').textContent = memberName;
+        document.getElementById('memberIdInput').value = memberId;
+        document.getElementById('isUserInput').value = isUser;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeReceivedPaymentModal() {
+        const modal = document.getElementById('receivedPaymentModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('receivedPaymentForm').reset();
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('receivedPaymentModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeReceivedPaymentModal();
+        }
+    });
     </script>
+
+    <!-- Received Payment Modal -->
+    <div id="receivedPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Mark Payment Received</h2>
+                <button type="button" onclick="closeReceivedPaymentModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+
+            <p class="text-gray-600 mb-4">Recording payment from <strong id="modalMemberName"></strong></p>
+
+            <form id="receivedPaymentForm" action="{{ route('groups.received-payments.store', $group) }}" method="POST" class="space-y-4">
+                @csrf
+
+                <input type="hidden" id="memberIdInput" name="from_user_id">
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Received ($)</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                           placeholder="0.00">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date Received</label>
+                    <input type="date" name="received_date" required value="{{ date('Y-m-d') }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (Optional)</label>
+                    <textarea name="description" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                              placeholder="e.g., Cash payment for hotel share..."></textarea>
+                </div>
+
+                <div class="flex gap-2 pt-4">
+                    <button type="button" onclick="closeReceivedPaymentModal()"
+                            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                        ✓ Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 </div>
 @endsection
