@@ -339,7 +339,11 @@ class PaymentController extends Controller
                 if ($senderId === $user->id && isset($netBalances[$recipientId])) {
                     // CASE 1: User is the SENDER of the advance to recipient
                     // The advance reduces what they owe to the recipient
-                    $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
+                    // ADD (not subtract!) because: if negative (owes), adding positive makes it less negative (owes less)
+                    // Example: User owes recipient -$284.52. User sends $200 advance.
+                    // -$284.52 + $200 = -$84.52 (owes less)
+                    // NOT -$284.52 - $200 = -$484.52 (would owe MORE - wrong!)
+                    $netBalances[$recipientId]['net_amount'] += $senderAdvanceCredit;
 
                     // Track advance per sender-recipient pair
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
@@ -352,8 +356,12 @@ class PaymentController extends Controller
 
                 } elseif ($recipientId === $user->id && isset($netBalances[$senderId])) {
                     // CASE 2: User is the RECIPIENT of the advance from sender
-                    // The advance reduces what they owe to the sender (negative net_amount)
-                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
+                    // The advance reduces what they owe to the sender
+                    // ADD (not subtract!) because: if negative (owes), adding positive makes it less negative (owes less)
+                    // Example: Dhana owes Arun -$284.52. Arun sends $200 advance.
+                    // -$284.52 + $200 = -$84.52 (Dhana now owes less)
+                    // NOT -$284.52 - $200 = -$484.52 (would owe MORE - wrong!)
+                    $netBalances[$senderId]['net_amount'] += $senderAdvanceCredit;
 
                     // Track this as an advance received
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
