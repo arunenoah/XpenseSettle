@@ -92,7 +92,8 @@ class ReceivedPaymentController extends Controller
     {
         $amountOwed = 0;
 
-        // Get all expenses where targetUser is the payer
+        // PART 1: Get all expenses where targetUser is the payer
+        // User owes targetUser for these expenses
         $expenses = \App\Models\Expense::where('group_id', $group->id)
             ->where('payer_id', $targetUser->id)
             ->with([
@@ -121,6 +122,36 @@ class ReceivedPaymentController extends Controller
             }
         }
 
+        // PART 2: Get all expenses where user is the payer
+        // targetUser owes user for these expenses (subtract from amount owed)
+        $userPaidExpenses = \App\Models\Expense::where('group_id', $group->id)
+            ->where('payer_id', $user->id)
+            ->with([
+                'splits' => function ($q) {
+                    $q->with(['payment', 'user']);
+                },
+                'payer'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($userPaidExpenses as $expense) {
+            // Skip itemwise expenses
+            if ($expense->split_type === 'itemwise') {
+                continue;
+            }
+
+            // Find the targetUser's split in this expense
+            $targetUserSplit = $expense->splits->where('user_id', $targetUser->id)->first();
+
+            if ($targetUserSplit) {
+                // Only count unpaid splits
+                if (!$targetUserSplit->payment || $targetUserSplit->payment->status !== 'paid') {
+                    // Subtract: targetUser owes user for this (reduces amount owed TO targetUser)
+                    $amountOwed -= $targetUserSplit->share_amount;
+                }
+            }
+        }
 
         // Account for advances paid by current user
         // Only apply if user is a sender of the advance (they paid it)
@@ -163,7 +194,7 @@ class ReceivedPaymentController extends Controller
         // Reduce the amount owed by advance credit (user paid this advance)
         $amountOwed -= $totalAdvanceCredit;
 
-        // Ensure we don't have a negative amount owed
+        // Ensure we don't have a negative amount owed (can't receive more than owed)
         if ($amountOwed < 0) {
             $amountOwed = 0;
         }
