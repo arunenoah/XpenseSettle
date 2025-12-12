@@ -20,9 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register a Blade directive to get the CSP nonce
+        // Register a Blade directive to output the CSP nonce value
+        // Returns the raw nonce string for use in script tag attributes
         Blade::directive('nonce', function () {
-            return "{{ request()->attributes->get('nonce', '') }}";
+            return "<?php echo request()->attributes->get('nonce', ''); ?>";
         });
     }
 }

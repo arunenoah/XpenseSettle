@@ -577,7 +577,7 @@
     </div>
 </div>
 
-<script nonce="@nonce()">
+<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
 // Toggle section collapse/expand
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
