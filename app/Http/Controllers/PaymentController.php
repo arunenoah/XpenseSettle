@@ -234,15 +234,11 @@ class PaymentController extends Controller
                         ];
                     }
 
-                    // Advance payment reduces what recipient owes
-                    // User paid advance to recipient - recipient now owes less (more negative or less positive)
+                    // User paid advance to recipient
+                    // This INCREASES what recipient owes to user (makes balance more negative)
                     $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
-                    $netBalances[$recipientId]['expenses'][] = [
-                        'title' => 'Advance received',
-                        'amount' => $advanceAmount,
-                        'type' => 'advance_received',
-                        'advance' => $advanceAmount,
-                    ];
+
+                    \Log::info('Applied advance: recipient ' . $recipientId . ' now owes ' . $netBalances[$recipientId]['net_amount']);
                 }
             }
 
@@ -268,16 +264,11 @@ class PaymentController extends Controller
                         ];
                     }
 
-                    // Sender paid advance to user - reduces what user owes to sender
-                    // If net_amount is positive (user owes sender): subtract to reduce debt or flip to negative
-                    // If net_amount is negative (sender owes user): add to reduce what sender owes
+                    // Sender paid advance to user
+                    // User owes less to sender (reduces positive balance or increases negative balance)
                     $netBalances[$senderId]['net_amount'] -= $advanceAmount;
-                    $netBalances[$senderId]['expenses'][] = [
-                        'title' => 'Advance paid',
-                        'amount' => $advanceAmount,
-                        'type' => 'advance',
-                        'advance' => $advanceAmount,
-                    ];
+
+                    \Log::info('Applied advance: user now owes sender ' . $senderId . ' amount: ' . $netBalances[$senderId]['net_amount']);
                 }
             }
         }
