@@ -5,10 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Advance;
 use App\Models\Group;
 use App\Services\ActivityService;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 
 class AdvanceController extends Controller
 {
+    private AuditService $auditService;
+
+    public function __construct(AuditService $auditService)
+    {
+        $this->auditService = $auditService;
+    }
     /**
      * Store a newly created advance.
      */
@@ -41,11 +48,29 @@ class AdvanceController extends Controller
             // Attach the senders
             $advance->senders()->attach($validated['senders']);
 
+            // Log advance recording
+            $totalAmount = $validated['amount_per_person'] * count($validated['senders']);
+            $this->auditService->logSuccess(
+                'record_advance',
+                'Advance',
+                "Advance of {$totalAmount} recorded in group '{$group->name}'",
+                $advance->id,
+                $group->id
+            );
+
             // Log activity for timeline
             ActivityService::logAdvancePaid($group, $advance, $validated['senders']);
 
             return redirect()->back()->with('success', 'Advance recorded successfully! 💰');
         } catch (\Exception $e) {
+            // Log failed advance recording
+            $this->auditService->logFailed(
+                'record_advance',
+                'Advance',
+                'Failed to record advance',
+                $e->getMessage()
+            );
+
             return redirect()->back()->with('error', 'Failed to record advance: ' . $e->getMessage());
         }
     }
@@ -65,9 +90,29 @@ class AdvanceController extends Controller
         }
 
         try {
+            $advanceId = $advance->id;
+            $totalAmount = $advance->amount_per_person * $advance->senders()->count();
             $advance->delete();
+
+            // Log advance deletion
+            $this->auditService->logSuccess(
+                'delete_advance',
+                'Advance',
+                "Advance of {$totalAmount} deleted from group '{$group->name}'",
+                $advanceId,
+                $group->id
+            );
+
             return redirect()->back()->with('success', 'Advance deleted successfully');
         } catch (\Exception $e) {
+            // Log failed advance deletion
+            $this->auditService->logFailed(
+                'delete_advance',
+                'Advance',
+                'Failed to delete advance',
+                $e->getMessage()
+            );
+
             return redirect()->back()->with('error', 'Failed to delete advance: ' . $e->getMessage());
         }
     }

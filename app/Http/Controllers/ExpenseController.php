@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Expense;
 use App\Models\Group;
 use App\Services\ActivityService;
+use App\Services\AuditService;
 use App\Services\ExpenseService;
 use App\Services\NotificationService;
 use App\Services\PlanService;
@@ -15,12 +16,14 @@ class ExpenseController extends Controller
     private ExpenseService $expenseService;
     private NotificationService $notificationService;
     private PlanService $planService;
+    private AuditService $auditService;
 
-    public function __construct(ExpenseService $expenseService, NotificationService $notificationService, PlanService $planService)
+    public function __construct(ExpenseService $expenseService, NotificationService $notificationService, PlanService $planService, AuditService $auditService)
     {
         $this->expenseService = $expenseService;
         $this->notificationService = $notificationService;
         $this->planService = $planService;
+        $this->auditService = $auditService;
     }
 
     /**
@@ -85,6 +88,15 @@ class ExpenseController extends Controller
                 $validated
             );
 
+            // Log expense creation to audit trail
+            $this->auditService->logSuccess(
+                'create_expense',
+                'Expense',
+                "Expense '{$validated['title']}' ({$validated['amount']}) created in group '{$group->name}'",
+                $expense->id,
+                $group->id
+            );
+
             // Log activity for timeline
             ActivityService::logExpenseCreated($group, $expense);
 
@@ -117,6 +129,14 @@ class ExpenseController extends Controller
                 ->route('groups.expenses.show', ['group' => $group, 'expense' => $expense])
                 ->with('success', 'Expense created successfully!');
         } catch (\Exception $e) {
+            // Log failed expense creation
+            $this->auditService->logFailed(
+                'create_expense',
+                'Expense',
+                'Failed to create expense',
+                $e->getMessage()
+            );
+
             return back()
                 ->withInput()
                 ->with('error', 'Failed to create expense: ' . $e->getMessage());
@@ -227,6 +247,15 @@ class ExpenseController extends Controller
         ]);
 
         try {
+            // Track changes for audit log
+            $changes = [];
+            if ($expense->title !== $validated['title']) {
+                $changes['title'] = ['from' => $expense->title, 'to' => $validated['title']];
+            }
+            if ($expense->amount != $validated['amount']) {
+                $changes['amount'] = ['from' => $expense->amount, 'to' => $validated['amount']];
+            }
+
             // Process splits
             $validated['splits'] = $this->processSplits(
                 $request->get('split_type'),
@@ -236,6 +265,18 @@ class ExpenseController extends Controller
             );
 
             $expense = $this->expenseService->updateExpense($expense, $validated);
+
+            // Log expense update if there were changes
+            if (!empty($changes)) {
+                $this->auditService->logSuccess(
+                    'update_expense',
+                    'Expense',
+                    "Expense '{$validated['title']}' updated in group '{$group->name}'",
+                    $expense->id,
+                    $group->id,
+                    $changes
+                );
+            }
 
             // Handle attachments if uploaded
             if ($request->hasFile('attachments')) {
@@ -258,6 +299,14 @@ class ExpenseController extends Controller
                 ->route('groups.expenses.show', ['group' => $group, 'expense' => $expense])
                 ->with('success', 'Expense updated successfully!');
         } catch (\Exception $e) {
+            // Log failed expense update
+            $this->auditService->logFailed(
+                'update_expense',
+                'Expense',
+                'Failed to update expense',
+                $e->getMessage()
+            );
+
             return back()
                 ->withInput()
                 ->with('error', 'Failed to update expense: ' . $e->getMessage());
@@ -280,13 +329,31 @@ class ExpenseController extends Controller
         }
 
         try {
+            $expenseId = $expense->id;
             $expenseTitle = $expense->title;
             $this->expenseService->deleteExpense($expense);
+
+            // Log expense deletion
+            $this->auditService->logSuccess(
+                'delete_expense',
+                'Expense',
+                "Expense '{$expenseTitle}' deleted from group '{$group->name}'",
+                $expenseId,
+                $group->id
+            );
 
             return redirect()
                 ->route('groups.show', $group)
                 ->with('success', "Expense '{$expenseTitle}' deleted successfully!");
         } catch (\Exception $e) {
+            // Log failed expense deletion
+            $this->auditService->logFailed(
+                'delete_expense',
+                'Expense',
+                'Failed to delete expense',
+                $e->getMessage()
+            );
+
             return back()->with('error', 'Failed to delete expense: ' . $e->getMessage());
         }
     }

@@ -4,10 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Group;
 use App\Models\SettlementConfirmation;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
 
 class SettlementController extends Controller
 {
+    private AuditService $auditService;
+
+    public function __construct(AuditService $auditService)
+    {
+        $this->auditService = $auditService;
+    }
     /**
      * Confirm a settlement payment between two users.
      * Called when "Mark as Paid" is submitted from the Trip Summary page.
@@ -35,32 +42,60 @@ class SettlementController extends Controller
             return response()->json(['error' => 'To user not in group'], 422);
         }
 
-        // Create settlement confirmation
-        $settlement = SettlementConfirmation::create([
-            'group_id' => $group->id,
-            'from_user_id' => $validated['from_user_id'],
-            'to_user_id' => $validated['to_user_id'],
-            'amount' => $validated['amount'],
-            'notes' => $validated['notes'],
-            'confirmed_at' => now(),
-            'confirmed_by' => auth()->id(),
-        ]);
-
-        // Handle photo upload if provided
-        if ($request->hasFile('photo')) {
-            $settlement->attachments()->create([
-                'file_path' => $request->file('photo')->store("settlements/{$group->id}", 'public'),
-                'file_name' => $request->file('photo')->getClientOriginalName(),
-                'file_type' => $request->file('photo')->getMimeType(),
-                'file_size' => $request->file('photo')->getSize(),
+        try {
+            // Create settlement confirmation
+            $settlement = SettlementConfirmation::create([
+                'group_id' => $group->id,
+                'from_user_id' => $validated['from_user_id'],
+                'to_user_id' => $validated['to_user_id'],
+                'amount' => $validated['amount'],
+                'notes' => $validated['notes'],
+                'confirmed_at' => now(),
+                'confirmed_by' => auth()->id(),
             ]);
-        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Settlement confirmed successfully',
-            'settlement' => $settlement,
-        ]);
+            // Get user names for audit log
+            $fromUser = \App\Models\User::find($validated['from_user_id']);
+            $toUser = \App\Models\User::find($validated['to_user_id']);
+
+            // Log settlement confirmation
+            $this->auditService->logSuccess(
+                'confirm_settlement',
+                'Settlement',
+                "Settlement of {$validated['amount']} from {$fromUser->name} to {$toUser->name} confirmed in group '{$group->name}'",
+                $settlement->id,
+                $group->id
+            );
+
+            // Handle photo upload if provided
+            if ($request->hasFile('photo')) {
+                $settlement->attachments()->create([
+                    'file_path' => $request->file('photo')->store("settlements/{$group->id}", 'public'),
+                    'file_name' => $request->file('photo')->getClientOriginalName(),
+                    'file_type' => $request->file('photo')->getMimeType(),
+                    'file_size' => $request->file('photo')->getSize(),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Settlement confirmed successfully',
+                'settlement' => $settlement,
+            ]);
+        } catch (\Exception $e) {
+            // Log failed settlement confirmation
+            $this->auditService->logFailed(
+                'confirm_settlement',
+                'Settlement',
+                'Failed to confirm settlement',
+                $e->getMessage()
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to confirm settlement: ' . $e->getMessage(),
+            ], 400);
+        }
     }
 
     /**

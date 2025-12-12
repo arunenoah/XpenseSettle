@@ -7,6 +7,7 @@ use App\Models\ExpenseSplit;
 use App\Models\Payment;
 use App\Models\Group;
 use App\Services\AttachmentService;
+use App\Services\AuditService;
 use App\Services\PaymentService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -17,15 +18,18 @@ class PaymentController extends Controller
     private PaymentService $paymentService;
     private AttachmentService $attachmentService;
     private NotificationService $notificationService;
+    private AuditService $auditService;
 
     public function __construct(
         PaymentService $paymentService,
         AttachmentService $attachmentService,
-        NotificationService $notificationService
+        NotificationService $notificationService,
+        AuditService $auditService
     ) {
         $this->paymentService = $paymentService;
         $this->attachmentService = $attachmentService;
         $this->notificationService = $notificationService;
+        $this->auditService = $auditService;
     }
 
     /**
@@ -653,6 +657,17 @@ class PaymentController extends Controller
             // Create or update payment
             $payment = $this->paymentService->markAsPaid($split, $user, $validated);
 
+            // Log payment marked as paid
+            $expense = $split->expense;
+            $group = $expense->group;
+            $this->auditService->logSuccess(
+                'mark_paid',
+                'Payment',
+                "Payment of {$payment->amount} marked as paid for '{$expense->title}' in group '{$group->name}'",
+                $payment->id,
+                $group->id
+            );
+
             // Handle receipt attachment
             if ($request->hasFile('receipt')) {
                 $this->attachmentService->uploadAttachment(
@@ -670,6 +685,14 @@ class PaymentController extends Controller
 
             return back()->with('success', 'Payment marked as paid successfully!');
         } catch (\Exception $e) {
+            // Log failed payment mark
+            $this->auditService->logFailed(
+                'mark_paid',
+                'Payment',
+                'Failed to mark payment as paid',
+                $e->getMessage()
+            );
+
             return back()->with('error', 'Failed to mark payment: ' . $e->getMessage());
         }
     }
@@ -699,6 +722,16 @@ class PaymentController extends Controller
                 'notes' => $validated['notes'] ?? $payment->notes,
             ]);
 
+            // Log payment approval
+            $group = $expense->group;
+            $this->auditService->logSuccess(
+                'approve_payment',
+                'Payment',
+                "Payment of {$payment->amount} from {$payment->split->user->name} for '{$expense->title}' approved in group '{$group->name}'",
+                $payment->id,
+                $group->id
+            );
+
             // Notify the person who paid
             $this->notificationService->createNotification($payment->split->user, [
                 'type' => 'payment_approved',
@@ -712,6 +745,14 @@ class PaymentController extends Controller
 
             return back()->with('success', 'Payment approved successfully!');
         } catch (\Exception $e) {
+            // Log failed payment approval
+            $this->auditService->logFailed(
+                'approve_payment',
+                'Payment',
+                'Failed to approve payment',
+                $e->getMessage()
+            );
+
             return back()->with('error', 'Failed to approve payment: ' . $e->getMessage());
         }
     }
@@ -736,6 +777,16 @@ class PaymentController extends Controller
         try {
             $this->paymentService->rejectPayment($payment, $validated['reason']);
 
+            // Log payment rejection
+            $group = $expense->group;
+            $this->auditService->logSuccess(
+                'reject_payment',
+                'Payment',
+                "Payment of {$payment->amount} from {$payment->split->user->name} for '{$expense->title}' rejected in group '{$group->name}' - Reason: {$validated['reason']}",
+                $payment->id,
+                $group->id
+            );
+
             // Notify the person who paid
             $this->notificationService->createNotification($payment->split->user, [
                 'type' => 'payment_rejected',
@@ -746,6 +797,14 @@ class PaymentController extends Controller
 
             return back()->with('success', 'Payment rejected. User has been notified.');
         } catch (\Exception $e) {
+            // Log failed payment rejection
+            $this->auditService->logFailed(
+                'reject_payment',
+                'Payment',
+                'Failed to reject payment',
+                $e->getMessage()
+            );
+
             return back()->with('error', 'Failed to reject payment: ' . $e->getMessage());
         }
     }
