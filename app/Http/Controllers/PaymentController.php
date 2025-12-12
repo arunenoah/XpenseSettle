@@ -275,6 +275,7 @@ class PaymentController extends Controller
 
         // Account for received payments
         // These reduce what the user owes to others (payment received FROM them)
+        // Payment amount needs to be adjusted based on payer's family count
         $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
             ->where('to_user_id', $user->id)
             ->with(['fromUser'])
@@ -285,11 +286,26 @@ class PaymentController extends Controller
 
             // If this person is in the settlement, reduce what the user owes them
             if (isset($netBalances[$fromUserId])) {
-                // Subtract received payment from what user owes to this person
-                $netBalances[$fromUserId]['net_amount'] -= $receivedPayment->amount;
+                // Get the payer's family count to adjust the payment amount
+                $payerFamilyCount = $group->members()
+                    ->where('user_id', $fromUserId)
+                    ->first()
+                    ?->pivot
+                    ?->family_count ?? 1;
+
+                if ($payerFamilyCount <= 0) {
+                    $payerFamilyCount = 1;
+                }
+
+                // Adjust received amount proportionally by payer's family count
+                // The received payment is divided by their family count to get per-person credit
+                $adjustedAmount = $receivedPayment->amount / $payerFamilyCount;
+
+                // Subtract adjusted payment from what user owes to this person
+                $netBalances[$fromUserId]['net_amount'] -= $adjustedAmount;
                 $netBalances[$fromUserId]['expenses'][] = [
                     'title' => 'Payment Received',
-                    'amount' => $receivedPayment->amount,
+                    'amount' => $adjustedAmount,
                     'type' => 'payment_received',  // Special type for received payments
                 ];
             }
@@ -297,6 +313,7 @@ class PaymentController extends Controller
 
         // Account for payments sent to others
         // These increase what others owe to the user (payment sent TO them)
+        // Sent payment needs to be adjusted based on sender's family count
         $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $user->id)
             ->with(['toUser'])
@@ -307,11 +324,26 @@ class PaymentController extends Controller
 
             // If this person is in the settlement, increase what they owe user
             if (isset($netBalances[$toUserId])) {
+                // Get the sender's (current user's) family count to adjust the payment amount
+                $senderFamilyCount = $group->members()
+                    ->where('user_id', $user->id)
+                    ->first()
+                    ?->pivot
+                    ?->family_count ?? 1;
+
+                if ($senderFamilyCount <= 0) {
+                    $senderFamilyCount = 1;
+                }
+
+                // Adjust sent amount proportionally by sender's family count
+                // The sent payment is divided by their family count to get per-person credit
+                $adjustedAmount = $sentPayment->amount / $senderFamilyCount;
+
                 // Subtract from their balance (makes it more negative - they owe more to user)
-                $netBalances[$toUserId]['net_amount'] -= $sentPayment->amount;
+                $netBalances[$toUserId]['net_amount'] -= $adjustedAmount;
                 $netBalances[$toUserId]['expenses'][] = [
                     'title' => 'Payment Sent',
-                    'amount' => $sentPayment->amount,
+                    'amount' => $adjustedAmount,
                     'type' => 'payment_sent',  // Special type for sent payments
                 ];
             }

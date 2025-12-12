@@ -70,18 +70,35 @@ class ReceivedPaymentController extends Controller
             }
         }
 
+        // Get payer's family count for adjustment
+        $payerFamilyCount = $group->members()
+            ->where('user_id', $fromUser->id)
+            ->first()
+            ?->pivot
+            ?->family_count ?? 1;
+
+        if ($payerFamilyCount <= 0) {
+            $payerFamilyCount = 1;
+        }
+
         // Subtract any received payments already recorded
-        $alreadyReceived = ReceivedPayment::where('group_id', $group->id)
+        // Received payments are also adjusted by payer's family count
+        $receivedPaymentsRaw = ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $fromUser->id)
             ->where('to_user_id', $user->id)
-            ->sum('amount');
+            ->get();
+
+        $alreadyReceived = 0;
+        foreach ($receivedPaymentsRaw as $payment) {
+            $alreadyReceived += $payment->amount / $payerFamilyCount;
+        }
 
         $remainingOwed = $amountOwed - $alreadyReceived;
 
         // Validate that the amount doesn't exceed what is owed
         if ($validated['amount'] > $remainingOwed) {
             return redirect()->back()
-                ->withErrors(['amount' => "Amount cannot exceed ${remainingOwed} owed. You've already received ${alreadyReceived}."])
+                ->withErrors(['amount' => "Amount cannot exceed $" . round($remainingOwed, 2) . " owed. You've already received $" . round($alreadyReceived, 2) . "."])
                 ->withInput();
         }
 
