@@ -67,7 +67,7 @@
                     <a href="{{ route('groups.expenses.create', $group) }}" class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-xs whitespace-nowrap">
                         + Expense
                     </a>
-                    <button onclick="openAdvanceModal()" class="px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-xs flex items-center gap-1 whitespace-nowrap">
+                    <button data-open-advance-modal="true" class="px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all font-semibold text-xs flex items-center gap-1 whitespace-nowrap">
                         <span>💰</span>
                         <span>Advance</span>
                     </button>
@@ -194,7 +194,7 @@
 
     <!-- Squad Members - Collapsible Section -->
     <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
-        <button type="button" onclick="toggleSection('squadMembers')" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
+        <button type="button" data-toggle-section="squadMembers" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
             <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
                 <span class="text-3xl">👥</span>
                 <span>Squad Members</span>
@@ -262,7 +262,7 @@
     <!-- Settlement Breakdown (Net per Person) - Collapsible Section -->
     @if(count($settlement) > 0)
         <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
-            <button type="button" onclick="toggleSection('settlementSummary')" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
+            <button type="button" data-toggle-section="settlementSummary" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
                 <h3 class="text-2xl font-black text-gray-900 flex items-center gap-2">
                     <span class="text-3xl">⚖️</span>
                     <span>Settlement Summary</span>
@@ -483,7 +483,7 @@
     <!-- Mobile Floating Action Buttons -->
     <div class="fixed bottom-6 right-6 sm:hidden z-40 flex flex-col gap-3">
         <!-- Add Advance FAB -->
-        <button onclick="openAdvanceModal()" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
+        <button data-open-advance-modal="true" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
             <span class="text-2xl">💰</span>
         </button>
         <!-- View Members FAB -->
@@ -498,11 +498,11 @@
 </div>
 
 <!-- Expenses Modal -->
-<div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeExpensesModal(event)">
-    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" onclick="event.stopPropagation()">
+<div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" data-close-modal="true" data-modal-func="closeExpensesModal">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" data-stop-propagation="true">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-2xl font-black text-gray-900">📜 Expenses</h3>
-            <button onclick="closeExpensesModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            <button data-close-button="true" data-modal-func="closeExpensesModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
         </div>
 
         @if($expenses->count() > 0)
@@ -531,17 +531,17 @@
 </div>
 
 <!-- Image Modal -->
-<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50 p-4" onclick="closeImageModal(event)">
-    <div class="relative max-w-3xl max-h-96 bg-white rounded-2xl overflow-hidden" onclick="event.stopPropagation()">
-        <button onclick="closeImageModal()" class="absolute top-3 right-3 bg-white rounded-full p-2 hover:bg-gray-100 z-10 text-gray-700 font-bold">✕</button>
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 hidden items-center justify-center z-50 p-4" data-close-modal="true" data-modal-func="closeImageModal">
+    <div class="relative max-w-3xl max-h-96 bg-white rounded-2xl overflow-hidden" data-stop-propagation="true">
+        <button data-close-image-modal="true" class="absolute top-3 right-3 bg-white rounded-full p-2 hover:bg-gray-100 z-10 text-gray-700 font-bold">✕</button>
         <img id="modalImage" src="" alt="Image" class="w-full h-full object-contain">
         <p id="modalImageName" class="absolute bottom-3 left-3 bg-black bg-opacity-50 text-white text-sm px-3 py-1 rounded truncate max-w-xs"></p>
     </div>
 </div>
 
 <!-- Payment Modal -->
-<div id="groupPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closeGroupPaymentModal(event)">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" onclick="event.stopPropagation()">
+<div id="groupPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" data-close-modal="true" data-modal-func="closeGroupPaymentModal">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" data-stop-propagation="true">
         <h3 class="text-2xl font-black text-gray-900 mb-4">Mark Payment as Paid</h3>
 
         <form id="groupPaymentForm" method="POST" enctype="multipart/form-data">
@@ -566,7 +566,7 @@
             </div>
 
             <div class="flex gap-3">
-                <button type="button" onclick="closeGroupPaymentModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
+                <button type="button" data-close-button="true" data-modal-func="closeGroupPaymentModal" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
@@ -673,14 +673,14 @@ function closeAdvancesInfoModal(event) {
 </script>
 
 <!-- Add Advance Modal -->
-<div id="advanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeAdvanceModal(event)">
-    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" onclick="event.stopPropagation()">
+<div id="advanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" data-close-modal="true" data-modal-func="closeAdvanceModal">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" data-stop-propagation="true">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-2xl font-black text-gray-900 flex items-center gap-2">
                 <span>💰</span>
                 Record Advance Payment
             </h3>
-            <button onclick="closeAdvanceModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">✕</button>
+            <button data-close-button="true" data-modal-func="closeAdvanceModal" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">✕</button>
         </div>
 
         <form action="{{ route('groups.advances.store', $group) }}" method="POST" class="space-y-4">
@@ -733,7 +733,7 @@ function closeAdvancesInfoModal(event) {
             </div>
 
             <div class="flex gap-3 pt-4">
-                <button type="button" onclick="closeAdvanceModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold">
+                <button type="button" data-close-button="true" data-modal-func="closeAdvanceModal" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all font-bold">
@@ -745,7 +745,7 @@ function closeAdvancesInfoModal(event) {
 </div>
 
 <!-- Advances Info Modal -->
-<div id="advancesInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeAdvancesInfoModal(event)">
+<div id="advancesInfoModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true" data-modal-func="closeAdvancesInfoModal">
     <div class="bg-white rounded-lg shadow-2xl max-w-md w-full mx-4 p-6">
         <div class="flex items-center gap-3 mb-4">
             <span class="text-3xl">💰</span>
@@ -780,7 +780,7 @@ function closeAdvancesInfoModal(event) {
             </p>
         </div>
 
-        <button onclick="closeAdvancesInfoModal()" class="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+        <button data-close-button="true" data-modal-func="closeAdvancesInfoModal" class="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
             Got it!
         </button>
     </div>
