@@ -63,10 +63,10 @@
             <!-- Add New Member / Contact -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div class="flex border-b border-gray-200">
-                    <button onclick="switchTab('user-tab', 'contact-tab')" id="user-tab-btn" class="flex-1 px-4 py-4 text-center font-semibold text-gray-900 border-b-2 border-purple-600 transition-all">
+                    <button data-switch-to="user-tab" data-hide="contact-tab" id="user-tab-btn" class="flex-1 px-4 py-4 text-center font-semibold text-gray-900 border-b-2 border-purple-600 transition-all">
                         👤 Add User Member
                     </button>
-                    <button onclick="switchTab('contact-tab', 'user-tab')" id="contact-tab-btn" class="flex-1 px-4 py-4 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-all">
+                    <button data-switch-to="contact-tab" data-hide="user-tab" id="contact-tab-btn" class="flex-1 px-4 py-4 text-center font-semibold text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition-all">
                         ✨ Add Contact
                     </button>
                 </div>
@@ -254,7 +254,7 @@
 
                     @if($group->isAdmin(auth()->user()))
                         @if($groupMember->isActiveUser() && $groupMember->user_id !== auth()->id())
-                            <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $groupMember->getMemberName() }} from this group?');">
+                            <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" class="remove-member-form" data-member-name="{{ $groupMember->getMemberName() }}">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-red-500 hover:bg-red-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Remove member">
@@ -265,7 +265,7 @@
                                 </button>
                             </form>
                         @elseif($groupMember->isContact())
-                            <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" onsubmit="return confirm('Are you sure you want to remove {{ $groupMember->getMemberName() }} from this group?');">
+                            <form action="{{ route('groups.members.remove', [$group, $groupMember->id]) }}" method="POST" class="remove-member-form" data-member-name="{{ $groupMember->getMemberName() }}">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-red-500 hover:bg-red-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Remove contact">
@@ -277,7 +277,7 @@
                             </form>
                         @endif
                     @elseif($groupMember->isActiveUser() && $groupMember->user_id === auth()->id() && $groupMember->role !== 'admin')
-                        <form action="{{ route('groups.members.leave', $group) }}" method="POST" onsubmit="return confirm('Are you sure you want to leave this group?');">
+                        <form action="{{ route('groups.members.leave', $group) }}" method="POST" class="leave-group-form">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1 bg-gray-500 hover:bg-gray-600 text-white rounded-full sm:rounded flex items-center justify-center transition-all active:scale-95" title="Leave group">
@@ -299,11 +299,11 @@
     </div>
 
     <!-- Expenses Modal -->
-    <div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeExpensesModal(event)">
+    <div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
         <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" onclick="event.stopPropagation()">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-2xl font-black text-gray-900">📜 Expenses</h3>
-                <button onclick="closeExpensesModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                <button id="closeExpensesBtn" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
             </div>
 
             @if($group->expenses->count() > 0)
@@ -350,6 +350,64 @@
             document.getElementById('user-tab-btn').classList.add('text-gray-500', 'border-b-transparent');
         }
     }
+
+    // Initialize all event listeners (CSP-compliant)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching
+        const userTabBtn = document.getElementById('user-tab-btn');
+        const contactTabBtn = document.getElementById('contact-tab-btn');
+
+        if (userTabBtn) {
+            userTabBtn.addEventListener('click', function() {
+                switchTab('user-tab', 'contact-tab');
+            });
+        }
+
+        if (contactTabBtn) {
+            contactTabBtn.addEventListener('click', function() {
+                switchTab('contact-tab', 'user-tab');
+            });
+        }
+
+        // Close modal button
+        const closeExpensesBtn = document.getElementById('closeExpensesBtn');
+        if (closeExpensesBtn) {
+            closeExpensesBtn.addEventListener('click', function() {
+                closeExpensesModal();
+            });
+        }
+
+        // Modal backdrop click handler
+        const expensesModal = document.getElementById('expensesModal');
+        if (expensesModal) {
+            expensesModal.addEventListener('click', function(event) {
+                if (event.target.id === 'expensesModal') {
+                    closeExpensesModal(event);
+                }
+            });
+        }
+
+        // Remove member forms - add confirmation
+        const removeForms = document.querySelectorAll('.remove-member-form');
+        removeForms.forEach(form => {
+            form.addEventListener('submit', function(event) {
+                const memberName = this.getAttribute('data-member-name');
+                if (!confirm(`Are you sure you want to remove ${memberName} from this group?`)) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        // Leave group form - add confirmation
+        const leaveForm = document.querySelector('.leave-group-form');
+        if (leaveForm) {
+            leaveForm.addEventListener('submit', function(event) {
+                if (!confirm('Are you sure you want to leave this group?')) {
+                    event.preventDefault();
+                }
+            });
+        }
+    });
 
     function showExpensesModal() {
         document.getElementById('expensesModal').classList.remove('hidden');
