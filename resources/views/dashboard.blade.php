@@ -108,8 +108,11 @@
                                 <p class="text-2xl font-bold text-red-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
                             </div>
                             <div class="flex gap-2">
-                                <button onclick="openPaymentModal({{ $payment->id }}, '{{ $payment->split->expense->payer->name }}', {{ $payment->split->share_amount }}, '{{ $payment->split->expense->title }}')"
-                                        class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm">
+                                <button data-payment-id="{{ $payment->id }}"
+                                        data-payer-name="{{ $payment->split->expense->payer->name }}"
+                                        data-amount="{{ $payment->split->share_amount }}"
+                                        data-title="{{ $payment->split->expense->title }}"
+                                        class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-sm open-payment-modal">
                                     Settle
                                 </button>
                                 @if($payment->split->expense->group)
@@ -391,8 +394,8 @@
 </div>
 
 <!-- Payment Modal -->
-<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="closePaymentModal(event)">
-    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-lg" onclick="event.stopPropagation()">
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" data-close-modal="true">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-lg" data-stop-propagation="true">
         <h3 class="text-xl font-bold text-gray-900 mb-6">Settle Payment</h3>
 
         <form id="paymentForm" method="POST" enctype="multipart/form-data">
@@ -421,7 +424,7 @@
             </div>
 
             <div class="flex gap-3">
-                <button type="button" onclick="closePaymentModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-semibold text-sm">
+                <button type="button" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-semibold text-sm close-payment-modal">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm">
@@ -461,5 +464,36 @@ function closePaymentModal(event) {
         document.getElementById('paymentModal').classList.remove('flex');
     }
 }
+
+// Event listeners for payment modal
+document.addEventListener('DOMContentLoaded', function() {
+    // Open modal buttons
+    document.querySelectorAll('.open-payment-modal').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const paymentId = this.dataset.paymentId;
+            const payerName = this.dataset.payerName;
+            const amount = this.dataset.amount;
+            const title = this.dataset.title;
+            openPaymentModal(paymentId, payerName, amount, title);
+        });
+    });
+
+    // Close modal buttons
+    document.querySelectorAll('.close-payment-modal').forEach(btn => {
+        btn.addEventListener('click', closePaymentModal);
+    });
+
+    // Close modal when clicking backdrop
+    const paymentModal = document.getElementById('paymentModal');
+    if (paymentModal) {
+        paymentModal.addEventListener('click', function(e) {
+            if (e.target.id === 'paymentModal') {
+                closePaymentModal(e);
+            } else {
+                e.stopPropagation();
+            }
+        });
+    }
+});
 </script>
 @endsection
