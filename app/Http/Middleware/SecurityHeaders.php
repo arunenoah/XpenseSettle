@@ -47,11 +47,11 @@ class SecurityHeaders
         );
 
         // Content Security Policy - Prevent XSS and injection attacks
-        // Note: style-src allows 'unsafe-inline' for Tailwind CSS JIT compilation
-        // Scripts use nonce for inline code with strict-dynamic for Alpine.js compatibility
-        // strict-dynamic allows nonce-based scripts to load additional scripts dynamically
+        // Note: When nonce is present, 'unsafe-inline' is automatically ignored
+        // We use 'unsafe-inline' as fallback for older browsers without nonce support
+        // All inline scripts are protected by requiring a valid nonce value
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'nonce-{$nonce}' 'strict-dynamic' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
+               "script-src 'self' 'nonce-{$nonce}' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
                "worker-src 'self' blob: data:; " .
                "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; " .
                "img-src 'self' data: https: blob:; " .

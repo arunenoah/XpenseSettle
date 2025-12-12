@@ -132,7 +132,7 @@
                             name="split_type"
                             value="equal"
                             {{ old('split_type', 'equal') === 'equal' ? 'checked' : '' }}
-                            onchange="toggleCustomSplits()"
+                            data-split-type-radio="true"
                             class="mt-1"
                             required
                         />
@@ -149,7 +149,7 @@
                             name="split_type"
                             value="custom"
                             {{ old('split_type') === 'custom' ? 'checked' : '' }}
-                            onchange="toggleCustomSplits()"
+                            data-split-type-radio="true"
                             class="mt-1"
                             required
                         />
@@ -169,9 +169,10 @@
 
             <script nonce="@nonce()">
             // Update styling on load and when options change
-            document.querySelectorAll('input[name="split_type"]').forEach(radio => {
+            document.querySelectorAll('input[data-split-type-radio="true"]').forEach(radio => {
                 radio.addEventListener('change', function() {
                     updateSplitTypeUI();
+                    toggleCustomSplits();
                 });
             });
 
@@ -194,9 +195,20 @@
                 }
             }
 
+            // Add event listeners for split inputs
+            document.querySelectorAll('.split-input').forEach(input => {
+                input.addEventListener('change', updateTotal);
+                input.addEventListener('input', updateTotal);
+            });
+
             // Initialize on page load
             document.addEventListener('DOMContentLoaded', function() {
                 updateSplitTypeUI();
+                // Attach event listeners for split inputs created dynamically
+                document.querySelectorAll('.split-input').forEach(input => {
+                    input.addEventListener('change', updateTotal);
+                    input.addEventListener('input', updateTotal);
+                });
             });
             </script>
 
@@ -226,8 +238,7 @@
                                         step="0.01"
                                         min="0"
                                         value="{{ old('splits.' . $member->id, 0) }}"
-                                        class="w-full px-3 pr-8 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        onchange="updateTotal()"
+                                        class="w-full px-3 pr-8 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 split-input"
                                     />
                                 </div>
                             </div>
@@ -571,7 +582,7 @@ function updateFileList() {
                                 <div class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</div>
                             </div>
                         </span>
-                        <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0" onclick="removeFile(${index})">✕</button>
+                        <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0 remove-file-btn" data-file-index="${index}">✕</button>
                     `;
                 };
                 reader.readAsDataURL(file);
@@ -589,10 +600,17 @@ function updateFileList() {
                             <div class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</div>
                         </div>
                     </span>
-                    <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0" onclick="removeFile(${index})">✕</button>
+                    <button type="button" class="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded font-bold flex-shrink-0 remove-file-btn" data-file-index="${index}">✕</button>
                 `;
             }
             fileListUl.appendChild(li);
+        });
+
+        // Add event listeners for remove buttons
+        document.querySelectorAll('.remove-file-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                removeFile(parseInt(this.dataset.fileIndex));
+            });
         });
     } else {
         fileListContainer.classList.add('hidden');
