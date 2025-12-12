@@ -133,7 +133,7 @@ class ReceivedPaymentController extends Controller
         }
 
         // Account for advances that benefit the current user
-        // Advances reduce what the user owes to all group members
+        // Advances are divided by sender's family count to get per-person credit
         $advances = \App\Models\Advance::where('group_id', $group->id)
             ->with(['senders', 'sentTo'])
             ->get();
@@ -141,37 +141,36 @@ class ReceivedPaymentController extends Controller
         $totalAdvanceCredit = 0;
 
         foreach ($advances as $advance) {
-            // Calculate total advance amount and per-headcount credit
-            $totalAdvanceAmount = $advance->amount_per_person * $advance->senders()->count();
+            // Get all senders of this advance
+            $senders = $advance->senders;
 
-            // Get total group headcount for proper distribution
-            $allGroupMembers = $group->members()
-                ->select('users.id')
-                ->withPivot('family_count')
-                ->get();
+            foreach ($senders as $sender) {
+                // Get sender's family count
+                $senderFamilyCount = $group->members()
+                    ->where('user_id', $sender->id)
+                    ->first()
+                    ?->pivot
+                    ?->family_count ?? 1;
 
-            $totalGroupHeadcount = 0;
-            foreach ($allGroupMembers as $member) {
-                $familyCount = $member->pivot->family_count ?? 1;
-                if ($familyCount <= 0) $familyCount = 1;
-                $totalGroupHeadcount += $familyCount;
+                if ($senderFamilyCount <= 0) {
+                    $senderFamilyCount = 1;
+                }
+
+                // Advance amount divided by sender's family count = per-person credit
+                $perPersonCredit = $advance->amount_per_person / $senderFamilyCount;
+
+                // Get current user's family count for their advance credit
+                $userFamilyCount = $group->members()
+                    ->where('user_id', $user->id)
+                    ->first()
+                    ?->pivot
+                    ?->family_count ?? 1;
+                if ($userFamilyCount <= 0) $userFamilyCount = 1;
+
+                // Each person's advance credit = per-person-credit × their family count
+                $userAdvanceCredit = $perPersonCredit * $userFamilyCount;
+                $totalAdvanceCredit += $userAdvanceCredit;
             }
-
-            if ($totalGroupHeadcount <= 0) $totalGroupHeadcount = 1;
-
-            // Per-person credit from this advance
-            $perHeadcountCredit = $totalAdvanceAmount / $totalGroupHeadcount;
-
-            // Get current user's family count for their advance credit
-            $userFamilyCount = $group->members()
-                ->where('user_id', $user->id)
-                ->first()
-                ?->pivot
-                ?->family_count ?? 1;
-            if ($userFamilyCount <= 0) $userFamilyCount = 1;
-
-            $userAdvanceCredit = $perHeadcountCredit * $userFamilyCount;
-            $totalAdvanceCredit += $userAdvanceCredit;
         }
 
         // Reduce the amount owed by advance credit
