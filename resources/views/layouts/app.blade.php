@@ -143,7 +143,7 @@
                     </div>
                 </div>
 
-                <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+                <script nonce="{{ request()->attributes->get('nonce', '') }}">
                 function loadNotifications() {
                     const filter = Alpine.store('notifications')?.filter || 'unread';
                     fetch(`/notifications?filter=${filter}`)
@@ -280,7 +280,7 @@
     @include('components.confetti')
 
     <!-- Firebase Cloud Messaging for Capacitor/Mobile -->
-    <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+    <script nonce="{{ request()->attributes->get('nonce', '') }}">
         // Setup Firebase messaging when Capacitor is available and user is authenticated
         document.addEventListener('DOMContentLoaded', async function() {
             if (typeof window.Capacitor !== 'undefined' && window.SANCTUM_TOKEN) {

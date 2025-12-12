@@ -229,7 +229,7 @@
                         </div>
                     </div>
                     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                    <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+                    <script nonce="{{ request()->attributes->get('nonce', '') }}">
                     (function() {
                         const ctx = document.getElementById('balance-donut').getContext('2d');
                         new Chart(ctx, {
@@ -432,7 +432,7 @@
     </div>
 </div>
 
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
 function toggleSection(sectionId) {
     const content = document.getElementById(sectionId + '-content');
     const icon = document.getElementById(sectionId + '-icon');

@@ -3,7 +3,7 @@
     <canvas id="confetti-canvas" class="w-full h-full"></canvas>
 </div>
 
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
 function showConfetti() {
     const container = document.getElementById('confetti-container');
     const canvas = document.getElementById('confetti-canvas');

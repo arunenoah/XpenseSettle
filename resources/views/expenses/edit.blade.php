@@ -257,7 +257,7 @@
     </div>
 </div>
 
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
 function toggleCustomSplits() {
     const splitType = document.getElementById('split_type').value;
     const customSplitsDiv = document.getElementById('custom-splits');
