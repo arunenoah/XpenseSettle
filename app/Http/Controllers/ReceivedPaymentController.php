@@ -122,8 +122,8 @@ class ReceivedPaymentController extends Controller
         }
 
 
-        // Account for advances that benefit the current user
-        // Advances are divided by sender's family count to get per-person credit
+        // Account for advances paid by current user
+        // Only apply if user is a sender of the advance (they paid it)
         $advances = \App\Models\Advance::where('group_id', $group->id)
             ->with(['senders', 'sentTo'])
             ->get();
@@ -131,25 +131,19 @@ class ReceivedPaymentController extends Controller
         $totalAdvanceCredit = 0;
 
         foreach ($advances as $advance) {
-            // Get all senders of this advance
             $senders = $advance->senders;
 
+            // Check if current user is a sender of this advance
+            $isUserASender = false;
             foreach ($senders as $sender) {
-                // Get sender's family count
-                $senderFamilyCount = $group->members()
-                    ->where('user_id', $sender->id)
-                    ->first()
-                    ?->pivot
-                    ?->family_count ?? 1;
-
-                if ($senderFamilyCount <= 0) {
-                    $senderFamilyCount = 1;
+                if ($sender->id === $user->id) {
+                    $isUserASender = true;
+                    break;
                 }
+            }
 
-                // Advance amount divided by sender's family count = per-person credit
-                $perPersonCredit = $advance->amount_per_person / $senderFamilyCount;
-
-                // Get current user's family count for their advance credit
+            if ($isUserASender) {
+                // Get current user's family count
                 $userFamilyCount = $group->members()
                     ->where('user_id', $user->id)
                     ->first()
@@ -157,13 +151,16 @@ class ReceivedPaymentController extends Controller
                     ?->family_count ?? 1;
                 if ($userFamilyCount <= 0) $userFamilyCount = 1;
 
-                // Each person's advance credit = per-person-credit × their family count
+                // Advance amount divided by sender's family count = per-person credit
+                $perPersonCredit = $advance->amount_per_person / $userFamilyCount;
+
+                // User's advance credit = per-person-credit × their family count
                 $userAdvanceCredit = $perPersonCredit * $userFamilyCount;
                 $totalAdvanceCredit += $userAdvanceCredit;
             }
         }
 
-        // Reduce the amount owed by advance credit
+        // Reduce the amount owed by advance credit (user paid this advance)
         $amountOwed -= $totalAdvanceCredit;
 
         // Ensure we don't have a negative amount owed
