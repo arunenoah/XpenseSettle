@@ -426,35 +426,34 @@ class PaymentController extends Controller
                 // If not, this is a general payment that reduces overall balance
                 $expenseMatched = false;
 
-                foreach ($netBalances[$fromUserId]['expenses'] as $key => $exp) {
+                foreach ($netBalances[$fromUserId]['expenses'] as $exp) {
                     if ($exp['type'] === 'they_owe' && abs($exp['amount'] - $amount) < 0.01) {
                         // This payment PAYS OFF this specific expense
-                        // Remove the expense entry since it's now paid
-                        unset($netBalances[$fromUserId]['expenses'][$key]);
+                        // Remove the expense entry since it's now paid (use array_filter for reliable removal)
+                        $netBalances[$fromUserId]['expenses'] = array_values(array_filter(
+                            $netBalances[$fromUserId]['expenses'],
+                            fn($e) => !($e['type'] === 'they_owe' && abs($e['amount'] - $amount) < 0.01)
+                        ));
                         $expenseMatched = true;
-                        // Payment reduces what they owe (makes balance less negative or more positive)
-                        // If balance was negative (Arun owes Karthick), payment makes it less negative
-                        // If balance was positive (Karthick owes Arun), payment makes it less positive
+                        // Payment reduces what they owe (add to balance)
+                        // If balance is negative (they owe user), adding makes it less negative
+                        // If balance is positive (user owes them), adding makes it less positive
                         $netBalances[$fromUserId]['net_amount'] += $amount;
                         break;
                     }
                 }
 
-                // If payment didn't match any single expense, add it as a general payment entry
+                // If payment didn't match any single expense, just adjust balance
                 if (!$expenseMatched) {
-                    $netBalances[$fromUserId]['expenses'][] = [
-                        'title' => 'Payment received',
-                        'amount' => $amount,
-                        'type' => 'payment_received',
-                    ];
-                    // Payment reduces what they owe (ADD to balance)
+                    // Don't add payment_received entry, just adjust the balance
+                    // This handles overpayments or general payments
                     $netBalances[$fromUserId]['net_amount'] += $amount;
                 }
             }
         }
 
         // Account for payments sent to others
-        // These increase what others owe to the user (payment sent TO them)
+        // These reduce what others owe to the user (payment sent TO them)
         // Sent payments are actual cash amounts and should NOT be adjusted by family count
         $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $user->id)
@@ -464,18 +463,38 @@ class PaymentController extends Controller
         foreach ($sentPayments as $sentPayment) {
             $toUserId = $sentPayment->to_user_id;
 
-            // If this person is in the settlement, increase what they owe user
+            // If this person is in the settlement, reduce what they owe user
             if (isset($netBalances[$toUserId])) {
                 // Use the sent payment amount as-is (it's actual cash sent)
                 $amount = $sentPayment->amount;
 
-                // Subtract from their balance (makes it more negative - they owe more to user)
-                $netBalances[$toUserId]['net_amount'] -= $amount;
-                $netBalances[$toUserId]['expenses'][] = [
-                    'title' => 'Payment Sent',
-                    'amount' => $amount,
-                    'type' => 'payment_sent',  // Special type for sent payments
-                ];
+                // Check if this payment matches an outstanding "you_owe" expense
+                // (where the recipient owes the user)
+                // If so, remove that expense and adjust balance
+                $expenseMatched = false;
+
+                foreach ($netBalances[$toUserId]['expenses'] as $exp) {
+                    if ($exp['type'] === 'you_owe' && abs($exp['amount'] - $amount) < 0.01) {
+                        // This payment PAYS OFF this specific "you_owe" debt
+                        // Remove the expense entry since it's now paid
+                        $netBalances[$toUserId]['expenses'] = array_values(array_filter(
+                            $netBalances[$toUserId]['expenses'],
+                            fn($e) => !($e['type'] === 'you_owe' && abs($e['amount'] - $amount) < 0.01)
+                        ));
+                        $expenseMatched = true;
+                        // Payment reduces what they owe user (subtract from positive balance)
+                        // If balance is positive (they owe user), subtracting makes it less positive
+                        // If balance is negative (user owes them), subtracting makes it more negative
+                        $netBalances[$toUserId]['net_amount'] -= $amount;
+                        break;
+                    }
+                }
+
+                // If payment didn't match any single expense, just adjust balance
+                if (!$expenseMatched) {
+                    // Don't add payment_sent entry, just adjust the balance
+                    $netBalances[$toUserId]['net_amount'] -= $amount;
+                }
             }
         }
 
