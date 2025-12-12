@@ -332,44 +332,63 @@ class PaymentController extends Controller
                 // Credit = per-person-credit × sender's family count
                 $senderAdvanceCredit = $perPersonCredit * $senderFamilyCount;
 
-                // IMPORTANT: Only apply advance credit if sender owes money in a settlement
-                // The advance reduces what they owe to the recipient
-                // Advances should only appear in settlements where sender actually owes recipient
-                if ($senderId === $user->id) {
-                    // Only process advances for the current user we're calculating settlement for
-                    if (isset($netBalances[$recipientId])) {
-                        // Apply credit: reduces what they owe to recipient (makes balance more negative/less positive)
-                        $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
+                // Apply advance credit to the correct settlement:
+                // CASE 1: If current user IS the sender, they get credit in their settlement with recipient
+                // CASE 2: If current user IS the recipient, they owe less to the sender
 
-                        // Track advance per sender-recipient pair
-                        if (!isset($advanceCreditPerPersonPair[$senderId])) {
-                            $advanceCreditPerPersonPair[$senderId] = [];
-                        }
-                        if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
-                            $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
-                        }
-                        $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
+                if ($senderId === $user->id && isset($netBalances[$recipientId])) {
+                    // CASE 1: User is the SENDER of the advance to recipient
+                    // The advance reduces what they owe to the recipient
+                    $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
+
+                    // Track advance per sender-recipient pair
+                    if (!isset($advanceCreditPerPersonPair[$senderId])) {
+                        $advanceCreditPerPersonPair[$senderId] = [];
                     }
+                    if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
+                        $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
+                    }
+                    $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
+
+                } elseif ($recipientId === $user->id && isset($netBalances[$senderId])) {
+                    // CASE 2: User is the RECIPIENT of the advance from sender
+                    // The advance reduces what they owe to the sender (negative net_amount)
+                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
+
+                    // Track this as an advance received
+                    if (!isset($advanceCreditPerPersonPair[$senderId])) {
+                        $advanceCreditPerPersonPair[$senderId] = [];
+                    }
+                    if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
+                        $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
+                    }
+                    $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
                 }
             }
         }
 
-        // Add aggregated advance entries ONLY to relevant settlements
-        // An advance should appear in $senderId's settlement with $recipientId
-        // The sender gets credit (reduces what they owe to recipient)
+        // Add aggregated advance entries to relevant settlements
+        // Advances appear in two cases:
+        // 1. Sender's settlement: "Advance paid" (credit, reduces their debt)
+        // 2. Recipient's settlement: "Advance received" (credit, reduces their debt)
         foreach ($advanceCreditPerPersonPair as $senderId => $recipients) {
-            // Only add advance entries if this $senderId is the user we're calculating for
-            if ($senderId === $user->id) {
-                foreach ($recipients as $recipientId => $advanceAmount) {
-                    // The advance should be tracked in senderId's settlement with recipientId
-                    // This shows the sender paid an advance TO the recipient
-                    if (isset($netBalances[$recipientId])) {
-                        $netBalances[$recipientId]['expenses'][] = [
-                            'title' => 'Advance paid',
-                            'amount' => $advanceAmount,
-                            'type' => 'advance',
-                        ];
-                    }
+            foreach ($recipients as $recipientId => $advanceAmount) {
+                if ($senderId === $user->id && isset($netBalances[$recipientId])) {
+                    // CASE 1: Current user is the SENDER
+                    // Show "Advance paid" in sender's settlement with recipient
+                    $netBalances[$recipientId]['expenses'][] = [
+                        'title' => 'Advance paid',
+                        'amount' => $advanceAmount,
+                        'type' => 'advance',
+                    ];
+                } elseif ($recipientId === $user->id && isset($netBalances[$senderId])) {
+                    // CASE 2: Current user is the RECIPIENT
+                    // Show "Advance received" in recipient's settlement with sender
+                    $netBalances[$senderId]['expenses'][] = [
+                        'title' => 'Advance received',
+                        'amount' => $advanceAmount,
+                        'type' => 'advance',
+                    ];
                 }
             }
         }
