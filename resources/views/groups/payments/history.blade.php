@@ -321,6 +321,74 @@
             </div>
         </div>
 
+    <!-- Category Breakdown Section -->
+    @if(count($categoryBreakdown) > 0)
+    <div>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">📊 Expenses by Category</h2>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="px-3 sm:px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase">Category</th>
+                            <th class="px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Count</th>
+                            <th class="px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total Amount</th>
+                            <th class="px-3 sm:px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase">% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @php
+                            $grandTotal = collect($categoryBreakdown)->sum('total');
+                        @endphp
+                        @foreach($categoryBreakdown as $catData)
+                            @php
+                                $percentage = $grandTotal > 0 ? ($catData['total'] / $grandTotal * 100) : 0;
+                                // Get icon from category constants
+                                $categoryIcons = [
+                                    'Accommodation' => '🏨',
+                                    'Food & Dining' => '🍽️',
+                                    'Groceries' => '🛒',
+                                    'Transport' => '✈️',
+                                    'Activities' => '🎫',
+                                    'Shopping' => '🛍️',
+                                    'Utilities & Services' => '⚙️',
+                                    'Fees & Charges' => '💳',
+                                    'Other' => '📝',
+                                ];
+                                $icon = $categoryIcons[$catData['category']] ?? '📝';
+                            @endphp
+                            <tr class="hover:bg-blue-50 transition-colors">
+                                <td class="px-3 sm:px-4 py-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-lg">{{ $icon }}</span>
+                                        <span class="font-medium text-gray-900">{{ $catData['category'] }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-3 sm:px-4 py-3 text-right">
+                                    <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-bold">
+                                        {{ $catData['count'] }}
+                                    </span>
+                                </td>
+                                <td class="px-3 sm:px-4 py-3 text-right">
+                                    <span class="font-bold text-gray-900">${{ number_format($catData['total'], 2) }}</span>
+                                </td>
+                                <td class="px-3 sm:px-4 py-3 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <div class="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div class="h-full bg-blue-500" style="width: {{ $percentage }}%;"></div>
+                                        </div>
+                                        <span class="font-semibold text-blue-600 min-w-max">{{ number_format($percentage, 1) }}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Transaction History Section -->
     <div>
         <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">📜 Transaction History</h2>

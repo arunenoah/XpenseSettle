@@ -93,7 +93,10 @@ class PaymentController extends Controller
         // Calculate settlement suggestions (optimized payment instructions)
         $settlementSuggestions = $this->calculateSettlementSuggestions($group);
 
-        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin', 'transactionHistory', 'settlementSuggestions'));
+        // Calculate category breakdown
+        $categoryBreakdown = $this->calculateCategoryBreakdown($group);
+
+        return view('groups.payments.history', compact('group', 'payments', 'personalSettlement', 'overallSettlement', 'isAdmin', 'transactionHistory', 'settlementSuggestions', 'categoryBreakdown'));
     }
 
     /**
@@ -878,6 +881,44 @@ class PaymentController extends Controller
     }
 
     /**
+     * Calculate expense breakdown by category.
+     */
+    private function calculateCategoryBreakdown(Group $group): array
+    {
+        $categoryBreakdown = [];
+        $totalByCategory = [];
+
+        foreach ($group->expenses as $expense) {
+            $category = $expense->category ?? 'Other';
+
+            if (!isset($totalByCategory[$category])) {
+                $totalByCategory[$category] = [
+                    'category' => $category,
+                    'total' => 0,
+                    'count' => 0,
+                    'expenses' => []
+                ];
+            }
+
+            $totalByCategory[$category]['total'] += $expense->amount;
+            $totalByCategory[$category]['count'] += 1;
+            $totalByCategory[$category]['expenses'][] = [
+                'title' => $expense->title,
+                'amount' => $expense->amount,
+                'payer' => $expense->payer->name,
+                'date' => $expense->date,
+            ];
+        }
+
+        // Sort by total amount (descending)
+        uasort($totalByCategory, function($a, $b) {
+            return $b['total'] <=> $a['total'];
+        });
+
+        return $totalByCategory;
+    }
+
+    /**
      * Export group payment history as PDF.
      */
     public function exportHistoryPdf(Group $group)
@@ -899,12 +940,16 @@ class PaymentController extends Controller
         // Calculate total group expenses
         $totalExpenses = $group->expenses->sum('amount');
 
+        // Calculate category breakdown
+        $categoryBreakdown = $this->calculateCategoryBreakdown($group);
+
         // Generate PDF
         $pdf = Pdf::loadView('groups.payments.history-pdf', [
             'group' => $group,
             'overallSettlement' => $overallSettlement,
             'transactionHistory' => $transactionHistory,
             'totalExpenses' => $totalExpenses,
+            'categoryBreakdown' => $categoryBreakdown,
             'exportDate' => now()->format('F d, Y'),
         ]);
 
