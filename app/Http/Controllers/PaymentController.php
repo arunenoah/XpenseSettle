@@ -1227,4 +1227,88 @@ class PaymentController extends Controller
 
         return view('groups.payments.member-received-payments', compact('group', 'member', 'receivedPayments', 'sentPayments'));
     }
+
+    /**
+     * Debug endpoint to analyze settlement calculations and spot discrepancies.
+     * Only accessible to group admins for troubleshooting.
+     */
+    public function debugSettlement(Group $group, User $user)
+    {
+        // Check admin permission
+        if (!$group->isAdmin(auth()->user())) {
+            abort(403, 'Only group admins can access debug information');
+        }
+
+        $analysis = [];
+
+        // Get all expenses for the group with their splits
+        $expenses = $group->expenses()->with(['payer', 'splits.user', 'members'])->get();
+
+        foreach ($expenses as $expense) {
+            $totalHeadcount = 0;
+            $memberCount = 0;
+
+            // Calculate group's current total headcount
+            foreach ($group->members as $member) {
+                $familyCount = $member->pivot->family_count ?? 1;
+                $totalHeadcount += max(1, $familyCount);
+                $memberCount++;
+            }
+
+            $expectedPerPersonCost = $expense->amount / $totalHeadcount;
+
+            $expenseAnalysis = [
+                'id' => $expense->id,
+                'title' => $expense->title,
+                'total_amount' => $expense->amount,
+                'payer' => $expense->payer->name,
+                'split_type' => $expense->split_type,
+                'group_member_count' => $memberCount,
+                'group_total_headcount' => $totalHeadcount,
+                'expected_per_person_cost' => round($expectedPerPersonCost, 2),
+                'splits' => [],
+                'splits_total' => 0,
+                'discrepancies' => []
+            ];
+
+            // Analyze each split
+            foreach ($expense->splits as $split) {
+                $expectedAmount = $expectedPerPersonCost * ($split->user->pivot->family_count ?? 1);
+                $actual = $split->share_amount;
+                $difference = $actual - $expectedAmount;
+
+                $splitInfo = [
+                    'user' => $split->user->name,
+                    'family_count' => $split->user->pivot->family_count ?? 1,
+                    'actual_split' => $actual,
+                    'expected_split' => round($expectedAmount, 2),
+                    'difference' => round($difference, 2)
+                ];
+
+                if (abs($difference) > 0.01) {
+                    $splitInfo['status'] = 'MISMATCH';
+                    $expenseAnalysis['discrepancies'][] = $splitInfo;
+                }
+
+                $expenseAnalysis['splits'][] = $splitInfo;
+                $expenseAnalysis['splits_total'] += $actual;
+            }
+
+            // Check if splits total matches expense amount
+            $splitsTotalDiff = $expenseAnalysis['splits_total'] - $expense->amount;
+            if (abs($splitsTotalDiff) > 0.01) {
+                $expenseAnalysis['total_discrepancy'] = $splitsTotalDiff;
+                $expenseAnalysis['total_status'] = 'MISMATCH';
+            }
+
+            $analysis[] = $expenseAnalysis;
+        }
+
+        return response()->json([
+            'group' => $group->name,
+            'analysis_date' => now(),
+            'expenses_analyzed' => count($analysis),
+            'details' => $analysis
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
 }
