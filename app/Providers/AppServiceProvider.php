@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register a Blade directive to get the CSP nonce
+        Blade::directive('nonce', function () {
+            return "<?php echo request()->attributes->get('nonce', ''); ?>";
+        });
     }
 }

@@ -14,7 +14,7 @@
 
     <!-- Firebase & Sanctum Token for Mobile Notifications -->
     @auth
-    <script>
+    <script nonce="@nonce()">
         window.SANCTUM_TOKEN = "{{ session('sanctum_token', '') }}";
         window.APP_API_URL = "{{ env('APP_URL') }}/api";
     </script>
@@ -143,7 +143,7 @@
                     </div>
                 </div>
 
-                <script>
+                <script nonce="@nonce()">
                 function loadNotifications() {
                     const filter = Alpine.store('notifications')?.filter || 'unread';
                     fetch(`/notifications?filter=${filter}`)
@@ -280,7 +280,7 @@
     @include('components.confetti')
 
     <!-- Firebase Cloud Messaging for Capacitor/Mobile -->
-    <script>
+    <script nonce="@nonce()">
         // Setup Firebase messaging when Capacitor is available and user is authenticated
         document.addEventListener('DOMContentLoaded', async function() {
             if (typeof window.Capacitor !== 'undefined' && window.SANCTUM_TOKEN) {

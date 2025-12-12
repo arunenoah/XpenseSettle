@@ -1,7 +1,7 @@
 <!-- Toast Notification Component -->
 <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-<script>
+<script nonce="@nonce()">
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');

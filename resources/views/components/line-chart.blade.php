@@ -4,7 +4,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
+<script nonce="@nonce()">
 (function() {
     const ctx = document.getElementById('{{ $id ?? 'line-chart' }}').getContext('2d');
     
