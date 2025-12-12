@@ -496,13 +496,23 @@ class PaymentController extends Controller
                                 $memberFamilyCount = $memberGroupMemberRecord?->family_count ?? 1;
                                 if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
 
-                                $breakdownContact = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                // Calculate original amount owed (sum of non-advance, non-payment expenses)
+                                $originalAmountContact = 0;
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $exp) {
+                                        if ($exp['type'] === 'you_owe' || $exp['type'] === 'they_owe') {
+                                            $originalAmountContact += $exp['amount'];
+                                        }
+                                    }
+                                }
+
+                                $breakdownContact = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format($originalAmountContact, 2);
 
                                 // Show family count context and per-person calculation
                                 if ($memberFamilyCount > 1) {
-                                    $perPersonAmount = abs($item['net_amount']) / $memberFamilyCount;
+                                    $perPersonAmount = $originalAmountContact / $memberFamilyCount;
                                     $breakdownContact .= "\n[For {$memberFamilyCount} people]";
-                                    $breakdownContact .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$memberFamilyCount} = $" . number_format(abs($item['net_amount']), 2);
+                                    $breakdownContact .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$memberFamilyCount} = $" . number_format($originalAmountContact, 2);
                                 } else {
                                     $breakdownContact .= "\n[Family count: {$memberFamilyCount}]";
                                 }
@@ -555,13 +565,23 @@ class PaymentController extends Controller
                                 $targetFamilyCount = $targetGroupMemberRecord?->family_count ?? 1;
                                 if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
 
-                                $breakdown = "User spent: $" . number_format(abs($item['net_amount']), 2);
+                                // Calculate original amount owed (sum of non-advance, non-payment expenses)
+                                $originalAmount = 0;
+                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
+                                    foreach ($item['expenses'] as $exp) {
+                                        if ($exp['type'] === 'you_owe' || $exp['type'] === 'they_owe') {
+                                            $originalAmount += $exp['amount'];
+                                        }
+                                    }
+                                }
+
+                                $breakdown = "Amount owed: $" . number_format($originalAmount, 2);
 
                                 // Show family count context and per-person calculation
                                 if ($targetFamilyCount > 1) {
-                                    $perPersonAmount = abs($item['net_amount']) / $targetFamilyCount;
+                                    $perPersonAmount = $originalAmount / $targetFamilyCount;
                                     $breakdown .= "\n[For {$targetFamilyCount} people]";
-                                    $breakdown .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$targetFamilyCount} = $" . number_format(abs($item['net_amount']), 2);
+                                    $breakdown .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$targetFamilyCount} = $" . number_format($originalAmount, 2);
                                 } else {
                                     $breakdown .= "\n[Family count: {$targetFamilyCount}]";
                                 }
