@@ -256,11 +256,14 @@ class ExpenseController extends Controller
                 $changes['amount'] = ['from' => $expense->amount, 'to' => $validated['amount']];
             }
 
+            // Get all members (users + contacts) for validation
+            $allMembers = $group->allMembers()->get();
+
             // Process splits
             $validated['splits'] = $this->processSplits(
                 $request->get('split_type'),
                 $request->get('splits'),
-                $group->members()->pluck('users.id')->toArray(),
+                $allMembers,
                 $validated['amount']
             );
 
