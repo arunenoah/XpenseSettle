@@ -93,7 +93,7 @@
     </div>
 </div>
 
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
 // Auto-submit when 6 digits are entered
 document.getElementById('admin_pin').addEventListener('input', function(e) {
     if (this.value.length === 6) {

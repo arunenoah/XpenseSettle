@@ -4,7 +4,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
 (function() {
     const ctx = document.getElementById('{{ $id ?? 'bar-chart' }}').getContext('2d');
     

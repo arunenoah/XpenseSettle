@@ -134,7 +134,7 @@
     </div>
 </div>
 
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
     // Restrict input to numeric only
     document.querySelectorAll('input[type="password"]').forEach(input => {
         input.addEventListener('input', function() {

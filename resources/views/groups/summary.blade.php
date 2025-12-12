@@ -354,7 +354,7 @@
             </div>
             @endif
 
-            <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+            <script nonce="{{ request()->attributes->get('nonce', '') }}">
                 function toggleSettlement(elementId) {
                     const element = document.getElementById(elementId);
                     const toggleIcon = document.getElementById('toggle-' + elementId);
@@ -512,7 +512,7 @@
 </div>
 
 <!-- JavaScript for Payment Modal -->
-<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
+<script nonce="{{ request()->attributes->get('nonce', '') }}">
 let currentPayment = { fromId: null, toId: null, amount: null };
 
 function openPaymentModal(fromId, toId, amount) {
