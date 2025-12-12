@@ -178,7 +178,7 @@
             <strong>Members:</strong>
             <div class="members-list">
                 @foreach($overallSettlement as $gmId => $data)
-                    <span class="member-badge">{{ $data['user']->name }}@if($data['is_contact']) (C)@endif</span>
+                    <span class="member-badge">{{ $data['user']->name }}</span>
                 @endforeach
             </div>
         </div>
@@ -192,14 +192,14 @@
                 <tr>
                     <th>Person</th>
                     @foreach($overallSettlement as $toGmId => $toData)
-                        <th>{{ substr($toData['user']->name, 0, 8) }}@if($toData['is_contact']) (C)@endif</th>
+                        <th>{{ substr($toData['user']->name, 0, 8) }}</th>
                     @endforeach
                 </tr>
             </thead>
             <tbody>
                 @foreach($overallSettlement as $fromGmId => $fromData)
                     <tr>
-                        <td style="font-weight: bold; text-align: left;">{{ $fromData['user']->name }}@if($fromData['is_contact']) (C)@endif</td>
+                        <td style="font-weight: bold; text-align: left;">{{ $fromData['user']->name }}</td>
                         @foreach($overallSettlement as $toGmId => $toData)
                             <td>
                                 @if($fromGmId === $toGmId)
@@ -255,25 +255,13 @@
             <tbody>
                 @php
                     $grandTotal = collect($categoryBreakdown)->sum('total');
-                    $categoryIcons = [
-                        'Accommodation' => '🏨',
-                        'Food & Dining' => '🍽️',
-                        'Groceries' => '🛒',
-                        'Transport' => '✈️',
-                        'Activities' => '🎫',
-                        'Shopping' => '🛍️',
-                        'Utilities & Services' => '⚙️',
-                        'Fees & Charges' => '💳',
-                        'Other' => '📝',
-                    ];
                 @endphp
                 @foreach($categoryBreakdown as $catData)
                     @php
                         $percentage = $grandTotal > 0 ? ($catData['total'] / $grandTotal * 100) : 0;
-                        $icon = $categoryIcons[$catData['category']] ?? '📝';
                     @endphp
                     <tr>
-                        <td><strong>{{ $icon }} {{ $catData['category'] }}</strong></td>
+                        <td><strong>{{ $catData['category'] }}</strong></td>
                         <td class="amount">{{ $catData['count'] }}</td>
                         <td class="amount amount-negative">${{ number_format($catData['total'], 2) }}</td>
                         <td class="amount">{{ number_format($percentage, 1) }}%</td>
@@ -300,7 +288,7 @@
         @foreach($categoryBreakdown as $catData)
             <div style="margin-bottom: 20px; page-break-inside: avoid;">
                 <h3 style="font-size: 12px; font-weight: bold; color: #374151; margin: 0 0 8px 0; padding: 8px 10px; background-color: #E0E7FF; border-left: 3px solid #4F46E5;">
-                    {{ ($categoryIcons[$catData['category']] ?? '📝') }} {{ $catData['category'] }} ({{ $catData['count'] }} expense{{ $catData['count'] !== 1 ? 's' : '' }})
+                    {{ $catData['category'] }} ({{ $catData['count'] }} expense{{ $catData['count'] !== 1 ? 's' : '' }})
                 </h3>
 
                 <table style="width: 100%; margin-bottom: 10px;">
