@@ -512,13 +512,25 @@ class PaymentController extends Controller
                         foreach ($result as $key => $entry) {
                             if ($entry['is_contact'] && $entry['user']->id === $contactId) {
                                 // Generate breakdown for contact owed
+                                $memberFamilyCount = $member->groupMembers()
+                                    ->where('group_id', $group->id)
+                                    ->first()
+                                    ?->family_count ?? 1;
+                                if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
+
                                 $breakdownContact = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                $breakdownContact .= "\n[Family count: {$memberFamilyCount}]";
+
                                 if (isset($item['expenses']) && count($item['expenses']) > 0) {
                                     foreach ($item['expenses'] as $exp) {
                                         if ($exp['type'] !== 'advance') {
                                             $breakdownContact .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                        } else {
+                                        } elseif ($exp['type'] === 'advance') {
                                             $breakdownContact .= "\n- Advance paid: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_received') {
+                                            $breakdownContact .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_sent') {
+                                            $breakdownContact .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
                                         }
                                     }
                                 }
@@ -538,13 +550,34 @@ class PaymentController extends Controller
                         $targetUserId = $item['user']->id;
                         foreach ($result as $gmKey => $gmData) {
                             if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
+                                // Get family counts for breakdown context
+                                $memberFamilyCount = $member->groupMembers()
+                                    ->where('group_id', $group->id)
+                                    ->first()
+                                    ?->family_count ?? 1;
+                                if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
+
+                                $targetFamilyCount = isset($item['user']->groupMembers)
+                                    ? ($item['user']->groupMembers()
+                                        ->where('group_id', $group->id)
+                                        ->first()
+                                        ?->family_count ?? 1)
+                                    : 1;
+                                if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
+
                                 $breakdown = "User spent: $" . number_format(abs($item['net_amount']), 2);
+                                $breakdown .= "\n[Family count: {$targetFamilyCount}]";
+
                                 if (isset($item['expenses']) && count($item['expenses']) > 0) {
                                     foreach ($item['expenses'] as $exp) {
                                         if ($exp['type'] !== 'advance') {
                                             $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                        } else {
+                                        } elseif ($exp['type'] === 'advance') {
                                             $breakdown .= "\n- Advance paid: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_received') {
+                                            $breakdown .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_sent') {
+                                            $breakdown .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
                                         }
                                     }
                                 }
@@ -569,13 +602,25 @@ class PaymentController extends Controller
                         foreach ($result as $key => $entry) {
                             if ($entry['is_contact'] && $entry['user']->id === $contactId) {
                                 // Generate breakdown - the member is owed by this contact
+                                $memberFamilyCount = $member->groupMembers()
+                                    ->where('group_id', $group->id)
+                                    ->first()
+                                    ?->family_count ?? 1;
+                                if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
+
                                 $breakdown = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                $breakdown .= "\n[Family count: {$memberFamilyCount}]";
+
                                 if (isset($item['expenses']) && count($item['expenses']) > 0) {
                                     foreach ($item['expenses'] as $exp) {
                                         if ($exp['type'] !== 'advance') {
                                             $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                        } else {
+                                        } elseif ($exp['type'] === 'advance') {
                                             $breakdown .= "\n- Advance received: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_received') {
+                                            $breakdown .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_sent') {
+                                            $breakdown .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
                                         }
                                     }
                                 }
@@ -610,13 +655,27 @@ class PaymentController extends Controller
                                 }
 
                                 // Generate breakdown string - this user owes the current member money
+                                $targetFamilyCount = isset($gmData['user'])
+                                    ? ($gmData['user']->groupMembers()
+                                        ->where('group_id', $group->id)
+                                        ->first()
+                                        ?->family_count ?? 1)
+                                    : 1;
+                                if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
+
                                 $breakdown = $gmData['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
+                                $breakdown .= "\n[Family count: {$targetFamilyCount}]";
+
                                 if (isset($item['expenses']) && count($item['expenses']) > 0) {
                                     foreach ($item['expenses'] as $exp) {
                                         if ($exp['type'] !== 'advance') {
                                             $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                        } else {
+                                        } elseif ($exp['type'] === 'advance') {
                                             $breakdown .= "\n- Advance received: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_received') {
+                                            $breakdown .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
+                                        } elseif ($exp['type'] === 'payment_sent') {
+                                            $breakdown .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
                                         }
                                     }
                                 }
