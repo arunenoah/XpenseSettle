@@ -264,7 +264,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="@nonce()">
 function openImageModal(imageUrl, imageName) {
     const modal = document.getElementById('imageModal');
     const modalImage = document.getElementById('modalImage');

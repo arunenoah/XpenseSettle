@@ -354,7 +354,7 @@
             </div>
             @endif
 
-            <script>
+            <script nonce="@nonce()">
                 function toggleSettlement(elementId) {
                     const element = document.getElementById(elementId);
                     const toggleIcon = document.getElementById('toggle-' + elementId);
@@ -512,7 +512,7 @@
 </div>
 
 <!-- JavaScript for Payment Modal -->
-<script>
+<script nonce="@nonce()">
 let currentPayment = { fromId: null, toId: null, amount: null };
 
 function openPaymentModal(fromId, toId, amount) {

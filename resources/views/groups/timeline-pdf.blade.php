@@ -295,7 +295,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="@nonce()">
         // Auto-trigger print when page loads
         window.addEventListener('load', function() {
             window.print();

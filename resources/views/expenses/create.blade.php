@@ -167,7 +167,7 @@
                 @enderror
             </div>
 
-            <script>
+            <script nonce="@nonce()">
             // Update styling on load and when options change
             document.querySelectorAll('input[name="split_type"]').forEach(radio => {
                 radio.addEventListener('change', function() {
@@ -468,7 +468,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="@nonce()">
 function toggleCustomSplits() {
     const splitType = document.getElementById('split_type').value;
     const customSplitsDiv = document.getElementById('custom-splits');
@@ -621,7 +621,7 @@ document.addEventListener('DOMContentLoaded', toggleCustomSplits);
 <!-- Tesseract.js for OCR - Load without async to ensure proper initialization -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 
-<script>
+<script nonce="@nonce()">
 const members = {!! json_encode($members->map(fn($m) => ['id' => $m->id, 'name' => $m->getMemberName(), 'isContact' => $m->isContact()])->values()) !!};
 let extractedItems = [];
 let currentFile = null;
