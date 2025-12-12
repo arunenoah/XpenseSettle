@@ -38,7 +38,7 @@
 
         <!-- All Expenses Tab -->
         <a href="#"
-           onclick="showExpensesModal(); return false;"
+           data-show-expenses-modal="true"
            title="All Expenses"
            class="flex items-center gap-2 px-2 sm:px-4 py-4 border-b-2 {{ $active === 'expenses' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }} font-semibold text-sm whitespace-nowrap transition-colors cursor-pointer">
             <span class="text-lg sm:text-base">📋</span>

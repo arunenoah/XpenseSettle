@@ -645,6 +645,17 @@ function closeExpensesModal(event) {
     }
 }
 
+// Event listener for show expenses modal button
+document.addEventListener('DOMContentLoaded', function() {
+    const showExpensesBtn = document.querySelector('[data-show-expenses-modal="true"]');
+    if (showExpensesBtn) {
+        showExpensesBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            showExpensesModal();
+        });
+    }
+});
+
 function openImageModal(imageUrl, imageName) {
     document.getElementById('modalImage').src = imageUrl;
     document.getElementById('modalImageName').textContent = imageName;
