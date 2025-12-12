@@ -278,33 +278,36 @@
                                     </div>
                                 </td>
                                 @foreach($overallSettlement as $toMemberId => $toData)
-                                    <td class="px-2 sm:px-3 py-3 text-center">
+                                    <td class="px-2 sm:px-3 py-3 text-center relative group">
                                         @if($fromMemberId === $toMemberId)
                                             <span class="text-gray-300">—</span>
                                         @else
                                             @php
                                                 $amount = 0;
                                                 $color = 'gray';
+                                                $breakdown = '';
 
                                                 if (isset($fromData['owes'][$toMemberId])) {
                                                     $amount = $fromData['owes'][$toMemberId]['amount'];
                                                     $color = 'red';
+                                                    $breakdown = $fromData['owes'][$toMemberId]['breakdown'] ?? '';
                                                 }
                                                 elseif (isset($toData['owes'][$fromMemberId])) {
                                                     $amount = $toData['owes'][$fromMemberId]['amount'];
                                                     $color = 'green';
+                                                    $breakdown = $toData['owes'][$fromMemberId]['breakdown'] ?? '';
                                                 }
                                             @endphp
 
                                             @if($amount > 0)
                                                 @if($color === 'red')
-                                                    <span class="inline-block px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs whitespace-nowrap">
+                                                    <button class="settlement-btn inline-block px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-red-200 border-0" data-breakdown="{{ strlen($breakdown) > 0 ? base64_encode($breakdown) : base64_encode('No breakdown data for Arun → Vel: $' . number_format($amount, 2)) }}" style="background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
                                                         ${{ number_format($amount, 2) }}
-                                                    </span>
+                                                    </button>
                                                 @elseif($color === 'green')
-                                                    <span class="inline-block px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-xs whitespace-nowrap">
+                                                    <button class="settlement-btn inline-block px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-green-200 border-0" data-breakdown="{{ strlen($breakdown) > 0 ? base64_encode($breakdown) : base64_encode('No breakdown data for Vel → Arun: $' . number_format($amount, 2)) }}" style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
                                                         ${{ number_format($amount, 2) }}
-                                                    </span>
+                                                    </button>
                                                 @else
                                                     <span class="text-gray-300">—</span>
                                                 @endif
@@ -825,7 +828,75 @@ function copySuggestion(text) {
             document.getElementById('expensesModal').classList.remove('flex');
         }
     }
+
+    // Settlement breakdown modal functionality
+    function initSettlementBreakdown() {
+        const buttons = document.querySelectorAll('.settlement-btn');
+        const modal = document.getElementById('breakdownModal');
+        const breakdownContent = modal ? modal.querySelector('#breakdownContent') : null;
+
+        if (!modal) {
+            console.log('Settlement breakdown modal not found');
+            return;
+        }
+
+        buttons.forEach((btn, idx) => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const encodedBreakdown = this.getAttribute('data-breakdown');
+                if (encodedBreakdown) {
+                    try {
+                        const breakdown = atob(encodedBreakdown);
+                        if (breakdownContent) {
+                            breakdownContent.innerText = breakdown;
+                        }
+                        modal.classList.remove('hidden');
+                        modal.classList.add('flex');
+                    } catch(e) {
+                        console.log('Error decoding breakdown: ' + e);
+                    }
+                }
+            });
+        });
+
+        const closeButtons = modal.querySelectorAll('[data-close-breakdown]');
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+        });
+
+        modal.addEventListener('click', function(e) {
+            if (e.target.id === 'breakdownModal') {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    }
+
+    // Run immediately if DOM is ready, otherwise wait
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSettlementBreakdown);
+    } else {
+        initSettlementBreakdown();
+    }
     </script>
+
+    <!-- Breakdown Modal -->
+    <div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Settlement Breakdown</h2>
+                <button data-close-breakdown type="button" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div id="breakdownContent" class="text-sm text-gray-700 whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded border border-gray-200" style="max-height: 300px; overflow-y: auto;"></div>
+            <div class="mt-6">
+                <button data-close-breakdown type="button" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Mobile Floating Action Buttons -->
     <x-group-fabs :group="$group" :showPdfExport="true" />
