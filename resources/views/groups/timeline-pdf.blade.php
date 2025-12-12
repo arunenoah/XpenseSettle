@@ -295,7 +295,7 @@
         </div>
     </div>
 
-    <script nonce="@nonce()">
+    <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
         // Auto-trigger print when page loads
         window.addEventListener('load', function() {
             window.print();

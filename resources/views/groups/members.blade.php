@@ -331,7 +331,7 @@
         </div>
     </div>
 
-    <script nonce="@nonce()">
+    <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
     function switchTab(activeTabId, inactiveTabId) {
         // Show active tab, hide inactive tab
         document.getElementById(activeTabId).classList.remove('hidden');

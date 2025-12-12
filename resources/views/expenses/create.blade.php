@@ -167,7 +167,7 @@
                 @enderror
             </div>
 
-            <script nonce="@nonce()">
+            <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
             // Update styling on load and when options change
             document.querySelectorAll('input[data-split-type-radio="true"]').forEach(radio => {
                 radio.addEventListener('change', function() {
@@ -479,7 +479,7 @@
     </div>
 </div>
 
-<script nonce="@nonce()">
+<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
 function toggleCustomSplits() {
     const splitType = document.getElementById('split_type').value;
     const customSplitsDiv = document.getElementById('custom-splits');
@@ -639,7 +639,7 @@ document.addEventListener('DOMContentLoaded', toggleCustomSplits);
 <!-- Tesseract.js for OCR - Load without async to ensure proper initialization -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 
-<script nonce="@nonce()">
+<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
 const members = {!! json_encode($members->map(fn($m) => ['id' => $m->id, 'name' => $m->getMemberName(), 'isContact' => $m->isContact()])->values()) !!};
 let extractedItems = [];
 let currentFile = null;

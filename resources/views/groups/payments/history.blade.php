@@ -474,7 +474,7 @@
     </div>
 </div>
 
-<script nonce="@nonce()">
+<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
 function toggleAttachments(paymentId) {
     const row = document.getElementById('attachments-' + paymentId);
     if (row.classList.contains('hidden')) {
@@ -745,7 +745,7 @@ function copySuggestion(text) {
         </div>
     </div>
 
-    <script nonce="@nonce()">
+    <script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
     function showExpensesModal() {
         document.getElementById('expensesModal').classList.remove('hidden');
         document.getElementById('expensesModal').classList.add('flex');

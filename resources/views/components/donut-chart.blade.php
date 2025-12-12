@@ -10,7 +10,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script nonce="@nonce()">
+<script nonce="{{ request()->attributes->get(\'nonce\', \'\') }}">
 (function() {
     const ctx = document.getElementById('{{ $id ?? 'donut-chart' }}').getContext('2d');
     
