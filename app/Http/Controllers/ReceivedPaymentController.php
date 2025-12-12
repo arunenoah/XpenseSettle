@@ -194,12 +194,9 @@ class ReceivedPaymentController extends Controller
         // Reduce the amount owed by advance credit (user paid this advance)
         $amountOwed -= $totalAdvanceCredit;
 
-        // Ensure we don't have a negative amount owed (can't receive more than owed)
-        if ($amountOwed < 0) {
-            $amountOwed = 0;
-        }
-
-        return $amountOwed;
+        // Convert to absolute value: when negative, it means targetUser owes user (which is what we want for "payment received")
+        // When positive, it means user owes targetUser (which would be 0 for "payment received" validation)
+        return abs($amountOwed);
     }
 
     /**
