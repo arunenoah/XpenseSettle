@@ -10,7 +10,7 @@ class Expense extends Model
     /** @use HasFactory<\Database\Factories\ExpenseFactory> */
     use HasFactory;
 
-    protected $fillable = ['group_id', 'payer_id', 'title', 'description', 'amount', 'split_type', 'date', 'status'];
+    protected $fillable = ['group_id', 'payer_id', 'title', 'description', 'amount', 'split_type', 'category', 'date', 'status'];
 
     protected $casts = [
         'date' => 'date',

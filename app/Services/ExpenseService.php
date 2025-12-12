@@ -27,6 +27,7 @@ class ExpenseService
             'description' => $data['description'] ?? null,
             'amount' => $data['amount'],
             'split_type' => $data['split_type'] ?? 'equal',
+            'category' => $data['category'] ?? 'Other',
             'date' => $data['date'] ?? now()->toDateString(),
             'status' => 'pending',
         ]);
@@ -183,6 +184,7 @@ class ExpenseService
             'description' => $data['description'] ?? $expense->description,
             'amount' => $data['amount'] ?? $expense->amount,
             'split_type' => $data['split_type'] ?? $expense->split_type,
+            'category' => $data['category'] ?? $expense->category,
             'date' => $data['date'] ?? $expense->date,
         ]);
 
