@@ -625,8 +625,8 @@ function copySuggestion(text) {
 </script>
 
 <!-- Mark as Paid Modal -->
-<div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closePaymentModal(event)">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+<div id="paymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true" data-modal-func="closePaymentModal">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4" data-stop-propagation="true">
         <div class="px-6 py-4 border-b-2 border-gray-200">
             <h3 class="text-xl font-bold text-gray-900">Mark as Paid</h3>
         </div>
@@ -657,7 +657,7 @@ function copySuggestion(text) {
             </div>
 
             <div class="flex gap-3 pt-4">
-                <button type="button" onclick="closePaymentModal()" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
+                <button type="button" data-close-button="true" data-modal-func="closePaymentModal" class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
@@ -669,8 +669,8 @@ function copySuggestion(text) {
 </div>
 
 <!-- Breakdown Modal -->
-<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeBreakdownModal(event)">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4" onclick="event.stopPropagation()">
+<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true" data-modal-func="closeBreakdownModal">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4" data-stop-propagation="true">
         <div class="px-6 py-4 border-b-2 border-gray-200">
             <h3 id="breakdownTitle" class="text-xl font-bold text-gray-900">Breakdown Details</h3>
         </div>
@@ -680,7 +680,7 @@ function copySuggestion(text) {
         </div>
 
         <div class="px-6 py-4 border-t-2 border-gray-200 flex justify-end">
-            <button onclick="closeBreakdownModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
+            <button data-close-button="true" data-modal-func="closeBreakdownModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
                 Close
             </button>
         </div>
@@ -688,9 +688,9 @@ function copySuggestion(text) {
 </div>
 
 <!-- Image Modal -->
-<div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onclick="closeImageModal()">
-    <div class="relative max-w-4xl w-full mx-4" onclick="event.stopPropagation()">
-        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-4xl font-bold">✕</button>
+<div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" data-close-image-modal="true">
+    <div class="relative max-w-4xl w-full mx-4" data-stop-propagation="true">
+        <button data-close-image-modal="true" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-4xl font-bold">✕</button>
         <img id="modalImage" src="" alt="Attachment" class="w-full h-auto rounded-lg">
         <div class="mt-4 text-center">
             <p id="imageName" class="text-white font-semibold text-sm truncate"></p>
@@ -713,11 +713,11 @@ function copySuggestion(text) {
     </div>
 
     <!-- Expenses Modal -->
-    <div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeExpensesModal(event)">
-        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" onclick="event.stopPropagation()">
+    <div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" data-close-modal="true" data-modal-func="closeExpensesModal">
+        <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" data-stop-propagation="true">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-2xl font-black text-gray-900">📜 Expenses</h3>
-                <button onclick="closeExpensesModal()" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                <button data-close-button="true" data-modal-func="closeExpensesModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
             </div>
 
             @if($group->expenses->count() > 0)

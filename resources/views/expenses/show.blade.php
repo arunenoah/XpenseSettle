@@ -292,13 +292,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Handle data-open-image-modal buttons
+    document.querySelectorAll('[data-open-image-modal="true"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const imageUrl = this.dataset.imageUrl;
+            const imageName = this.dataset.imageName;
+            openImageModal(imageUrl, imageName);
+        });
+    });
+
+    // Handle data-close-image-modal buttons
+    document.querySelectorAll('[data-close-image-modal="true"]').forEach(btn => {
+        btn.addEventListener('click', closeImageModal);
+    });
 });
 </script>
 
 <!-- Image Modal -->
-<div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onclick="closeImageModal()">
-    <div class="relative max-w-4xl w-full mx-4" onclick="event.stopPropagation()">
-        <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-4xl font-bold">✕</button>
+<div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" data-close-image-modal="true">
+    <div class="relative max-w-4xl w-full mx-4" data-stop-propagation="true">
+        <button data-close-image-modal="true" class="absolute -top-10 right-0 text-white hover:text-gray-300 text-4xl font-bold">✕</button>
         <img id="modalImage" src="" alt="Attachment" class="w-full h-auto rounded-lg">
         <div class="mt-4 text-center">
             <p id="imageName" class="text-white font-semibold text-sm truncate"></p>

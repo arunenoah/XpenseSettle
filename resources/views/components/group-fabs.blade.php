@@ -14,7 +14,7 @@
     </a>
     @endif
     <!-- Add Advance FAB -->
-    <button onclick="openAdvanceModal()" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
+    <button data-open-advance-modal="true" class="inline-flex justify-center items-center w-14 h-14 bg-amber-600 text-white rounded-full hover:bg-amber-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Add Advance">
         <span class="text-2xl">💰</span>
     </button>
     <!-- View Members FAB -->

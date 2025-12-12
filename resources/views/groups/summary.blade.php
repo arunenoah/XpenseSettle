@@ -255,7 +255,7 @@
                     <div class="divide-y divide-gray-200">
                         @foreach($confirmations as $confirmation)
                         <div class="settlement-item">
-                            <button onclick="toggleSettlement('settlement-{{ $confirmation->id }}')" class="w-full px-6 py-4 hover:bg-emerald-50 transition-colors text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 focus:outline-none">
+                            <button data-toggle-settlement="settlement-{{ $confirmation->id }}" class="w-full px-6 py-4 hover:bg-emerald-50 transition-colors text-left flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 focus:outline-none">
                                 <div class="flex-1">
                                     <p class="font-semibold text-gray-900">
                                         {{ $confirmation->fromUser->name }}
@@ -417,7 +417,7 @@
             <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-white text-center">
                 <h3 class="text-2xl font-bold mb-2">📥 Export Summary</h3>
                 <p class="mb-6">Save this trip summary as PDF for your records</p>
-                <button onclick="window.print()" class="bg-white text-blue-600 font-bold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors inline-flex items-center gap-2">
+                <button data-print-page="true" class="bg-white text-blue-600 font-bold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors inline-flex items-center gap-2">
                     <span>🖨️</span>
                     Download as PDF
                 </button>
@@ -493,7 +493,7 @@
         <div class="px-6 py-4 bg-gray-50 flex gap-3 rounded-b-lg border-t border-gray-200">
             <button
                 type="button"
-                onclick="closePaymentModal()"
+                data-close-button="true" data-modal-func="closePaymentModal"
                 class="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors font-semibold"
             >
                 Cancel
@@ -601,7 +601,7 @@ async function submitPayment() {
             <p class="text-green-700 mb-6">
                 The settlement has been confirmed and saved with receipt.
             </p>
-            <button onclick="location.reload()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+            <button data-reload-page="true" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
                 ✓ Refresh to See Updates
             </button>
         `;
@@ -720,7 +720,7 @@ document.addEventListener('keydown', function(e) {
                     📄 Export PDF
                 </a>
                 <button
-                    onclick="window.print()"
+                    data-print-page="true"
                     class="inline-flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
                 >
                     🖨️ Print Timeline

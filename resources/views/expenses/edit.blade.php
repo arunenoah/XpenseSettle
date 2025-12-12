@@ -92,7 +92,7 @@
                     id="split_type"
                     name="split_type"
                     class="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('split_type') ? 'border-red-500' : '' }}"
-                    onchange="toggleCustomSplits()"
+                    data-toggle-custom-splits="true"
                     required
                 >
                     <option value="equal" {{ old('split_type', $expense->split_type) === 'equal' ? 'selected' : '' }}>Equal Split (divide evenly)</option>
@@ -130,7 +130,7 @@
                                         min="0"
                                         value="{{ old('splits.' . $member->id, $currentSplits[$member->id] ?? 0) }}"
                                         class="w-full px-3 pr-8 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        onchange="updateTotal()"
+                                        data-update-total="true"
                                     />
                                 </div>
                             </div>
@@ -191,7 +191,7 @@
                         multiple
                         accept="image/png,image/jpeg,application/pdf"
                         class="hidden"
-                        onchange="updateFileList()"
+                        data-update-file-list="true"
                     />
                     <div class="space-y-2">
                         <p class="text-2xl">📎</p>
