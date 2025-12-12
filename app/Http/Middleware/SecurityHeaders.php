@@ -17,16 +17,17 @@ class SecurityHeaders
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Generate a nonce for inline scripts BEFORE rendering the view
+        $nonce = bin2hex(random_bytes(16));
+        $request->attributes->set('nonce', $nonce);
+
+        // Process the request and generate the response
         $response = $next($request);
 
         // Skip adding security headers to file responses (they handle their own headers)
         if ($this->isFileResponse($response)) {
             return $response;
         }
-
-        // Generate a nonce for inline scripts
-        $nonce = bin2hex(random_bytes(16));
-        $request->attributes->set('nonce', $nonce);
 
         // Prevent clickjacking - Disallow framing of the application
         $response->header('X-Frame-Options', 'DENY');
