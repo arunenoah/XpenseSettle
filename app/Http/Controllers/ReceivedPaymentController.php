@@ -32,7 +32,6 @@ class ReceivedPaymentController extends Controller
             abort(403, 'User is not a member of this group');
         }
 
-        // Calculate amount this user owes to the payer (from_user)
         // Load necessary relationships for settlement calculation
         $group->load([
             'expenses' => function ($query) {
@@ -48,41 +47,11 @@ class ReceivedPaymentController extends Controller
 
         // Calculate settlement between the authenticated user and the from_user
         $user = auth()->user();
-        $amountOwed = 0;
 
-        // Get expenses where from_user is payer and current user owes
-        $expenses = \App\Models\Expense::where('group_id', $group->id)
-            ->where('payer_id', $fromUser->id)
-            ->with(['splits' => function ($q) use ($user) {
-                $q->with(['payment', 'user']);
-                $q->where('user_id', $user->id); // Only get splits for current user
-            }])
-            ->get();
+        // Calculate amount owed from user to fromUser using full settlement logic
+        $amountOwed = $this->calculateAmountOwedToUser($group, $user, $fromUser);
 
-        foreach ($expenses as $expense) {
-            if ($expense->splits->isNotEmpty()) {
-                foreach ($expense->splits as $split) {
-                    // Only count unpaid splits
-                    if (!$split->payment || $split->payment->status !== 'paid') {
-                        $amountOwed += $split->share_amount;
-                    }
-                }
-            }
-        }
-
-        // Get payer's family count for adjustment
-        $payerFamilyCount = $group->members()
-            ->where('user_id', $fromUser->id)
-            ->first()
-            ?->pivot
-            ?->family_count ?? 1;
-
-        if ($payerFamilyCount <= 0) {
-            $payerFamilyCount = 1;
-        }
-
-        // Subtract any received payments already recorded
-        // Received payments are also adjusted by payer's family count
+        // Get already received payments from this user
         $receivedPaymentsRaw = ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $fromUser->id)
             ->where('to_user_id', $user->id)
@@ -90,7 +59,7 @@ class ReceivedPaymentController extends Controller
 
         $alreadyReceived = 0;
         foreach ($receivedPaymentsRaw as $payment) {
-            $alreadyReceived += $payment->amount / $payerFamilyCount;
+            $alreadyReceived += $payment->amount;
         }
 
         $remainingOwed = $amountOwed - $alreadyReceived;
@@ -113,6 +82,107 @@ class ReceivedPaymentController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Payment received recorded successfully!');
+    }
+
+    /**
+     * Calculate how much the current user owes to another specific user in the group.
+     * This uses the same logic as calculateSettlement but filters for one person.
+     */
+    private function calculateAmountOwedToUser($group, $user, $targetUser)
+    {
+        $amountOwed = 0;
+
+        // Get all expenses where targetUser is the payer
+        $expenses = \App\Models\Expense::where('group_id', $group->id)
+            ->where('payer_id', $targetUser->id)
+            ->with([
+                'splits' => function ($q) {
+                    $q->with(['payment', 'user']);
+                },
+                'payer'
+            ])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        foreach ($expenses as $expense) {
+            // Skip itemwise expenses
+            if ($expense->split_type === 'itemwise') {
+                continue;
+            }
+
+            // Find the user's split in this expense
+            $userSplit = $expense->splits->where('user_id', $user->id)->first();
+
+            if ($userSplit) {
+                // Only count unpaid splits
+                if (!$userSplit->payment || $userSplit->payment->status !== 'paid') {
+                    $amountOwed += $userSplit->share_amount;
+                }
+            }
+        }
+
+        // Get targetUser's family count for received payment adjustment
+        $targetUserFamilyCount = $group->members()
+            ->where('user_id', $targetUser->id)
+            ->first()
+            ?->pivot
+            ?->family_count ?? 1;
+
+        if ($targetUserFamilyCount <= 0) {
+            $targetUserFamilyCount = 1;
+        }
+
+        // Account for advances that benefit the current user
+        // Advances reduce what the user owes to all group members
+        $advances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
+            ->get();
+
+        $totalAdvanceCredit = 0;
+
+        foreach ($advances as $advance) {
+            // Calculate total advance amount and per-headcount credit
+            $totalAdvanceAmount = $advance->amount_per_person * $advance->senders()->count();
+
+            // Get total group headcount for proper distribution
+            $allGroupMembers = $group->members()
+                ->select('users.id')
+                ->withPivot('family_count')
+                ->get();
+
+            $totalGroupHeadcount = 0;
+            foreach ($allGroupMembers as $member) {
+                $familyCount = $member->pivot->family_count ?? 1;
+                if ($familyCount <= 0) $familyCount = 1;
+                $totalGroupHeadcount += $familyCount;
+            }
+
+            if ($totalGroupHeadcount <= 0) $totalGroupHeadcount = 1;
+
+            // Per-person credit from this advance
+            $perHeadcountCredit = $totalAdvanceAmount / $totalGroupHeadcount;
+
+            // Get current user's family count for their advance credit
+            $userFamilyCount = $group->members()
+                ->where('user_id', $user->id)
+                ->first()
+                ?->pivot
+                ?->family_count ?? 1;
+            if ($userFamilyCount <= 0) $userFamilyCount = 1;
+
+            $userAdvanceCredit = $perHeadcountCredit * $userFamilyCount;
+            $totalAdvanceCredit += $userAdvanceCredit;
+        }
+
+        // Reduce the amount owed by advance credit
+        $amountOwed -= $totalAdvanceCredit;
+
+        // Ensure we don't have a negative amount owed
+        if ($amountOwed < 0) {
+            $amountOwed = 0;
+        }
+
+        return $amountOwed;
     }
 
     /**
