@@ -207,69 +207,63 @@ class PaymentController extends Controller
         }
 
         // Account for advances
+        // Advances are shared by all group members based on family count
         $advances = \App\Models\Advance::where('group_id', $group->id)
             ->with(['senders', 'sentTo'])
             ->get();
 
-        // Debug: Log advances found
-        \Log::info('Advances found for group ' . $group->id . ': ' . $advances->count());
-
         foreach ($advances as $advance) {
-            // Check if user is a sender of this advance (using loaded collection)
-            if ($advance->senders->contains('id', $user->id)) {
-                \Log::info('User ' . $user->id . ' sent advance of $' . $advance->amount_per_person . ' to ' . $advance->sent_to_user_id);
-                // User sent this advance to someone
-                $recipientId = $advance->sent_to_user_id;
+            // Calculate total advance amount and per-headcount credit
+            $totalAdvanceAmount = $advance->amount_per_person * $advance->senders()->count();
 
-                // Skip self-advances (user sending to themselves)
-                if ($recipientId !== $user->id) {
-                    $advanceAmount = $advance->amount_per_person;
+            // Get total group headcount for proper distribution
+            $allGroupMembers = $group->members()
+                ->select('users.id')
+                ->withPivot('family_count')
+                ->get();
 
-                    if (!isset($netBalances[$recipientId])) {
-                        $netBalances[$recipientId] = [
-                            'user' => $advance->sentTo,
-                            'net_amount' => 0,
-                            'status' => 'pending',
-                            'expenses' => [],
-                        ];
-                    }
-
-                    // User paid advance to recipient
-                    // This INCREASES what recipient owes to user (makes balance more negative)
-                    $netBalances[$recipientId]['net_amount'] -= $advanceAmount;
-
-                    \Log::info('Applied advance: recipient ' . $recipientId . ' now owes ' . $netBalances[$recipientId]['net_amount']);
-                }
+            $totalGroupHeadcount = 0;
+            foreach ($allGroupMembers as $member) {
+                $familyCount = $member->pivot->family_count ?? 1;
+                if ($familyCount <= 0) $familyCount = 1;
+                $totalGroupHeadcount += $familyCount;
             }
 
-            // Check if user received an advance from someone
-            if ($advance->sent_to_user_id === $user->id) {
-                \Log::info('User ' . $user->id . ' received advance of $' . $advance->amount_per_person . ' from senders');
-                // Someone sent this advance to the user
-                foreach ($advance->senders as $sender) {
-                    // Skip if sender is the user themselves
-                    if ($sender->id === $user->id) {
-                        continue;
-                    }
+            if ($totalGroupHeadcount <= 0) $totalGroupHeadcount = 1;
 
-                    $senderId = $sender->id;
-                    $advanceAmount = $advance->amount_per_person;
+            // Per-person credit from this advance
+            $perHeadcountCredit = $totalAdvanceAmount / $totalGroupHeadcount;
 
-                    if (!isset($netBalances[$senderId])) {
-                        $netBalances[$senderId] = [
-                            'user' => $sender,
-                            'net_amount' => 0,
-                            'status' => 'pending',
-                            'expenses' => [],
-                        ];
-                    }
+            // Get current user's family count for their advance credit
+            $userFamilyCount = $group->members()
+                ->where('user_id', $user->id)
+                ->first()
+                ?->pivot
+                ?->family_count ?? 1;
+            if ($userFamilyCount <= 0) $userFamilyCount = 1;
 
-                    // Sender paid advance to user
-                    // User owes less to sender (reduces positive balance or increases negative balance)
-                    $netBalances[$senderId]['net_amount'] -= $advanceAmount;
+            $userAdvanceCredit = $perHeadcountCredit * $userFamilyCount;
 
-                    \Log::info('Applied advance: user now owes sender ' . $senderId . ' amount: ' . $netBalances[$senderId]['net_amount']);
-                }
+            // Apply advance credit to all people in settlement
+            // Everyone gets a credit equal to their family count × per-person credit
+            foreach ($netBalances as $personId => &$balance) {
+                // Get family count for this person
+                $personFamilyCount = $group->members()
+                    ->where('user_id', $personId)
+                    ->first()
+                    ?->pivot
+                    ?->family_count ?? 1;
+                if ($personFamilyCount <= 0) $personFamilyCount = 1;
+
+                $personAdvanceCredit = $perHeadcountCredit * $personFamilyCount;
+
+                // Apply credit: reduces what they owe (makes balance more negative)
+                $balance['net_amount'] -= $personAdvanceCredit;
+                $balance['expenses'][] = [
+                    'title' => 'Advance paid',
+                    'amount' => $personAdvanceCredit,
+                    'type' => 'advance',
+                ];
             }
         }
 
