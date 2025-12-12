@@ -239,87 +239,6 @@
         </p>
     </div>
 
-    <!-- Category Breakdown Section -->
-    @if(count($categoryBreakdown) > 0)
-    <div class="section">
-        <div class="section-title">Expense Breakdown by Category</div>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 40%;">Category</th>
-                    <th style="width: 15%;" class="amount">Count</th>
-                    <th style="width: 20%;" class="amount">Total Amount</th>
-                    <th style="width: 25%;" class="amount">% of Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php
-                    $grandTotal = collect($categoryBreakdown)->sum('total');
-                @endphp
-                @foreach($categoryBreakdown as $catData)
-                    @php
-                        $percentage = $grandTotal > 0 ? ($catData['total'] / $grandTotal * 100) : 0;
-                    @endphp
-                    <tr>
-                        <td><strong>{{ $catData['category'] }}</strong></td>
-                        <td class="amount">{{ $catData['count'] }}</td>
-                        <td class="amount amount-negative">${{ number_format($catData['total'], 2) }}</td>
-                        <td class="amount">{{ number_format($percentage, 1) }}%</td>
-                    </tr>
-                @endforeach
-                <tr style="font-weight: bold; border-top: 2px solid #D1D5DB;">
-                    <td><strong>TOTAL</strong></td>
-                    <td class="amount">{{ collect($categoryBreakdown)->sum('count') }}</td>
-                    <td class="amount amount-negative"><strong>${{ number_format($grandTotal, 2) }}</strong></td>
-                    <td class="amount"><strong>100.0%</strong></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    @endif
-
-
-    <!-- Detailed Expenses by Category -->
-    @if(count($categoryBreakdown) > 0)
-    <div class="page-break"></div>
-    <div class="section">
-        <div class="section-title">Detailed Expenses by Category</div>
-
-        @foreach($categoryBreakdown as $catData)
-            <div style="margin-bottom: 20px; page-break-inside: avoid;">
-                <h3 style="font-size: 12px; font-weight: bold; color: #374151; margin: 0 0 8px 0; padding: 8px 10px; background-color: #E0E7FF; border-left: 3px solid #4F46E5;">
-                    {{ $catData['category'] }} ({{ $catData['count'] }} expense{{ $catData['count'] !== 1 ? 's' : '' }})
-                </h3>
-
-                <table style="width: 100%; margin-bottom: 10px;">
-                    <thead>
-                        <tr style="background-color: #F9FAFB; border-bottom: 1px solid #D1D5DB;">
-                            <th style="padding: 6px; text-align: left; font-size: 9px; font-weight: bold; width: 35%;">Expense Title</th>
-                            <th style="padding: 6px; text-align: left; font-size: 9px; font-weight: bold; width: 20%;">Date</th>
-                            <th style="padding: 6px; text-align: left; font-size: 9px; font-weight: bold; width: 20%;">Payer</th>
-                            <th style="padding: 6px; text-align: right; font-size: 9px; font-weight: bold; width: 15%;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($catData['expenses'] as $expense)
-                            <tr style="border-bottom: 1px solid #E5E7EB;">
-                                <td style="padding: 5px 6px; font-size: 9px; color: #1F2937;">{{ $expense['title'] }}</td>
-                                <td style="padding: 5px 6px; font-size: 9px; color: #6B7280;">{{ $expense['date']->format('M d, Y') }}</td>
-                                <td style="padding: 5px 6px; font-size: 9px; color: #6B7280;">{{ $expense['payer'] }}</td>
-                                <td style="padding: 5px 6px; text-align: right; font-size: 9px; font-weight: bold; color: #DC2626;">${{ number_format($expense['amount'], 2) }}</td>
-                            </tr>
-                        @endforeach
-                        <tr style="font-weight: bold; background-color: #FEF3C7; border-top: 2px solid #D1D5DB;">
-                            <td colspan="3" style="padding: 6px; font-size: 9px;">Subtotal for {{ $catData['category'] }}</td>
-                            <td style="padding: 6px; text-align: right; font-size: 9px; color: #DC2626;">${{ number_format($catData['total'], 2) }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        @endforeach
-    </div>
-    @endif
-
     <!-- Page break before transactions if needed -->
     @if(count($transactionHistory) > 15)
         <div class="page-break"></div>
@@ -371,6 +290,87 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Category Breakdown Section -->
+    @if(count($categoryBreakdown) > 0)
+    <div class="page-break"></div>
+    <div class="section">
+        <div class="section-title">Expense Breakdown by Category</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Category</th>
+                    <th style="width: 15%;" class="amount">Count</th>
+                    <th style="width: 20%;" class="amount">Total Amount</th>
+                    <th style="width: 25%;" class="amount">% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $grandTotal = collect($categoryBreakdown)->sum('total');
+                @endphp
+                @foreach($categoryBreakdown as $catData)
+                    @php
+                        $percentage = $grandTotal > 0 ? ($catData['total'] / $grandTotal * 100) : 0;
+                    @endphp
+                    <tr>
+                        <td><strong>{{ $catData['category'] }}</strong></td>
+                        <td class="amount">{{ $catData['count'] }}</td>
+                        <td class="amount amount-negative">${{ number_format($catData['total'], 2) }}</td>
+                        <td class="amount">{{ number_format($percentage, 1) }}%</td>
+                    </tr>
+                @endforeach
+                <tr style="font-weight: bold; border-top: 2px solid #D1D5DB;">
+                    <td><strong>TOTAL</strong></td>
+                    <td class="amount">{{ collect($categoryBreakdown)->sum('count') }}</td>
+                    <td class="amount amount-negative"><strong>${{ number_format($grandTotal, 2) }}</strong></td>
+                    <td class="amount"><strong>100.0%</strong></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @endif
+
+    <!-- Detailed Expenses by Category -->
+    @if(count($categoryBreakdown) > 0)
+    <div class="page-break"></div>
+    <div class="section">
+        <div class="section-title">Detailed Expenses by Category</div>
+
+        @foreach($categoryBreakdown as $catData)
+            <div style="margin-bottom: 20px; page-break-inside: avoid;">
+                <h3 style="font-size: 12px; font-weight: bold; color: #374151; margin: 0 0 8px 0; padding: 8px 10px; background-color: #E0E7FF; border-left: 3px solid #4F46E5;">
+                    {{ $catData['category'] }} ({{ $catData['count'] }} expense{{ $catData['count'] !== 1 ? 's' : '' }})
+                </h3>
+
+                <table style="width: 100%; margin-bottom: 10px;">
+                    <thead>
+                        <tr style="background-color: #F9FAFB; border-bottom: 1px solid #D1D5DB;">
+                            <th style="padding: 6px; text-align: left; font-size: 9px; font-weight: bold; width: 35%;">Expense Title</th>
+                            <th style="padding: 6px; text-align: left; font-size: 9px; font-weight: bold; width: 20%;">Date</th>
+                            <th style="padding: 6px; text-align: left; font-size: 9px; font-weight: bold; width: 20%;">Payer</th>
+                            <th style="padding: 6px; text-align: right; font-size: 9px; font-weight: bold; width: 15%;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($catData['expenses'] as $expense)
+                            <tr style="border-bottom: 1px solid #E5E7EB;">
+                                <td style="padding: 5px 6px; font-size: 9px; color: #1F2937;">{{ $expense['title'] }}</td>
+                                <td style="padding: 5px 6px; font-size: 9px; color: #6B7280;">{{ $expense['date']->format('M d, Y') }}</td>
+                                <td style="padding: 5px 6px; font-size: 9px; color: #6B7280;">{{ $expense['payer'] }}</td>
+                                <td style="padding: 5px 6px; text-align: right; font-size: 9px; font-weight: bold; color: #DC2626;">${{ number_format($expense['amount'], 2) }}</td>
+                            </tr>
+                        @endforeach
+                        <tr style="font-weight: bold; background-color: #FEF3C7; border-top: 2px solid #D1D5DB;">
+                            <td colspan="3" style="padding: 6px; font-size: 9px;">Subtotal for {{ $catData['category'] }}</td>
+                            <td style="padding: 6px; text-align: right; font-size: 9px; color: #DC2626;">${{ number_format($catData['total'], 2) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        @endforeach
+    </div>
+    @endif
 
     <!-- Footer -->
     <div class="footer">
