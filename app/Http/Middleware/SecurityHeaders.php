@@ -24,6 +24,10 @@ class SecurityHeaders
             return $response;
         }
 
+        // Generate a nonce for inline scripts
+        $nonce = bin2hex(random_bytes(16));
+        $request->attributes->set('nonce', $nonce);
+
         // Prevent clickjacking - Disallow framing of the application
         $response->header('X-Frame-Options', 'DENY');
 
@@ -43,11 +47,12 @@ class SecurityHeaders
         );
 
         // Content Security Policy - Prevent XSS and injection attacks
-        // Removed unsafe-inline and unsafe-eval for better security
+        // Note: style-src allows 'unsafe-inline' for Tailwind CSS JIT compilation
+        // Scripts use nonce for inline code to prevent XSS
         $csp = "default-src 'self'; " .
-               "script-src 'self' blob: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
-               "worker-src 'self' blob:; " .
-               "style-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com; " .
+               "script-src 'self' 'nonce-{$nonce}' blob: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js; " .
+               "worker-src 'self' blob: data:; " .
+               "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; " .
                "img-src 'self' data: https: blob:; " .
                "font-src 'self' data: https: https://fonts.gstatic.com; " .
                "connect-src 'self' https: blob: data:; " .
