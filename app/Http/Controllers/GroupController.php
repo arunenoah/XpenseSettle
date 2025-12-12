@@ -6,6 +6,7 @@ use App\Models\Contact;
 use App\Models\Group;
 use App\Models\GroupMember;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\GroupMemberService;
 use App\Services\GroupService;
 use App\Services\NotificationService;
@@ -17,12 +18,14 @@ class GroupController extends Controller
     private GroupService $groupService;
     private NotificationService $notificationService;
     private PlanService $planService;
+    private AuditService $auditService;
 
-    public function __construct(GroupService $groupService, NotificationService $notificationService, PlanService $planService)
+    public function __construct(GroupService $groupService, NotificationService $notificationService, PlanService $planService, AuditService $auditService)
     {
         $this->groupService = $groupService;
         $this->notificationService = $notificationService;
         $this->planService = $planService;
+        $this->auditService = $auditService;
     }
 
     /**
@@ -61,10 +64,27 @@ class GroupController extends Controller
         try {
             $group = $this->groupService->createGroup(auth()->user(), $validated);
 
+            // Log group creation
+            $this->auditService->logSuccess(
+                'create_group',
+                'Group',
+                "Group '{$group->name}' created",
+                $group->id,
+                $group->id
+            );
+
             return redirect()
                 ->route('groups.show', $group)
                 ->with('success', 'Group created successfully!');
         } catch (\Exception $e) {
+            // Log failed group creation
+            $this->auditService->logFailed(
+                'create_group',
+                'Group',
+                'Failed to create group',
+                $e->getMessage()
+            );
+
             return back()
                 ->withInput()
                 ->with('error', 'Failed to create group: ' . $e->getMessage());
@@ -149,12 +169,44 @@ class GroupController extends Controller
         ]);
 
         try {
+            // Track changes for audit log
+            $changes = [];
+            if ($group->name !== $validated['name']) {
+                $changes['name'] = ['from' => $group->name, 'to' => $validated['name']];
+            }
+            if ($group->description !== $validated['description']) {
+                $changes['description'] = ['from' => $group->description, 'to' => $validated['description']];
+            }
+            if ($group->currency !== $validated['currency']) {
+                $changes['currency'] = ['from' => $group->currency, 'to' => $validated['currency']];
+            }
+
             $group = $this->groupService->updateGroup($group, $validated);
+
+            // Log group update if there were changes
+            if (!empty($changes)) {
+                $this->auditService->logSuccess(
+                    'update_group',
+                    'Group',
+                    "Group '{$group->name}' updated",
+                    $group->id,
+                    $group->id,
+                    $changes
+                );
+            }
 
             return redirect()
                 ->route('groups.show', $group)
                 ->with('success', 'Group updated successfully!');
         } catch (\Exception $e) {
+            // Log failed update
+            $this->auditService->logFailed(
+                'update_group',
+                'Group',
+                'Failed to update group',
+                $e->getMessage()
+            );
+
             return back()
                 ->withInput()
                 ->with('error', 'Failed to update group: ' . $e->getMessage());
@@ -172,13 +224,31 @@ class GroupController extends Controller
         }
 
         try {
+            $groupId = $group->id;
             $groupName = $group->name;
             $this->groupService->deleteGroup($group);
+
+            // Log group deletion
+            $this->auditService->logSuccess(
+                'delete_group',
+                'Group',
+                "Group '{$groupName}' deleted",
+                $groupId,
+                $groupId
+            );
 
             return redirect()
                 ->route('groups.index')
                 ->with('success', "Group '{$groupName}' deleted successfully!");
         } catch (\Exception $e) {
+            // Log failed deletion
+            $this->auditService->logFailed(
+                'delete_group',
+                'Group',
+                'Failed to delete group',
+                $e->getMessage()
+            );
+
             return back()->with('error', 'Failed to delete group: ' . $e->getMessage());
         }
     }
@@ -222,13 +292,22 @@ class GroupController extends Controller
             return redirect()->back()->with('error', 'User is already a member');
         }
 
-        GroupMember::create([
+        $member = GroupMember::create([
             'group_id' => $group->id,
             'user_id' => $validated['user_id'],
             'role' => 'member',
         ]);
 
         $user = User::find($validated['user_id']);
+
+        // Log member addition
+        $this->auditService->logSuccess(
+            'add_member',
+            'GroupMember',
+            "Member '{$user->name}' added to group '{$group->name}'",
+            $member->id,
+            $group->id
+        );
 
         // Send notification to the newly added user
         $this->notificationService->notifyUserAddedToGroup($user, $group, auth()->user());
@@ -255,7 +334,7 @@ class GroupController extends Controller
 
         try {
             $service = new GroupMemberService();
-            $service->addContactMember(
+            $member = $service->addContactMember(
                 $group,
                 $validated['contact_name'],
                 $validated['contact_email'],
@@ -264,8 +343,25 @@ class GroupController extends Controller
                 $validated['contact_family_count'] ?? 0
             );
 
+            // Log contact addition
+            $this->auditService->logSuccess(
+                'add_contact',
+                'Contact',
+                "Contact '{$validated['contact_name']}' added to group '{$group->name}'",
+                $member->contact_id,
+                $group->id
+            );
+
             return redirect()->back()->with('success', $validated['contact_name'] . ' has been added for bill splitting! ✨');
         } catch (\Exception $e) {
+            // Log failed contact addition
+            $this->auditService->logFailed(
+                'add_contact',
+                'Contact',
+                "Failed to add contact '{$validated['contact_name']}'",
+                $e->getMessage()
+            );
+
             return redirect()->back()->with('error', 'Failed to add contact: ' . $e->getMessage());
         }
     }
@@ -286,11 +382,30 @@ class GroupController extends Controller
         }
 
         try {
-            $memberName = $member->user->name;
+            $memberName = $member->isActiveUser() ? $member->user->name : $member->contact->name;
+            $memberId = $member->id;
+
             $this->groupService->removeMember($group, $member->user);
+
+            // Log member removal
+            $this->auditService->logSuccess(
+                'remove_member',
+                'GroupMember',
+                "Member '{$memberName}' removed from group '{$group->name}'",
+                $memberId,
+                $group->id
+            );
 
             return back()->with('success', "{$memberName} has been removed from the group");
         } catch (\Exception $e) {
+            // Log failed removal
+            $this->auditService->logFailed(
+                'remove_member',
+                'GroupMember',
+                'Failed to remove member',
+                $e->getMessage()
+            );
+
             return back()->with('error', 'Failed to remove member: ' . $e->getMessage());
         }
     }

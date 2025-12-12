@@ -14,15 +14,30 @@ class GroupMemberService
      */
     public function addContactMember(Group $group, string $name, ?string $email = null, ?string $phone = null, string $role = 'member', int $familyCount = 0): GroupMember
     {
+        // Build the lookup criteria for finding existing contact
+        $lookupCriteria = ['group_id' => $group->id];
+
+        // Only include email in lookup if it's provided (not null)
+        if ($email) {
+            $lookupCriteria['email'] = $email;
+        } else {
+            // If no email, lookup by name and phone combination
+            $lookupCriteria['name'] = $name;
+            $lookupCriteria['phone'] = $phone;
+        }
+
         // Create or find contact
         $contact = Contact::firstOrCreate(
-            ['group_id' => $group->id, 'email' => $email],
+            $lookupCriteria,
             ['name' => $name, 'phone' => $phone, 'family_count' => $familyCount]
         );
 
-        // If contact already exists, update family_count
+        // If contact already exists, update family_count and other details
         if ($contact->wasRecentlyCreated === false) {
-            $contact->update(['family_count' => $familyCount]);
+            $contact->update([
+                'family_count' => $familyCount,
+                'phone' => $phone ?? $contact->phone,
+            ]);
         }
 
         // Add to group members if not already exists
