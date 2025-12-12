@@ -150,7 +150,12 @@
                                                     Pay
                                                 </button>
                                             @elseif(!$isOwed)
-                                                <button type="button" onclick="openReceivedPaymentModal('{{ addslashes($item['user']->name) }}', {{ $item['user']->id }}, true, {{ $finalAmount }})" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200 transition-all">
+                                                <button type="button"
+                                                        class="mark-paid-btn-history px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200 transition-all"
+                                                        data-member-name="{{ $item['user']->name }}"
+                                                        data-member-id="{{ $item['user']->id }}"
+                                                        data-is-user="true"
+                                                        data-suggested-amount="{{ $finalAmount }}">
                                                     Mark Paid
                                                 </button>
                                             @else
@@ -944,7 +949,7 @@ function copySuggestion(text) {
         <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-bold text-gray-900">Mark Payment Received</h2>
-                <button type="button" onclick="closeReceivedPaymentModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                <button type="button" data-close-received-modal class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
             </div>
 
             <p class="text-gray-600 mb-4">Recording payment from <strong id="modalMemberName"></strong></p>
@@ -975,7 +980,7 @@ function copySuggestion(text) {
                 </div>
 
                 <div class="flex gap-2 pt-4">
-                    <button type="button" onclick="closeReceivedPaymentModal()"
+                    <button type="button" data-close-received-modal
                             class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
                         Cancel
                     </button>
@@ -990,27 +995,6 @@ function copySuggestion(text) {
 
     <script>
     // Received Payment Modal Functions
-    function openReceivedPaymentModal(memberName, memberId, isUser, suggestedAmount = null) {
-        console.log('Opening modal for:', memberName, suggestedAmount);
-        const modal = document.getElementById('receivedPaymentModal');
-        if (!modal) {
-            console.error('Modal not found!');
-            return;
-        }
-        document.getElementById('modalMemberName').textContent = memberName;
-        document.getElementById('memberIdInput').value = memberId;
-
-        // Set suggested amount if provided
-        if (suggestedAmount) {
-            document.getElementById('amountInput').value = suggestedAmount;
-        }
-
-        modal.style.display = 'flex';
-        modal.style.visibility = 'visible';
-        modal.classList.remove('hidden');
-        console.log('Modal opened');
-    }
-
     function closeReceivedPaymentModal() {
         const modal = document.getElementById('receivedPaymentModal');
         if (modal) {
@@ -1021,10 +1005,47 @@ function copySuggestion(text) {
         }
     }
 
-    // Close modal when clicking outside
+    // Initialize received payment modal handlers when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle "Mark Paid" button clicks
+        const markPaidButtons = document.querySelectorAll('.mark-paid-btn-history');
+        markPaidButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const modal = document.getElementById('receivedPaymentModal');
+                if (!modal) {
+                    console.error('Modal not found!');
+                    return;
+                }
+
+                const memberName = this.getAttribute('data-member-name');
+                const memberId = this.getAttribute('data-member-id');
+                const suggestedAmount = this.getAttribute('data-suggested-amount');
+
+                console.log('Opening modal for:', memberName, suggestedAmount);
+                document.getElementById('modalMemberName').textContent = memberName;
+                document.getElementById('memberIdInput').value = memberId;
+
+                // Set suggested amount if provided
+                if (suggestedAmount) {
+                    document.getElementById('amountInput').value = suggestedAmount;
+                }
+
+                modal.style.display = 'flex';
+                modal.style.visibility = 'visible';
+                modal.classList.remove('hidden');
+                console.log('Modal opened');
+            });
+        });
+
+        // Handle close buttons
         const modal = document.getElementById('receivedPaymentModal');
         if (modal) {
+            const closeButtons = modal.querySelectorAll('[data-close-received-modal]');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', closeReceivedPaymentModal);
+            });
+
+            // Close modal when clicking on the dark overlay
             modal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     closeReceivedPaymentModal();
