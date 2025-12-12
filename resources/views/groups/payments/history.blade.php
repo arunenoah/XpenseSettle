@@ -149,6 +149,10 @@
                                                 <button onclick="openPaymentModal('{{ $item['split_ids'][0] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-bold hover:bg-blue-200 transition-all">
                                                     Pay
                                                 </button>
+                                            @elseif(!$isOwed)
+                                                <button type="button" onclick="openReceivedPaymentModal('{{ addslashes($item['user']->name) }}', {{ $item['user']->id }}, true, {{ $finalAmount }})" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200 transition-all">
+                                                    Mark Paid
+                                                </button>
                                             @else
                                                 <span class="text-xs text-gray-400">—</span>
                                             @endif
@@ -933,6 +937,86 @@ function copySuggestion(text) {
     } else {
         initSettlementBreakdown();
     }
+    </script>
+
+    <!-- Received Payment Modal -->
+    <div id="receivedPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Mark Payment Received</h2>
+                <button type="button" onclick="closeReceivedPaymentModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+
+            <p class="text-gray-600 mb-4">Recording payment from <strong id="modalMemberName"></strong></p>
+
+            <form id="receivedPaymentForm" action="{{ route('groups.received-payments.store', $group) }}" method="POST" class="space-y-4">
+                @csrf
+
+                <input type="hidden" id="memberIdInput" name="from_user_id">
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Amount Received ($)</label>
+                    <input type="number" id="amountInput" name="amount" step="0.01" min="0.01" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                           placeholder="0.00">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Date Received</label>
+                    <input type="date" name="received_date" required value="{{ date('Y-m-d') }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Notes (Optional)</label>
+                    <textarea name="description" rows="3"
+                              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200"
+                              placeholder="e.g., Cash payment for hotel share..."></textarea>
+                </div>
+
+                <div class="flex gap-2 pt-4">
+                    <button type="button" onclick="closeReceivedPaymentModal()"
+                            class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                        ✓ Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    // Received Payment Modal Functions
+    function openReceivedPaymentModal(memberName, memberId, isUser, suggestedAmount = null) {
+        const modal = document.getElementById('receivedPaymentModal');
+        document.getElementById('modalMemberName').textContent = memberName;
+        document.getElementById('memberIdInput').value = memberId;
+
+        // Set suggested amount if provided
+        if (suggestedAmount) {
+            document.getElementById('amountInput').value = suggestedAmount;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeReceivedPaymentModal() {
+        const modal = document.getElementById('receivedPaymentModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('receivedPaymentForm').reset();
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('receivedPaymentModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeReceivedPaymentModal();
+        }
+    });
     </script>
 
     <!-- Breakdown Modal -->
