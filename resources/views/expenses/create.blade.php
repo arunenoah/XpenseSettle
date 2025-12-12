@@ -121,6 +121,29 @@
                 @enderror
             </div>
 
+            <!-- Category (Optional) -->
+            <div>
+                <label for="category" class="block text-sm font-semibold text-gray-700 mb-2">Category (Optional)</label>
+                <select
+                    id="category"
+                    name="category"
+                    class="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                    <option value="Other" {{ old('category', 'Other') === 'Other' ? 'selected' : '' }}>📝 Other (Miscellaneous)</option>
+                    <option value="Accommodation" {{ old('category') === 'Accommodation' ? 'selected' : '' }}>🏨 Accommodation (Hotels, Airbnb, hostels)</option>
+                    <option value="Food & Dining" {{ old('category') === 'Food & Dining' ? 'selected' : '' }}>🍽️ Food & Dining (Restaurants, cafés, takeaways)</option>
+                    <option value="Groceries" {{ old('category') === 'Groceries' ? 'selected' : '' }}>🛒 Groceries (Supermarket, cooking supplies)</option>
+                    <option value="Transport" {{ old('category') === 'Transport' ? 'selected' : '' }}>✈️ Transport (Flights, trains, buses, taxis, Uber)</option>
+                    <option value="Activities" {{ old('category') === 'Activities' ? 'selected' : '' }}>🎫 Activities (Sightseeing, tickets, tours, events)</option>
+                    <option value="Shopping" {{ old('category') === 'Shopping' ? 'selected' : '' }}>🛍️ Shopping (Clothes, souvenirs, personal items)</option>
+                    <option value="Utilities & Services" {{ old('category') === 'Utilities & Services' ? 'selected' : '' }}>⚙️ Utilities & Services (Wi-Fi, laundry, tips)</option>
+                    <option value="Fees & Charges" {{ old('category') === 'Fees & Charges' ? 'selected' : '' }}>💳 Fees & Charges (Booking fees, taxes)</option>
+                </select>
+                @error('category')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
             <!-- Split Type -->
             <div>
                 <label for="split_type" class="block text-sm font-semibold text-gray-700 mb-2">How to Split?</label>

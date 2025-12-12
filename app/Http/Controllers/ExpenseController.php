@@ -62,6 +62,7 @@ class ExpenseController extends Controller
             'description' => 'nullable|string|max:1000',
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
+            'category' => 'nullable|string|in:Accommodation,Food & Dining,Groceries,Transport,Activities,Shopping,Utilities & Services,Fees & Charges,Other',
             'split_type' => 'required|in:equal,custom',
             'splits' => 'nullable|array',
             'splits.*' => 'nullable|numeric|min:0',
@@ -239,6 +240,7 @@ class ExpenseController extends Controller
             'description' => 'nullable|string|max:1000',
             'amount' => 'required|numeric|min:0.01',
             'date' => 'required|date',
+            'category' => 'nullable|string|in:Accommodation,Food & Dining,Groceries,Transport,Activities,Shopping,Utilities & Services,Fees & Charges,Other',
             'split_type' => 'required|in:equal,custom',
             'splits' => 'nullable|array',
             'splits.*' => 'nullable|numeric|min:0',
@@ -254,6 +256,9 @@ class ExpenseController extends Controller
             }
             if ($expense->amount != $validated['amount']) {
                 $changes['amount'] = ['from' => $expense->amount, 'to' => $validated['amount']];
+            }
+            if ($expense->category !== ($validated['category'] ?? 'Other')) {
+                $changes['category'] = ['from' => $expense->category ?? 'Other', 'to' => $validated['category'] ?? 'Other'];
             }
 
             // Get all members (users + contacts) for validation
