@@ -207,8 +207,8 @@ class PaymentController extends Controller
         }
 
         // Account for advances
-        // Advances are treated like payments sent by the senders
-        // The advance amount is divided by sender's family count to get per-person credit
+        // Advances are sent by specific users TO specific users
+        // They should only be applied to the settlement between senders and the recipient
         // Track total advance per person to avoid duplicate entries in breakdown
         $advanceCreditPerPerson = []; // personId => total_credit
 
@@ -217,13 +217,24 @@ class PaymentController extends Controller
             ->get();
 
         foreach ($advances as $advance) {
-            // Get all senders of this advance
+            $recipientId = $advance->sent_to_user_id;
             $senders = $advance->senders;
 
+            // Get recipient's family count
+            $recipientFamilyCount = $group->members()
+                ->where('user_id', $recipientId)
+                ->first()
+                ?->pivot
+                ?->family_count ?? 1;
+            if ($recipientFamilyCount <= 0) $recipientFamilyCount = 1;
+
+            // Only apply advance to senders - they get a credit for paying on behalf of recipient
             foreach ($senders as $sender) {
+                $senderId = $sender->id;
+
                 // Get sender's family count
                 $senderFamilyCount = $group->members()
-                    ->where('user_id', $sender->id)
+                    ->where('user_id', $senderId)
                     ->first()
                     ?->pivot
                     ?->family_count ?? 1;
@@ -235,37 +246,29 @@ class PaymentController extends Controller
                 // Advance amount divided by sender's family count = per-person credit
                 $perPersonCredit = $advance->amount_per_person / $senderFamilyCount;
 
-                // Apply this credit to everyone in the settlement
-                // Everyone gets reduced balance because someone paid advance on their behalf
-                foreach ($netBalances as $personId => &$balance) {
-                    // Get family count for this person
-                    $personFamilyCount = $group->members()
-                        ->where('user_id', $personId)
-                        ->first()
-                        ?->pivot
-                        ?->family_count ?? 1;
-                    if ($personFamilyCount <= 0) $personFamilyCount = 1;
+                // Each sender gets credit for the advance they paid
+                // Credit = per-person-credit × sender's family count
+                $senderAdvanceCredit = $perPersonCredit * $senderFamilyCount;
 
-                    // Each person's advance credit = per-person-credit × their family count
-                    $personAdvanceCredit = $perPersonCredit * $personFamilyCount;
-
+                // Only apply if this sender is in the settlement
+                if (isset($netBalances[$senderId])) {
                     // Apply credit: reduces what they owe (makes balance more negative)
-                    $balance['net_amount'] -= $personAdvanceCredit;
+                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
 
                     // Track total advance per person (don't add to expenses yet)
-                    if (!isset($advanceCreditPerPerson[$personId])) {
-                        $advanceCreditPerPerson[$personId] = 0;
+                    if (!isset($advanceCreditPerPerson[$senderId])) {
+                        $advanceCreditPerPerson[$senderId] = 0;
                     }
-                    $advanceCreditPerPerson[$personId] += $personAdvanceCredit;
+                    $advanceCreditPerPerson[$senderId] += $senderAdvanceCredit;
                 }
             }
         }
 
-        // Add aggregated advance entry to each person's expenses (if any advances were received)
+        // Add aggregated advance entry to each person's expenses (if any advances were paid)
         foreach ($netBalances as $personId => &$balance) {
             if (isset($advanceCreditPerPerson[$personId]) && $advanceCreditPerPerson[$personId] > 0) {
                 $balance['expenses'][] = [
-                    'title' => 'Advance received',
+                    'title' => 'Advance paid',
                     'amount' => $advanceCreditPerPerson[$personId],
                     'type' => 'advance',
                 ];
