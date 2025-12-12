@@ -100,6 +100,82 @@ class PaymentController extends Controller
     }
 
     /**
+     * Generate standardized breakdown text for settlement between two people.
+     * Format: Shows expenses from both parties, then adjustments, then total.
+     */
+    private function generateSettlementBreakdown($group, $fromUser, $toUser, $item)
+    {
+        $breakdown = "Settlement: {$fromUser->name} ↔ {$toUser->name}\n\n";
+
+        // Separate expenses by type
+        $fromUserExpenses = [];  // Expenses paid by fromUser
+        $toUserExpenses = [];    // Expenses paid by toUser
+        $advances = 0;
+        $payments = 0;
+
+        if (isset($item['expenses']) && count($item['expenses']) > 0) {
+            foreach ($item['expenses'] as $exp) {
+                if ($exp['type'] === 'you_owe') {
+                    // toUser paid, fromUser owes
+                    $toUserExpenses[] = $exp;
+                } elseif ($exp['type'] === 'they_owe') {
+                    // fromUser paid, toUser owes
+                    $fromUserExpenses[] = $exp;
+                } elseif ($exp['type'] === 'advance') {
+                    $advances += $exp['amount'];
+                } elseif ($exp['type'] === 'payment_received') {
+                    $payments += $exp['amount'];
+                } elseif ($exp['type'] === 'payment_sent') {
+                    $payments += $exp['amount'];
+                }
+            }
+        }
+
+        // fromUser's expenses section
+        if (count($fromUserExpenses) > 0) {
+            $breakdown .= "{$fromUser->name}'s expenses (paid by {$fromUser->name}):\n";
+            $fromTotal = 0;
+            foreach ($fromUserExpenses as $exp) {
+                $fromTotal += $exp['amount'];
+                $breakdown .= "- {$exp['title']}: $" . number_format($exp['amount'], 2) . "\n";
+            }
+            $breakdown .= "Subtotal: $" . number_format($fromTotal, 2) . "\n\n";
+        }
+
+        // toUser's expenses section
+        if (count($toUserExpenses) > 0) {
+            $breakdown .= "{$toUser->name}'s expenses (paid by {$toUser->name}):\n";
+            $toTotal = 0;
+            foreach ($toUserExpenses as $exp) {
+                $toTotal += $exp['amount'];
+                $breakdown .= "- {$exp['title']}: $" . number_format($exp['amount'], 2) . "\n";
+            }
+            $breakdown .= "Subtotal: $" . number_format($toTotal, 2) . "\n\n";
+        }
+
+        // Adjustments section
+        $breakdown .= "Adjustments:\n";
+        if ($payments > 0) {
+            $breakdown .= "- Payment received: -$" . number_format($payments, 2) . "\n";
+        }
+        if ($advances > 0) {
+            $breakdown .= "- Advances: -$" . number_format($advances, 2) . "\n";
+        }
+
+        // Final section
+        $breakdown .= "\nFinal Balance: $" . number_format(round($item['net_amount'], 2), 2) . "\n";
+        if ($item['net_amount'] > 0) {
+            $breakdown .= "({$fromUser->name} owes {$toUser->name})";
+        } elseif ($item['net_amount'] < 0) {
+            $breakdown .= "({$toUser->name} owes {$fromUser->name})";
+        } else {
+            $breakdown .= "(Settled)";
+        }
+
+        return $breakdown;
+    }
+
+    /**
      * Calculate settlement for a user in a group.
      * Returns net balance with each person (positive = user owes, negative = person owes user).
      */
@@ -496,47 +572,8 @@ class PaymentController extends Controller
                                 $memberFamilyCount = $memberGroupMemberRecord?->family_count ?? 1;
                                 if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
 
-                                // Calculate original amount owed (sum of non-advance, non-payment expenses)
-                                $originalAmountContact = 0;
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $exp) {
-                                        if ($exp['type'] === 'you_owe' || $exp['type'] === 'they_owe') {
-                                            $originalAmountContact += $exp['amount'];
-                                        }
-                                    }
-                                }
-
-                                $breakdownContact = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format($originalAmountContact, 2);
-
-                                // Show family count context and per-person calculation
-                                if ($memberFamilyCount > 1) {
-                                    $perPersonAmount = $originalAmountContact / $memberFamilyCount;
-                                    $breakdownContact .= "\n[For {$memberFamilyCount} people]";
-                                    $breakdownContact .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$memberFamilyCount} = $" . number_format($originalAmountContact, 2);
-                                } else {
-                                    $breakdownContact .= "\n[Family count: {$memberFamilyCount}]";
-                                }
-
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $exp) {
-                                        if ($exp['type'] !== 'advance') {
-                                            // For regular expenses, show total amount and how it's split
-                                            if ($memberFamilyCount > 1) {
-                                                $perPersonShare = $exp['amount'] / $memberFamilyCount;
-                                                $breakdownContact .= "\n- {$exp['title']}: $" . number_format($perPersonShare, 2) . " × {$memberFamilyCount} = $" . number_format($exp['amount'], 2);
-                                            } else {
-                                                $breakdownContact .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                            }
-                                        } elseif ($exp['type'] === 'advance') {
-                                            $breakdownContact .= "\n- Advance paid: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_received') {
-                                            $breakdownContact .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_sent') {
-                                            $breakdownContact .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
-                                        }
-                                    }
-                                }
-                                $breakdownContact .= "\n\nFinal: $" . number_format(round($amount, 2), 2);
+                                // Use standardized breakdown format (contact can't be second payer in our system)
+                                $breakdownContact = $this->generateSettlementBreakdown($group, $member, $item['user'], $item);
 
                                 $result[$memberGroupMemberId]['owes'][$key] = [
                                     'user' => $item['user'],
@@ -565,47 +602,8 @@ class PaymentController extends Controller
                                 $targetFamilyCount = $targetGroupMemberRecord?->family_count ?? 1;
                                 if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
 
-                                // Calculate original amount owed (sum of non-advance, non-payment expenses)
-                                $originalAmount = 0;
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $exp) {
-                                        if ($exp['type'] === 'you_owe' || $exp['type'] === 'they_owe') {
-                                            $originalAmount += $exp['amount'];
-                                        }
-                                    }
-                                }
-
-                                $breakdown = "Amount owed: $" . number_format($originalAmount, 2);
-
-                                // Show family count context and per-person calculation
-                                if ($targetFamilyCount > 1) {
-                                    $perPersonAmount = $originalAmount / $targetFamilyCount;
-                                    $breakdown .= "\n[For {$targetFamilyCount} people]";
-                                    $breakdown .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$targetFamilyCount} = $" . number_format($originalAmount, 2);
-                                } else {
-                                    $breakdown .= "\n[Family count: {$targetFamilyCount}]";
-                                }
-
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $exp) {
-                                        if ($exp['type'] !== 'advance') {
-                                            // For regular expenses, show total amount and how it's split
-                                            if ($targetFamilyCount > 1) {
-                                                $perPersonShare = $exp['amount'] / $targetFamilyCount;
-                                                $breakdown .= "\n- {$exp['title']}: $" . number_format($perPersonShare, 2) . " × {$targetFamilyCount} = $" . number_format($exp['amount'], 2);
-                                            } else {
-                                                $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                            }
-                                        } elseif ($exp['type'] === 'advance') {
-                                            $breakdown .= "\n- Advance paid: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_received') {
-                                            $breakdown .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_sent') {
-                                            $breakdown .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
-                                        }
-                                    }
-                                }
-                                $breakdown .= "\n\nFinal: $" . number_format(round($amount, 2), 2);
+                                // Use standardized breakdown format
+                                $breakdown = $this->generateSettlementBreakdown($group, $member, $item['user'], $item);
 
                                 $result[$memberGroupMemberId]['owes'][$gmKey] = [
                                     'user' => $item['user'],
@@ -632,37 +630,8 @@ class PaymentController extends Controller
                                 $memberFamilyCount = $memberGroupMemberRecord?->family_count ?? 1;
                                 if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
 
-                                $breakdown = $result[$memberGroupMemberId]['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
-
-                                // Show family count context and per-person calculation
-                                if ($memberFamilyCount > 1) {
-                                    $perPersonAmount = abs($item['net_amount']) / $memberFamilyCount;
-                                    $breakdown .= "\n[For {$memberFamilyCount} people]";
-                                    $breakdown .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$memberFamilyCount} = $" . number_format(abs($item['net_amount']), 2);
-                                } else {
-                                    $breakdown .= "\n[Family count: {$memberFamilyCount}]";
-                                }
-
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $exp) {
-                                        if ($exp['type'] !== 'advance') {
-                                            // For regular expenses, show total amount and how it's split
-                                            if ($memberFamilyCount > 1) {
-                                                $perPersonShare = $exp['amount'] / $memberFamilyCount;
-                                                $breakdown .= "\n- {$exp['title']}: $" . number_format($perPersonShare, 2) . " × {$memberFamilyCount} = $" . number_format($exp['amount'], 2);
-                                            } else {
-                                                $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                            }
-                                        } elseif ($exp['type'] === 'advance') {
-                                            $breakdown .= "\n- Advance received: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_received') {
-                                            $breakdown .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_sent') {
-                                            $breakdown .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
-                                        }
-                                    }
-                                }
-                                $breakdown .= "\n\nFinal: $" . number_format(round(abs($amount), 2), 2);
+                                // Use standardized breakdown format
+                                $breakdown = $this->generateSettlementBreakdown($group, $item['user'], $member, $item);
 
                                 // Contact owes member - store in contact's owes array
                                 \Log::info('Storing breakdown in owes array', [
@@ -700,37 +669,8 @@ class PaymentController extends Controller
                                 $targetFamilyCount = $groupMemberRecord?->family_count ?? 1;
                                 if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
 
-                                $breakdown = $gmData['user']->name . " spent: $" . number_format(abs($item['net_amount']), 2);
-
-                                // Show family count context and per-person calculation
-                                if ($targetFamilyCount > 1) {
-                                    $perPersonAmount = abs($item['net_amount']) / $targetFamilyCount;
-                                    $breakdown .= "\n[For {$targetFamilyCount} people]";
-                                    $breakdown .= "\nPer-person cost: $" . number_format($perPersonAmount, 2) . " × {$targetFamilyCount} = $" . number_format(abs($item['net_amount']), 2);
-                                } else {
-                                    $breakdown .= "\n[Family count: {$targetFamilyCount}]";
-                                }
-
-                                if (isset($item['expenses']) && count($item['expenses']) > 0) {
-                                    foreach ($item['expenses'] as $exp) {
-                                        if ($exp['type'] !== 'advance') {
-                                            // For regular expenses, show total amount and how it's split
-                                            if ($targetFamilyCount > 1) {
-                                                $perPersonShare = $exp['amount'] / $targetFamilyCount;
-                                                $breakdown .= "\n- {$exp['title']}: $" . number_format($perPersonShare, 2) . " × {$targetFamilyCount} = $" . number_format($exp['amount'], 2);
-                                            } else {
-                                                $breakdown .= "\n- {$exp['title']}: $" . number_format($exp['amount'], 2);
-                                            }
-                                        } elseif ($exp['type'] === 'advance') {
-                                            $breakdown .= "\n- Advance received: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_received') {
-                                            $breakdown .= "\n- Payment Received: -$" . number_format($exp['amount'], 2);
-                                        } elseif ($exp['type'] === 'payment_sent') {
-                                            $breakdown .= "\n- Payment Sent: -$" . number_format($exp['amount'], 2);
-                                        }
-                                    }
-                                }
-                                $breakdown .= "\n\nFinal: $" . number_format(round(abs($amount), 2), 2);
+                                // Use standardized breakdown format
+                                $breakdown = $this->generateSettlementBreakdown($group, $item['user'], $user, $item);
 
                                 $result[$gmKey]['owes'][$memberGroupMemberId] = [
                                     'user' => $group->members->find($member->id),
