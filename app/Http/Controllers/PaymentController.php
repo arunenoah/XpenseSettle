@@ -211,9 +211,13 @@ class PaymentController extends Controller
             ->with(['senders', 'sentTo'])
             ->get();
 
+        // Debug: Log advances found
+        \Log::info('Advances found for group ' . $group->id . ': ' . $advances->count());
+
         foreach ($advances as $advance) {
             // Check if user is a sender of this advance (using loaded collection)
             if ($advance->senders->contains('id', $user->id)) {
+                \Log::info('User ' . $user->id . ' sent advance of $' . $advance->amount_per_person . ' to ' . $advance->sent_to_user_id);
                 // User sent this advance to someone
                 $recipientId = $advance->sent_to_user_id;
 
@@ -244,6 +248,7 @@ class PaymentController extends Controller
 
             // Check if user received an advance from someone
             if ($advance->sent_to_user_id === $user->id) {
+                \Log::info('User ' . $user->id . ' received advance of $' . $advance->amount_per_person . ' from senders');
                 // Someone sent this advance to the user
                 foreach ($advance->senders as $sender) {
                     // Skip if sender is the user themselves
