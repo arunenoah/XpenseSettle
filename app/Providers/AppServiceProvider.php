@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register a Blade directive to get the CSP nonce
         Blade::directive('nonce', function () {
-            return "<?php echo request()->attributes->get('nonce', ''); ?>";
+            return "{{ request()->attributes->get('nonce', '') }}";
         });
     }
 }
