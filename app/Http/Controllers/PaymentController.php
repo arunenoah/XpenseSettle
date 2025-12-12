@@ -332,19 +332,24 @@ class PaymentController extends Controller
                 // Credit = per-person-credit × sender's family count
                 $senderAdvanceCredit = $perPersonCredit * $senderFamilyCount;
 
-                // Only apply if this sender is in the settlement
-                if (isset($netBalances[$senderId])) {
-                    // Apply credit: reduces what they owe (makes balance more negative)
-                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
+                // IMPORTANT: Only apply advance credit if sender owes money in a settlement
+                // The advance reduces what they owe to the recipient
+                // Advances should only appear in settlements where sender actually owes recipient
+                if ($senderId === $user->id) {
+                    // Only process advances for the current user we're calculating settlement for
+                    if (isset($netBalances[$recipientId])) {
+                        // Apply credit: reduces what they owe to recipient (makes balance more negative/less positive)
+                        $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
 
-                    // Track advance per sender-recipient pair
-                    if (!isset($advanceCreditPerPersonPair[$senderId])) {
-                        $advanceCreditPerPersonPair[$senderId] = [];
+                        // Track advance per sender-recipient pair
+                        if (!isset($advanceCreditPerPersonPair[$senderId])) {
+                            $advanceCreditPerPersonPair[$senderId] = [];
+                        }
+                        if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
+                            $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
+                        }
+                        $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
                     }
-                    if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
-                        $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
-                    }
-                    $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
                 }
             }
         }
