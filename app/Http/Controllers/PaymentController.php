@@ -670,7 +670,7 @@ class PaymentController extends Controller
                                 if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
 
                                 // Use standardized breakdown format
-                                $breakdown = $this->generateSettlementBreakdown($group, $item['user'], $user, $item);
+                                $breakdown = $this->generateSettlementBreakdown($group, $item['user'], $member, $item);
 
                                 $result[$gmKey]['owes'][$memberGroupMemberId] = [
                                     'user' => $group->members->find($member->id),
