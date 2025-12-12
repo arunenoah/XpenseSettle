@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AuditService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +13,12 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    private AuditService $auditService;
+
+    public function __construct(AuditService $auditService)
+    {
+        $this->auditService = $auditService;
+    }
     /**
      * Show the login form.
      */
@@ -57,6 +64,9 @@ class AuthController extends Controller
             Auth::login($authenticatedUser, $request->boolean('remember'));
             $request->session()->regenerate();
 
+            // Log successful login
+            $this->auditService->logLogin($authenticatedUser);
+
             // Create Sanctum token for API access (mobile/Capacitor app)
             $sanctumToken = $authenticatedUser->createToken('mobile')->plainTextToken;
             session(['sanctum_token' => $sanctumToken]);
@@ -69,6 +79,14 @@ class AuthController extends Controller
 
         // Increment rate limiter on failed login
         RateLimiter::hit($key, $decayMinutes * 60);
+
+        // Log failed login attempt
+        $this->auditService->logFailed(
+            'login',
+            'User',
+            'Failed login attempt',
+            'Invalid PIN provided'
+        );
 
         return back()->withErrors([
             'pin' => 'Invalid PIN. Please try again.',
@@ -201,9 +219,12 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Delete all tokens for the authenticated user
-        if ($request->user()) {
-            $request->user()->tokens()->delete();
+        $user = $request->user();
+
+        // Log logout before clearing auth
+        if ($user) {
+            $this->auditService->logLogout($user);
+            $user->tokens()->delete();
         }
 
         Auth::logout();
