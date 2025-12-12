@@ -209,6 +209,9 @@ class PaymentController extends Controller
         // Account for advances
         // Advances are treated like payments sent by the senders
         // The advance amount is divided by sender's family count to get per-person credit
+        // Track total advance per person to avoid duplicate entries in breakdown
+        $advanceCreditPerPerson = []; // personId => total_credit
+
         $advances = \App\Models\Advance::where('group_id', $group->id)
             ->with(['senders', 'sentTo'])
             ->get();
@@ -248,12 +251,24 @@ class PaymentController extends Controller
 
                     // Apply credit: reduces what they owe (makes balance more negative)
                     $balance['net_amount'] -= $personAdvanceCredit;
-                    $balance['expenses'][] = [
-                        'title' => 'Advance paid',
-                        'amount' => $personAdvanceCredit,
-                        'type' => 'advance',
-                    ];
+
+                    // Track total advance per person (don't add to expenses yet)
+                    if (!isset($advanceCreditPerPerson[$personId])) {
+                        $advanceCreditPerPerson[$personId] = 0;
+                    }
+                    $advanceCreditPerPerson[$personId] += $personAdvanceCredit;
                 }
+            }
+        }
+
+        // Add aggregated advance entry to each person's expenses (if any advances were received)
+        foreach ($netBalances as $personId => &$balance) {
+            if (isset($advanceCreditPerPerson[$personId]) && $advanceCreditPerPerson[$personId] > 0) {
+                $balance['expenses'][] = [
+                    'title' => 'Advance received',
+                    'amount' => $advanceCreditPerPerson[$personId],
+                    'type' => 'advance',
+                ];
             }
         }
 
