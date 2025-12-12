@@ -351,15 +351,20 @@ class PaymentController extends Controller
 
         // Add aggregated advance entries ONLY to relevant settlements
         // An advance should appear in $senderId's settlement with $recipientId
+        // The sender gets credit (reduces what they owe to recipient)
         foreach ($advanceCreditPerPersonPair as $senderId => $recipients) {
-            foreach ($recipients as $recipientId => $advanceAmount) {
-                // Find the settlement entry for senderId that involves recipientId
-                if (isset($netBalances[$recipientId])) {
-                    $netBalances[$recipientId]['expenses'][] = [
-                        'title' => 'Advance paid',
-                        'amount' => $advanceAmount,
-                        'type' => 'advance',
-                    ];
+            // Only add advance entries if this $senderId is the user we're calculating for
+            if ($senderId === $user->id) {
+                foreach ($recipients as $recipientId => $advanceAmount) {
+                    // The advance should be tracked in senderId's settlement with recipientId
+                    // This shows the sender paid an advance TO the recipient
+                    if (isset($netBalances[$recipientId])) {
+                        $netBalances[$recipientId]['expenses'][] = [
+                            'title' => 'Advance paid',
+                            'amount' => $advanceAmount,
+                            'type' => 'advance',
+                        ];
+                    }
                 }
             }
         }
