@@ -53,7 +53,7 @@ class AuthController extends Controller
         $authenticatedUser = null;
 
         foreach ($users as $user) {
-            if (Hash::check($validated['pin'], $user->pin)) {
+            if ($user->pin && Hash::check($validated['pin'], $user->pin)) {
                 $authenticatedUser = $user;
                 break;
             }
