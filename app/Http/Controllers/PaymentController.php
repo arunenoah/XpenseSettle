@@ -122,6 +122,8 @@ class PaymentController extends Controller
                     // fromUser paid, toUser owes
                     $fromUserExpenses[] = $exp;
                 } elseif ($exp['type'] === 'advance') {
+                    // Only count advances if fromUser paid them (they reduce fromUser's balance)
+                    // Don't add advances that are unrelated to this pair
                     $advances += $exp['amount'];
                 } elseif ($exp['type'] === 'payment_received') {
                     $payments += $exp['amount'];
@@ -153,17 +155,21 @@ class PaymentController extends Controller
             $breakdown .= "Subtotal: $" . number_format($toTotal, 2) . "\n\n";
         }
 
-        // Adjustments section
-        $breakdown .= "Adjustments:\n";
-        if ($payments > 0) {
-            $breakdown .= "- Payment received: -$" . number_format($payments, 2) . "\n";
-        }
-        if ($advances > 0) {
-            $breakdown .= "- Advances: -$" . number_format($advances, 2) . "\n";
+        // Adjustments section - only show if there are actual adjustments
+        $hasAdjustments = $payments > 0 || $advances > 0;
+        if ($hasAdjustments) {
+            $breakdown .= "Adjustments:\n";
+            if ($payments > 0) {
+                $breakdown .= "- Payment received: -$" . number_format($payments, 2) . "\n";
+            }
+            if ($advances > 0) {
+                $breakdown .= "- Advances: -$" . number_format($advances, 2) . "\n";
+            }
+            $breakdown .= "\n";
         }
 
         // Final section
-        $breakdown .= "\nFinal Balance: $" . number_format(round($item['net_amount'], 2), 2) . "\n";
+        $breakdown .= "Final Balance: $" . number_format(round($item['net_amount'], 2), 2) . "\n";
         if ($item['net_amount'] > 0) {
             $breakdown .= "({$fromUser->name} owes {$toUser->name})";
         } elseif ($item['net_amount'] < 0) {
@@ -285,8 +291,8 @@ class PaymentController extends Controller
         // Account for advances
         // Advances are sent by specific users TO specific users
         // They should only be applied to the settlement between senders and the recipient
-        // Track total advance per person to avoid duplicate entries in breakdown
-        $advanceCreditPerPerson = []; // personId => total_credit
+        // Track: [senderId][recipientId] => total_credit
+        $advanceCreditPerPersonPair = []; // senderId => [recipientId => amount]
 
         $advances = \App\Models\Advance::where('group_id', $group->id)
             ->with(['senders', 'sentTo'])
@@ -331,23 +337,30 @@ class PaymentController extends Controller
                     // Apply credit: reduces what they owe (makes balance more negative)
                     $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
 
-                    // Track total advance per person (don't add to expenses yet)
-                    if (!isset($advanceCreditPerPerson[$senderId])) {
-                        $advanceCreditPerPerson[$senderId] = 0;
+                    // Track advance per sender-recipient pair
+                    if (!isset($advanceCreditPerPersonPair[$senderId])) {
+                        $advanceCreditPerPersonPair[$senderId] = [];
                     }
-                    $advanceCreditPerPerson[$senderId] += $senderAdvanceCredit;
+                    if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
+                        $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
+                    }
+                    $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
                 }
             }
         }
 
-        // Add aggregated advance entry to each person's expenses (if any advances were paid)
-        foreach ($netBalances as $personId => &$balance) {
-            if (isset($advanceCreditPerPerson[$personId]) && $advanceCreditPerPerson[$personId] > 0) {
-                $balance['expenses'][] = [
-                    'title' => 'Advance paid',
-                    'amount' => $advanceCreditPerPerson[$personId],
-                    'type' => 'advance',
-                ];
+        // Add aggregated advance entries ONLY to relevant settlements
+        // An advance should appear in $senderId's settlement with $recipientId
+        foreach ($advanceCreditPerPersonPair as $senderId => $recipients) {
+            foreach ($recipients as $recipientId => $advanceAmount) {
+                // Find the settlement entry for senderId that involves recipientId
+                if (isset($netBalances[$recipientId])) {
+                    $netBalances[$recipientId]['expenses'][] = [
+                        'title' => 'Advance paid',
+                        'amount' => $advanceAmount,
+                        'type' => 'advance',
+                    ];
+                }
             }
         }
 
