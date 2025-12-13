@@ -28,60 +28,69 @@
     <!-- Main Content -->
     <div class="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <div class="max-w-7xl mx-auto space-y-8">
-            <!-- Summary Cards - Mobile Optimized -->
+            <!-- Summary Cards - Multi-Currency Support -->
             @php
-                // Calculate overall balances across all groups
-                $totalYouOwe = 0;
-                $totalTheyOweYou = 0;
-
-                foreach ($user->groups as $group) {
-                    $balances = app('App\Services\GroupService')->getGroupBalance($group);
-                    $userBalance = $balances[$user->id] ?? ['total_owed' => 0, 'total_paid' => 0];
-                    $totalYouOwe += $userBalance['total_owed'];
-                    $totalTheyOweYou += $userBalance['total_paid'];
-                }
-
-                $netBalance = $totalTheyOweYou - $totalYouOwe;
+                $currencySymbols = [
+                    'USD' => '$',
+                    'EUR' => '€',
+                    'GBP' => '£',
+                    'INR' => '₹',
+                    'AUD' => 'A$',
+                    'CAD' => 'C$',
+                ];
             @endphp
-            <div class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
-                <!-- You Owe -->
-                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
-                    <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
-                        <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
-                        <span class="text-lg sm:text-2xl">📤</span>
-                    </div>
-                    <p class="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-1 sm:mb-2">₹{{ number_format($totalYouOwe, 0) }}</p>
-                    <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                        Amount owed across groups
-                    </p>
-                </div>
+            
+            <!-- Show balances for each currency -->
+            @foreach($balancesByCurrency as $currency => $balances)
+                @if($balances['you_owe'] > 0 || $balances['they_owe'] > 0)
+                    <div class="mb-6">
+                        <h3 class="text-lg font-bold text-gray-700 mb-3">{{ $currency }} Balances</h3>
+                        <div class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
+                            <!-- You Owe -->
+                            <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                                <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
+                                    <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
+                                    <span class="text-lg sm:text-2xl">📤</span>
+                                </div>
+                                <p class="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-1 sm:mb-2">
+                                    {{ $currencySymbols[$currency] ?? $currency }}{{ number_format($balances['you_owe'], 2) }}
+                                </p>
+                                <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
+                                    Amount owed in {{ $currency }}
+                                </p>
+                            </div>
 
-                <!-- They Owe You -->
-                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
-                    <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
-                        <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
-                        <span class="text-lg sm:text-2xl">📥</span>
-                    </div>
-                    <p class="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-1 sm:mb-2">₹{{ number_format($totalTheyOweYou, 0) }}</p>
-                    <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                        Amount owed to you
-                    </p>
-                </div>
+                            <!-- They Owe You -->
+                            <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                                <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
+                                    <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
+                                    <span class="text-lg sm:text-2xl">📥</span>
+                                </div>
+                                <p class="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-1 sm:mb-2">
+                                    {{ $currencySymbols[$currency] ?? $currency }}{{ number_format($balances['they_owe'], 2) }}
+                                </p>
+                                <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
+                                    Amount owed to you
+                                </p>
+                            </div>
 
-                <!-- Net Balance -->
-                <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
-                    <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
-                        <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
-                        <span class="text-lg sm:text-2xl">{{ $netBalance >= 0 ? '✅' : '⚠️' }}</span>
+                            <!-- Net Balance -->
+                            <div class="bg-white rounded-lg shadow-sm border {{ $balances['net'] >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                                <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
+                                    <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
+                                    <span class="text-lg sm:text-2xl">{{ $balances['net'] >= 0 ? '✅' : '⚠️' }}</span>
+                                </div>
+                                <p class="text-xl sm:text-2xl md:text-3xl font-bold {{ $balances['net'] >= 0 ? 'text-green-600' : 'text-red-600' }} mb-1 sm:mb-2">
+                                    {{ $balances['net'] >= 0 ? '+' : '' }}{{ $currencySymbols[$currency] ?? $currency }}{{ number_format(abs($balances['net']), 2) }}
+                                </p>
+                                <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
+                                    {{ $balances['net'] >= 0 ? 'You are owed' : 'You owe' }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <p class="text-xl sm:text-2xl md:text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }} mb-1 sm:mb-2">
-                        {{ $netBalance >= 0 ? '+' : '' }}₹{{ number_format(abs($netBalance), 0) }}
-                    </p>
-                    <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                        {{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}
-                    </p>
-                </div>
-            </div>
+                @endif
+            @endforeach
 
             <!-- You Owe Breakdown -->
             @if($pendingPayments->count() > 0)
