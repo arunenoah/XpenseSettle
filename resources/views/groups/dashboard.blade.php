@@ -260,54 +260,40 @@
         </div>
     </div>
 
-    <!-- Settlement Summary - Open by default, mobile-friendly -->
+    <!-- Settlement Summary - Compact mobile view -->
     @if(count($settlement) > 0)
-        <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-4 sm:p-6">
-            <h3 class="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2 mb-4">
-                <span class="text-2xl sm:text-3xl">⚖️</span>
-                <span>Settlement Summary</span>
+        <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-xl shadow-lg p-3 sm:p-6">
+            <h3 class="text-lg sm:text-2xl font-black text-gray-900 flex items-center gap-2 mb-3">
+                <span class="text-xl sm:text-3xl">⚖️</span>
+                <span>Settlement</span>
             </h3>
-            <div class="space-y-2 sm:space-y-3">
+            <div class="space-y-2">
                 @foreach($settlement as $item)
                     @php
                         $isOwed = $item['net_amount'] > 0;
-                        $bgColor = $isOwed ? 'from-red-50 to-orange-50' : 'from-green-50 to-emerald-50';
-                        $borderColor = $isOwed ? 'border-orange-200' : 'border-green-200';
-                        $textColor = $isOwed ? 'text-orange-600' : 'text-green-600';
-                        $label = $isOwed ? 'You Owe' : 'They Owe You';
+                        $bgColor = $isOwed ? 'bg-red-50' : 'bg-green-50';
+                        $borderColor = $isOwed ? 'border-red-200' : 'border-green-200';
+                        $textColor = $isOwed ? 'text-red-600' : 'text-green-600';
                         $emoji = $isOwed ? '😬' : '🤑';
                     @endphp
-                    <div class="p-3 sm:p-4 bg-gradient-to-r {{ $bgColor }} border {{ $borderColor }} rounded-lg">
-                        <!-- Mobile: Stack layout -->
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                            <div class="flex items-center gap-2 sm:gap-3 flex-1">
-                                <span class="text-xl sm:text-2xl">{{ $emoji }}</span>
+                    <div class="p-2 sm:p-3 {{ $bgColor }} border {{ $borderColor }} rounded-lg">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <span class="text-lg">{{ $emoji }}</span>
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 flex-wrap">
-                                        <p class="font-bold text-sm sm:text-base text-gray-900 truncate">{{ $item['user']->name }}</p>
-                                        @if(isset($item['is_contact']) && $item['is_contact'])
-                                            <span class="inline-block px-1.5 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">✨</span>
-                                        @endif
-                                    </div>
-                                    <p class="text-xs sm:text-sm {{ $textColor }} font-semibold">{{ $label }}</p>
+                                    <p class="font-bold text-sm text-gray-900 truncate">{{ $item['user']->name }}</p>
+                                    <p class="text-xs {{ $textColor }} font-semibold">{{ $isOwed ? 'You Owe' : 'Owe You' }}</p>
                                 </div>
                             </div>
-                            <p class="font-black text-xl sm:text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($item['amount'], 2) }}</p>
-                        </div>
-
-                        <!-- Action buttons - mobile optimized -->
-                        <div class="mt-2 sm:mt-3 flex items-center justify-between gap-2">
-                            @if($item['status'] === 'pending')
-                                <span class="inline-block px-2 sm:px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
+                            <div class="text-right flex-shrink-0">
+                                <p class="font-black text-base {{ $textColor }}">${{ number_format($item['amount'], 2) }}</p>
                                 @if($item['net_amount'] > 0 && isset($item['split_ids']) && count($item['split_ids']) > 0)
                                     <button onclick="openGroupPaymentModal({{ $item['split_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
-                                            class="px-2 sm:px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs whitespace-nowrap">
-                                        ✓ Mark Paid
+                                            class="mt-1 px-2 py-0.5 bg-green-500 text-white rounded text-xs font-bold">
+                                        ✓ Pay
                                     </button>
                                 @endif
-                            @elseif($item['status'] === 'paid')
-                                <span class="inline-block px-2 sm:px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
-                            @endif
+                            </div>
                         </div>
                     </div>
                 @endforeach
