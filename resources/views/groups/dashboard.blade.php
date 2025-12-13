@@ -393,20 +393,33 @@
                             @endif
                         </div>
                     @elseif($activity['type'] === 'payment')
-                        @php $payment = $activity['data']; @endphp
-                        <div class="bg-white p-5 rounded-xl border-2 border-green-200 hover:shadow-lg hover:border-green-400 transition-all transform hover:scale-102">
+                        @php 
+                            $payment = $activity['data'];
+                            $payer = $payment->split->expense->payer;
+                            $sender = $payment->split->user ?? $payment->split->contact;
+                            $isReceived = $payer->id === auth()->id(); // Current user is the one who received payment
+                            $borderColor = $isReceived ? 'border-green-200' : 'border-blue-200';
+                            $hoverBorder = $isReceived ? 'hover:border-green-400' : 'hover:border-blue-400';
+                            $textColor = $isReceived ? 'text-green-700' : 'text-blue-700';
+                            $amountColor = $isReceived ? 'text-green-600' : 'text-blue-600';
+                            $badgeBg = $isReceived ? 'bg-green-100' : 'bg-blue-100';
+                            $badgeText = $isReceived ? 'text-green-700' : 'text-blue-700';
+                            $emoji = $isReceived ? '💰' : '💸';
+                            $title = $isReceived ? 'Payment Received' : 'Payment Sent';
+                        @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
                             <div class="flex items-start justify-between gap-3 mb-2">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
-                                        <span>💸</span>
-                                        Payment Sent
+                                        <span>{{ $emoji }}</span>
+                                        {{ $title }}
                                     </h3>
                                     <div class="flex items-center gap-2 mt-2 flex-wrap">
-                                        <span class="text-sm font-bold text-green-700">
+                                        <span class="text-sm font-bold {{ $textColor }}">
                                             {{ $payment->split->getMemberName() }}
                                         </span>
                                         <span class="text-gray-400">→</span>
-                                        <span class="text-sm font-bold text-green-700">
+                                        <span class="text-sm font-bold {{ $textColor }}">
                                             {{ $payment->split->expense->payer->name }}
                                         </span>
                                     </div>
@@ -418,9 +431,9 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black text-green-600">${{ number_format($payment->split->share_amount, 2) }}</p>
-                                    <span class="inline-block mt-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                        ✓ Settled
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($payment->split->share_amount, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
+                                        {{ $isReceived ? '✓ Received' : '✓ Sent' }}
                                     </span>
                                 </div>
                             </div>
