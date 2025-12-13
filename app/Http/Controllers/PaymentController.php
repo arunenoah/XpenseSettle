@@ -135,24 +135,25 @@ class PaymentController extends Controller
 
         // fromUser's expenses section (expenses paid by fromUser that toUser owes)
         if (count($fromUserExpenses) > 0) {
-            $breakdown .= "{$fromUser->name}'s expenses (paid by {$fromUser->name}):\n";
             $fromTotal = 0;
             foreach ($fromUserExpenses as $exp) {
                 $fromTotal += $exp['amount'];
-                $breakdown .= "- {$exp['title']}: $" . number_format($exp['amount'], 2) . "\n";
             }
-            $breakdown .= "Subtotal: $" . number_format($fromTotal, 2) . "\n\n";
+            $breakdown .= "{$fromUser->name}'s expenses: $" . number_format($fromTotal, 2) . "\n";
         }
 
         // toUser's expenses section (expenses paid by toUser that fromUser owes)
         if (count($toUserExpenses) > 0) {
-            $breakdown .= "{$toUser->name}'s expenses (paid by {$toUser->name}):\n";
             $toTotal = 0;
             foreach ($toUserExpenses as $exp) {
                 $toTotal += $exp['amount'];
-                $breakdown .= "- {$exp['title']}: -$" . number_format($exp['amount'], 2) . "\n";
             }
-            $breakdown .= "Subtotal: -$" . number_format($toTotal, 2) . "\n\n";
+            $breakdown .= "{$toUser->name}'s expenses: -$" . number_format($toTotal, 2) . "\n";
+        }
+        
+        // Add blank line if there were expenses
+        if (count($fromUserExpenses) > 0 || count($toUserExpenses) > 0) {
+            $breakdown .= "\n";
         }
 
         // Adjustments section - only show if there are actual adjustments
