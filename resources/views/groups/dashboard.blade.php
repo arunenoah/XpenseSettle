@@ -398,18 +398,21 @@
                             <div class="flex items-start justify-between gap-3 mb-2">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
-                                        <span>✓</span>
-                                        {{ $payment->split->expense->title }}
+                                        <span>💸</span>
+                                        Payment Sent
                                     </h3>
-                                    <div class="flex items-center gap-2 mt-2">
-                                        <span class="text-sm font-semibold text-gray-700">
-                                            👤 {{ $payment->split->getMemberName() }} paid
+                                    <div class="flex items-center gap-2 mt-2 flex-wrap">
+                                        <span class="text-sm font-bold text-green-700">
+                                            {{ $payment->split->getMemberName() }}
                                         </span>
                                         <span class="text-gray-400">→</span>
-                                        <span class="text-sm font-semibold text-gray-700">
+                                        <span class="text-sm font-bold text-green-700">
                                             {{ $payment->split->expense->payer->name }}
                                         </span>
                                     </div>
+                                    <p class="text-xs text-gray-600 mt-1">
+                                        For: {{ $payment->split->expense->title }}
+                                    </p>
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
                                         📅 {{ $payment->paid_date->format('M d, Y') ?? $payment->created_at->format('M d, Y') }}
                                     </p>
@@ -417,23 +420,27 @@
                                 <div class="flex-shrink-0 text-right">
                                     <p class="text-2xl font-black text-green-600">${{ number_format($payment->split->share_amount, 2) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                        💳 Paid
+                                        ✓ Settled
                                     </span>
                                 </div>
                             </div>
                         </div>
                     @elseif($activity['type'] === 'advance')
                         @php $advance = $activity['data']; @endphp
-                        <div class="bg-white p-5 rounded-xl border-2 border-cyan-200 hover:shadow-lg hover:border-cyan-400 transition-all transform hover:scale-102">
+                        <div class="bg-white p-5 rounded-xl border-2 border-blue-200 hover:shadow-lg hover:border-blue-400 transition-all transform hover:scale-102">
                             <div class="flex items-start justify-between gap-3 mb-2">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
-                                        <span>💰</span>
-                                        Advance to {{ $advance->sentTo->name }}
+                                        <span>🚀</span>
+                                        Advance Payment
                                     </h3>
-                                    <div class="flex items-center gap-2 mt-2">
-                                        <span class="text-sm font-semibold text-gray-700">
-                                            Paid by: {{ $advance->senders->pluck('name')->join(', ') }}
+                                    <div class="flex items-center gap-2 mt-2 flex-wrap">
+                                        <span class="text-sm font-bold text-blue-700">
+                                            {{ $advance->senders->pluck('name')->join(', ') }}
+                                        </span>
+                                        <span class="text-gray-400">→</span>
+                                        <span class="text-sm font-bold text-blue-700">
+                                            {{ $advance->sentTo->name }}
                                         </span>
                                     </div>
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
@@ -441,9 +448,9 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black text-cyan-600">${{ number_format($advance->amount_per_person, 2) }}</p>
-                                    <span class="inline-block mt-1 px-3 py-1 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">
-                                        🚀 Advance
+                                    <p class="text-2xl font-black text-blue-600">${{ number_format($advance->amount_per_person, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+                                        💰 Advance
                                     </span>
                                 </div>
                             </div>
