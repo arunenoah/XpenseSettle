@@ -223,8 +223,9 @@ class DashboardController extends Controller
             ->with('expense', 'payment')
             ->get();
 
-        // Get settlement summary (who owes whom) - pass the loaded expenses to avoid lazy loading
-        $settlement = $this->calculateSettlementWithPayments($group, $user, $expenses);
+        // Get settlement summary (who owes whom) - use PaymentController's method for consistency
+        $paymentController = app(PaymentController::class);
+        $settlement = $paymentController->calculateSettlement($group, $user);
 
         // Calculate advance amounts for each member
         $memberAdvances = $this->calculateMemberAdvances($group);

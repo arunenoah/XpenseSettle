@@ -186,7 +186,7 @@ class PaymentController extends Controller
      * Calculate settlement for a user in a group.
      * Returns net balance with each person (positive = user owes, negative = person owes user).
      */
-    private function calculateSettlement(Group $group, $user)
+    public function calculateSettlement(Group $group, $user)
     {
         // Maps to track amounts owed between user and each other person
         $netBalances = [];  // User ID => [user_obj, net_amount, status, expenses]
