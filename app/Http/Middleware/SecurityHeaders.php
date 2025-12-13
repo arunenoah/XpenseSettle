@@ -51,7 +51,7 @@ class SecurityHeaders
         // Nonce-based approach: every inline script must have matching nonce
         // External scripts allowed from trusted HTTPS CDNs only
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'nonce-{$nonce}' blob: https:; " .
+               "script-src 'self' 'nonce-{$nonce}' 'unsafe-inline' blob: https:; " .
                "worker-src 'self' blob: data:; " .
                "style-src 'self' 'unsafe-inline' https:; " .
                "img-src 'self' data: https: blob:; " .
