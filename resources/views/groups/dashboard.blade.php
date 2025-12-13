@@ -596,6 +596,19 @@ function toggleSection(sectionId) {
     }
 }
 
+// Add event listeners to toggle buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all toggle buttons
+    const toggleButtons = document.querySelectorAll('[data-toggle-section]');
+    
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-toggle-section');
+            toggleSection(sectionId);
+        });
+    });
+});
+
 // Open Advance Modal
 function openAdvanceModal() {
     document.getElementById('advanceModal').classList.remove('hidden');

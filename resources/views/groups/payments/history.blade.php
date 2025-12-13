@@ -201,8 +201,8 @@
     </div>
 
     <!-- Settlement Suggestions Section -->
-    @if(count($settlementSuggestions) > 0)
-    <div class="my-8">
+    @if(false && !empty($settlementSuggestions))
+    <div class="my-8 hidden">
         <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl shadow-lg overflow-hidden border-2 border-amber-200">
             <div class="px-4 sm:px-6 py-6 sm:py-8">
                 <!-- Header -->
