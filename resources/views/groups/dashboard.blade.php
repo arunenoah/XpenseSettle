@@ -106,8 +106,9 @@
         <div class="max-w-7xl mx-auto space-y-8">
             <!-- User's Balance Summary -->
             @php
-                $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum('amount');
-                $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum('amount');
+                // Calculate totals from settlement (net_amount > 0 means you owe them, < 0 means they owe you)
+                $totalOwed = collect($settlement)->filter(fn($s) => $s['net_amount'] > 0)->sum(fn($s) => abs($s['net_amount']));
+                $totalOwe = collect($settlement)->filter(fn($s) => $s['net_amount'] < 0)->sum(fn($s) => abs($s['net_amount']));
                 $netBalance = $totalOwe - $totalOwed;
             @endphp
             <!-- Balance Cards - Optimized for Mobile -->
