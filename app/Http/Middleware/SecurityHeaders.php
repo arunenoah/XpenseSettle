@@ -48,10 +48,9 @@ class SecurityHeaders
         );
 
         // Content Security Policy - Prevent XSS and injection attacks
-        // Nonce-based approach: every inline script must have matching nonce
-        // External scripts allowed from trusted HTTPS CDNs only
+        // Allow inline scripts and external HTTPS scripts
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'nonce-{$nonce}' 'unsafe-inline' blob: https:; " .
+               "script-src 'self' 'unsafe-inline' blob: https:; " .
                "worker-src 'self' blob: data:; " .
                "style-src 'self' 'unsafe-inline' https:; " .
                "img-src 'self' data: https: blob:; " .
