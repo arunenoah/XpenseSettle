@@ -93,50 +93,12 @@ class GroupController extends Controller
 
     /**
      * Display group dashboard with member balances and expenses.
+     * Redirects to the dashboard which has the correct settlement calculations.
      */
     public function show(Group $group)
     {
-        // Check if user is member
-        if (!$group->hasMember(auth()->user())) {
-            abort(403, 'Unauthorized to view this group');
-        }
-
-        // Get member balances
-        $balances = $this->groupService->getGroupBalance($group);
-
-        // Get recent expenses with relationships
-        $expenses = $group->expenses()
-            ->with('payer', 'splits.user', 'splits.contact', 'comments')
-            ->latest()
-            ->paginate(10);
-
-        // Get current user's balance info
-        $userBalance = $balances[auth()->id()] ?? [
-            'user' => auth()->user(),
-            'total_owed' => 0,
-            'total_paid' => 0,
-            'net_balance' => 0,
-        ];
-
-        // Get pending payments for current user
-        $pendingPayments = auth()->user()
-            ->expenseSplits()
-            ->whereHas('expense', function ($q) use ($group) {
-                $q->where('group_id', $group->id);
-            })
-            ->whereDoesntHave('payment', function ($q) {
-                $q->where('status', 'paid');
-            })
-            ->with('expense', 'payment')
-            ->get();
-
-        return view('groups.show', compact(
-            'group',
-            'balances',
-            'expenses',
-            'userBalance',
-            'pendingPayments'
-        ));
+        // Redirect to dashboard which has the correct settlement calculations
+        return redirect()->route('groups.dashboard', $group);
     }
 
     /**
