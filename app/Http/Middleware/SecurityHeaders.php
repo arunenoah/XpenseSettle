@@ -48,9 +48,9 @@ class SecurityHeaders
         );
 
         // Content Security Policy - Prevent XSS and injection attacks
-        // Allow inline scripts and external HTTPS scripts
+        // Allow inline scripts, external HTTPS scripts, and WebAssembly for OCR
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' blob: https:; " .
+               "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https:; " .
                "worker-src 'self' blob: data:; " .
                "style-src 'self' 'unsafe-inline' https:; " .
                "img-src 'self' data: https: blob:; " .

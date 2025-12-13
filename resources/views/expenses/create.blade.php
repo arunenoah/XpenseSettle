@@ -463,6 +463,16 @@
                                 <input type="number" id="new-item-total" class="w-full px-2 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" min="0" step="0.01" readonly />
                             </div>
                         </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Assign to Member</label>
+                            <select id="new-item-member" class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Unassigned</option>
+                                @foreach($members as $member)
+                                    <option value="{{ $member->id }}">{{ $member->getMemberName() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     <div class="mt-6 flex gap-2">
@@ -504,8 +514,12 @@
 
 <script nonce="{{ request()->attributes->get('nonce', '') }}">
 function toggleCustomSplits() {
-    const splitType = document.getElementById('split_type').value;
+    // Get the checked radio button value
+    const splitTypeRadio = document.querySelector('input[name="split_type"]:checked');
+    const splitType = splitTypeRadio ? splitTypeRadio.value : 'equal';
     const customSplitsDiv = document.getElementById('custom-splits');
+
+    console.log('Toggle custom splits, type:', splitType);
 
     if (splitType === 'custom') {
         customSplitsDiv.classList.remove('hidden');
@@ -514,6 +528,17 @@ function toggleCustomSplits() {
         customSplitsDiv.classList.add('hidden');
     }
 }
+
+// Add event listeners to radio buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const splitTypeRadios = document.querySelectorAll('input[name="split_type"]');
+    splitTypeRadios.forEach(radio => {
+        radio.addEventListener('change', toggleCustomSplits);
+    });
+    
+    // Initial toggle on page load
+    toggleCustomSplits();
+});
 
 function updateTotal() {
     const splits = document.querySelectorAll('input[name^="splits["]');
@@ -768,7 +793,11 @@ document.getElementById('process-ocr-btn').addEventListener('click', async funct
         const { createWorker } = Tesseract;
         console.log('Creating Tesseract worker...');
         const worker = await createWorker('eng', 1, {
-            logger: m => console.log(m)
+            logger: m => {
+                if (m && m.status) {
+                    console.log(`[Tesseract] ${m.status}${m.progress ? ': ' + Math.round(m.progress * 100) + '%' : ''}`);
+                }
+            }
         });
         
         // Configure for receipt scanning
@@ -883,6 +912,103 @@ function parseTableFormat(text) {
     let itemId = 1;
     
     console.log('Attempting table format parsing...');
+    
+    // Try multiple receipt formats and use the one that finds the most items
+    const formatParsers = [
+        // Format 1: Costco - "ITEM_NAME" on one line, "CODE 1x PRICE TOTAL" on next
+        {
+            name: 'Costco',
+            parse: () => {
+                const costcoItems = [];
+                const costcoPattern = /^(\d{4,})\s+(\d+)x\s+(\d+\.?\d{2})\s+(\d+\.?\d{2})/;
+                for (let i = 0; i < lines.length; i++) {
+                    const match = lines[i].match(costcoPattern);
+                    if (match && i > 0) {
+                        const prevLine = lines[i - 1];
+                        if (prevLine && /[A-Z]/.test(prevLine) && prevLine.length > 2 && 
+                            !prevLine.match(/COSTCO|WHOLESALE|ABN|INVOICE|TAX|PHONE|ADDRESS/)) {
+                            costcoItems.push({
+                                id: itemId++,
+                                name: prevLine,
+                                quantity: parseInt(match[2]),
+                                unit_price: parseFloat(match[3]),
+                                total_price: parseFloat(match[4])
+                            });
+                        }
+                    }
+                }
+                return costcoItems;
+            }
+        },
+        // Format 2: Single line - "ITEM_NAME QTY x PRICE TOTAL"
+        {
+            name: 'Single Line',
+            parse: () => {
+                const singleLineItems = [];
+                const pattern = /^(.+?)\s+(\d+)\s*x\s+\$?(\d+\.?\d{2})\s+\$?(\d+\.?\d{2})$/;
+                for (const line of lines) {
+                    const match = line.match(pattern);
+                    if (match) {
+                        const name = match[1].replace(/^\d+\s+/, '').trim();
+                        if (name.length > 2 && /[A-Z]/i.test(name)) {
+                            singleLineItems.push({
+                                id: itemId++,
+                                name: name,
+                                quantity: parseInt(match[2]),
+                                unit_price: parseFloat(match[3]),
+                                total_price: parseFloat(match[4])
+                            });
+                        }
+                    }
+                }
+                return singleLineItems;
+            }
+        },
+        // Format 3: Simple - "ITEM_NAME PRICE" (one price at end)
+        {
+            name: 'Simple',
+            parse: () => {
+                const simpleItems = [];
+                const pattern = /^(.+?)\s+\$?(\d+\.?\d{2})$/;
+                for (const line of lines) {
+                    if (line.match(/TOTAL|SUBTOTAL|TAX|PAYMENT|CHANGE|BALANCE/i)) continue;
+                    const match = line.match(pattern);
+                    if (match) {
+                        let name = match[1].replace(/^\d+\s+/, '').trim();
+                        const price = parseFloat(match[2]);
+                        if (name.length > 2 && /[A-Z]/i.test(name) && price > 0 && price < 1000) {
+                            simpleItems.push({
+                                id: itemId++,
+                                name: name,
+                                quantity: 1,
+                                unit_price: price,
+                                total_price: price
+                            });
+                        }
+                    }
+                }
+                return simpleItems;
+            }
+        }
+    ];
+    
+    // Try each parser and use the one that finds the most items
+    let bestResult = [];
+    let bestParser = '';
+    
+    for (const parser of formatParsers) {
+        const result = parser.parse();
+        console.log(`${parser.name} format found ${result.length} items`);
+        if (result.length > bestResult.length) {
+            bestResult = result;
+            bestParser = parser.name;
+        }
+    }
+    
+    if (bestResult.length > 0) {
+        console.log(`Using ${bestParser} format parser. Found ${bestResult.length} items`);
+        return bestResult;
+    }
     
     // Patterns for table-based data
     const tableRowPattern = /^([A-Za-z\s]+)\s+(\d+\.?\d*)\s*([A-Za-z]+)?\s+\$?(\d+\.?\d{2})\s+\$?(\d+\.?\d{2})$/;
@@ -1054,15 +1180,15 @@ function parseReceipt(text) {
         /^(\d+)\s+/                       // Leading number
     ];
 
-    // Enhanced ignore keywords - be more aggressive
-    const ignoreKeywords = ['welcome', 'thank', 'thanks', 'total', 'subtotal', 'net', 'cash', 'card',
-                            'payment', 'paid', 'change', 'gst', 'vat', 'tax', 'discount', 'member',
-                            'loyalty', 'phone', 'address', 'date', 'time', 'store', 'location',
-                            'receipt', 'invoice', 'account', 'balance', 'till', 'cashier', 'items', 'qty',
-                            'eftpos', 'approved', 'auth', 'terminal', 'reference', 'customer', 'copy',
-                            'debit', 'credit', 'visa', 'mastercard', 'amex', 'rounded', 'rounding',
-                            'tendered', 'surcharge', 'service', 'fee', 'purchase', 'abn', 'acn', 'ph:',
-                            'included', 'incl', 'excl', 'excluding', 'including', 'staff', 'sale'];
+    // Enhanced ignore keywords - only skip header/footer lines, not item lines
+    const ignoreKeywords = ['welcome', 'thank you', 'thanks for', 'subtotal', 'net total', 'cash tendered',
+                            'card payment', 'change due', 'gst total', 'vat total', 'tax total',
+                            'phone:', 'address:', 'date:', 'time:', 'store number', 'location:',
+                            'receipt #', 'invoice #', 'till #', 'cashier:', 'total items',
+                            'eftpos', 'approved', 'auth code', 'terminal', 'reference', 'customer copy',
+                            'debit card', 'credit card', 'visa debit', 'mastercard', 'amex',
+                            'tendered', 'surcharge', 'abn no', 'acn:', 'ph:',
+                            'staff member'];
 
     let itemId = 1;
     let pendingName = null;
@@ -1253,29 +1379,30 @@ function displayExtractedItems(items) {
         itemPill.id = `item-${item.id}`;
         itemPill.title = `${item.name} - Qty: ${item.quantity} @ ${getCurrencySymbol()}${item.unit_price.toFixed(2)}`;
 
-        // Pill HTML with compact display
+        // Pill HTML with inline dropdown
         const pillHtml = `
             <div class="flex items-center gap-2 flex-wrap">
-                <span class="font-semibold text-sm ${textColor}">
+                <span class="font-semibold text-sm ${textColor}" title="${escapeHtml(item.name)}">
                     ${escapeHtml(item.name.length > 15 ? item.name.substring(0, 12) + '...' : item.name)}
                 </span>
                 <span class="text-xs font-bold text-gray-600">
                     ${getCurrencySymbol()}${item.total_price.toFixed(2)}
                 </span>
-                <span class="text-xs px-1.5 py-0.5 bg-white rounded-full text-gray-700 font-semibold">
-                    ${assignedName.split(' ')[0]}
-                </span>
+                <select 
+                    class="item-assign-dropdown text-xs px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    data-item-id="${item.id}"
+                    onclick="event.stopPropagation()"
+                >
+                    <option value="">Unassigned</option>
+                    ${members.map(m => `<option value="${m.id}" ${item.assigned_to == m.id ? 'selected' : ''}>${m.name}</option>`).join('')}
+                </select>
             </div>
 
             <!-- Hidden tooltip with full details -->
             <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-2 px-3 whitespace-nowrap z-10">
                 <div class="font-semibold">${escapeHtml(item.name)}</div>
                 <div>Qty: ${item.quantity} × ${getCurrencySymbol()}${item.unit_price.toFixed(2)}</div>
-                <div class="mt-1">Assign to: ${assignedName}</div>
             </div>
-
-            <!-- Click to edit overlay -->
-            <input type="hidden" class="item-member-hidden" data-item-id="${item.id}" value="${item.assigned_to || ''}" />
         `;
 
         // Edit mode
@@ -1324,6 +1451,34 @@ function displayExtractedItems(items) {
 
     updateOCRTotal();
     attachItemEventListeners();
+    
+    // Add event listeners to all dropdowns
+    document.querySelectorAll('.item-assign-dropdown').forEach(dropdown => {
+        dropdown.addEventListener('change', function(e) {
+            const itemId = this.getAttribute('data-item-id');
+            const memberId = this.value;
+            
+            // Update item assignment
+            const item = extractedItems.find(i => i.id == itemId);
+            if (item) {
+                item.assigned_to = memberId || null;
+                console.log('Assigned item', item.name, 'to member', memberId);
+                
+                // Update pill color
+                const pill = document.getElementById(`item-${itemId}`);
+                if (pill) {
+                    if (memberId) {
+                        pill.className = pill.className.replace('bg-gray-100 border-gray-300', 'bg-blue-100 border-blue-300');
+                    } else {
+                        pill.className = pill.className.replace('bg-blue-100 border-blue-300', 'bg-gray-100 border-gray-300');
+                    }
+                }
+                
+                // Auto-update custom splits
+                updateSplitsFromItems();
+            }
+        });
+    });
 }
 
 // Open item edit modal for pill-based UI
@@ -1333,6 +1488,7 @@ function openItemEditModal(item) {
     document.getElementById('new-item-qty').value = item.quantity;
     document.getElementById('new-item-unit-price').value = item.unit_price.toFixed(2);
     document.getElementById('new-item-total').value = item.total_price.toFixed(2);
+    document.getElementById('new-item-member').value = item.assigned_to || '';
 
     const confirmBtn = document.getElementById('add-item-confirm-btn');
     confirmBtn.textContent = '✓ Update Item';
@@ -1359,16 +1515,21 @@ function updateItemFromModal(itemId) {
         return;
     }
 
+    // Get selected member
+    const memberId = document.getElementById('new-item-member').value;
+
     // Update item
     const item = extractedItems.find(i => i.id == itemId);
     if (item) {
         item.name = name;
         item.quantity = qty;
         item.unit_price = unitPrice;
-        item.total_price = (qty * unitPrice).toFixed(2);
+        item.total_price = parseFloat((qty * unitPrice).toFixed(2));
+        item.assigned_to = memberId || null;
     }
 
     displayExtractedItems(extractedItems);
+    updateSplitsFromItems(); // Auto-update custom splits
     document.getElementById('add-item-modal').classList.add('hidden');
 }
 
@@ -1397,6 +1558,19 @@ function attachItemEventListeners() {
     document.getElementById('new-item-unit-price').addEventListener('change', calculateItemTotal);
 }
 
+// Calculate item total from quantity and unit price
+function calculateItemTotal() {
+    const qty = parseFloat(document.getElementById('new-item-qty').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('new-item-unit-price').value) || 0;
+    const total = qty * unitPrice;
+    
+    // Update the total price field if it exists
+    const totalField = document.getElementById('new-item-total');
+    if (totalField) {
+        totalField.value = total.toFixed(2);
+    }
+}
+
 // Update OCR total display
 function updateOCRTotal() {
     const total = extractedItems.reduce((sum, item) => sum + item.total_price, 0);
@@ -1417,11 +1591,27 @@ function updateSplitsFromItems() {
         }
     });
 
+    console.log('Member splits calculated:', memberSplits);
+
+    // Auto-switch to custom split mode if items are assigned
+    const hasAssignedItems = Object.keys(memberSplits).length > 0;
+    if (hasAssignedItems) {
+        const customRadio = document.querySelector('input[name="split_type"][value="custom"]');
+        if (customRadio && !customRadio.checked) {
+            customRadio.checked = true;
+            toggleCustomSplits();
+        }
+    }
+
     // Update split inputs for all members
     members.forEach(member => {
         const splitInput = document.querySelector(`input[name="splits[${member.id}]"]`);
         if (splitInput) {
-            splitInput.value = (memberSplits[member.id] || 0).toFixed(2);
+            const amount = (memberSplits[member.id] || 0).toFixed(2);
+            splitInput.value = amount;
+            console.log(`Set split for member ${member.id} (${member.name}) to ${amount}`);
+        } else {
+            console.warn(`Split input not found for member ${member.id}`);
         }
     });
 
