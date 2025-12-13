@@ -862,7 +862,7 @@ function copySuggestion(text) {
     function initSettlementBreakdown() {
         const buttons = document.querySelectorAll('.settlement-btn');
         const modal = document.getElementById('breakdownModal');
-        const breakdownContent = document.getElementById('breakdownContent');
+        const breakdownContent = document.getElementById('breakdownDetails');
 
         if (!modal) {
             console.log('Settlement breakdown modal not found');
