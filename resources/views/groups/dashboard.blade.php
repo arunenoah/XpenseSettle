@@ -193,8 +193,8 @@
     </div>
     --}}
 
-    <!-- Squad Members - Collapsible Section -->
-    <div class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
+    <!-- Squad Members - Hidden as requested -->
+    <div class="hidden bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
         <button type="button" data-toggle-section="squadMembers" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
             <h2 class="text-2xl font-black text-gray-900 flex items-center gap-2">
                 <span class="text-3xl">👥</span>
@@ -260,17 +260,14 @@
         </div>
     </div>
 
-    <!-- Settlement Breakdown (Net per Person) - Collapsible Section -->
+    <!-- Settlement Summary - Open by default, mobile-friendly -->
     @if(count($settlement) > 0)
-        <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-6">
-            <button type="button" data-toggle-section="settlementSummary" class="w-full flex items-center justify-between mb-6 hover:opacity-80 transition-opacity">
-                <h3 class="text-2xl font-black text-gray-900 flex items-center gap-2">
-                    <span class="text-3xl">⚖️</span>
-                    <span>Settlement Summary</span>
-                </h3>
-                <span id="settlementSummaryToggle" class="text-2xl transform transition-transform duration-300">▼</span>
-            </button>
-            <div id="settlementSummary" class="hidden sm:block space-y-3">
+        <div class="bg-gradient-to-br from-violet-50 via-purple-50 to-pink-50 rounded-2xl shadow-lg p-4 sm:p-6">
+            <h3 class="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2 mb-4">
+                <span class="text-2xl sm:text-3xl">⚖️</span>
+                <span>Settlement Summary</span>
+            </h3>
+            <div class="space-y-2 sm:space-y-3">
                 @foreach($settlement as $item)
                     @php
                         $isOwed = $item['net_amount'] > 0;
@@ -280,34 +277,36 @@
                         $label = $isOwed ? 'You Owe' : 'They Owe You';
                         $emoji = $isOwed ? '😬' : '🤑';
                     @endphp
-                    <div class="p-4 bg-gradient-to-r {{ $bgColor }} border {{ $borderColor }} rounded-lg">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 flex-1">
-                                <span class="text-2xl">{{ $emoji }}</span>
+                    <div class="p-3 sm:p-4 bg-gradient-to-r {{ $bgColor }} border {{ $borderColor }} rounded-lg">
+                        <!-- Mobile: Stack layout -->
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                            <div class="flex items-center gap-2 sm:gap-3 flex-1">
+                                <span class="text-xl sm:text-2xl">{{ $emoji }}</span>
                                 <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2">
-                                        <p class="font-bold text-gray-900">{{ $item['user']->name }}</p>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <p class="font-bold text-sm sm:text-base text-gray-900 truncate">{{ $item['user']->name }}</p>
                                         @if(isset($item['is_contact']) && $item['is_contact'])
-                                            <span class="inline-block px-1.5 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">✨ Contact</span>
+                                            <span class="inline-block px-1.5 py-0.5 bg-cyan-100 text-cyan-700 text-xs font-bold rounded-full">✨</span>
                                         @endif
                                     </div>
-                                    <p class="text-sm {{ $textColor }} font-semibold">{{ $label }}</p>
+                                    <p class="text-xs sm:text-sm {{ $textColor }} font-semibold">{{ $label }}</p>
                                 </div>
                             </div>
-                            <p class="font-black text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($item['amount'], 2) }}</p>
+                            <p class="font-black text-xl sm:text-2xl {{ $textColor }} flex-shrink-0">${{ number_format($item['amount'], 2) }}</p>
                         </div>
 
-                        <div class="mt-3 flex items-center justify-between">
+                        <!-- Action buttons - mobile optimized -->
+                        <div class="mt-2 sm:mt-3 flex items-center justify-between gap-2">
                             @if($item['status'] === 'pending')
-                                <span class="inline-block px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
+                                <span class="inline-block px-2 sm:px-3 py-1 bg-orange-100 text-orange-800 text-xs font-semibold rounded-full">Pending</span>
                                 @if($item['net_amount'] > 0 && isset($item['split_ids']) && count($item['split_ids']) > 0)
                                     <button onclick="openGroupPaymentModal({{ $item['split_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
-                                            class="px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs">
+                                            class="px-2 sm:px-3 py-1 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition-all font-bold text-xs whitespace-nowrap">
                                         ✓ Mark Paid
                                     </button>
                                 @endif
                             @elseif($item['status'] === 'paid')
-                                <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
+                                <span class="inline-block px-2 sm:px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Paid</span>
                             @endif
                         </div>
                     </div>
