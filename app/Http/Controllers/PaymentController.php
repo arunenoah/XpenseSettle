@@ -133,7 +133,7 @@ class PaymentController extends Controller
             }
         }
 
-        // fromUser's expenses section (expenses paid by fromUser)
+        // fromUser's expenses section (expenses paid by fromUser that toUser owes)
         if (count($fromUserExpenses) > 0) {
             $breakdown .= "{$fromUser->name}'s expenses (paid by {$fromUser->name}):\n";
             $fromTotal = 0;
@@ -144,15 +144,15 @@ class PaymentController extends Controller
             $breakdown .= "Subtotal: $" . number_format($fromTotal, 2) . "\n\n";
         }
 
-        // toUser's expenses section (expenses paid by toUser)
+        // toUser's expenses section (expenses paid by toUser that fromUser owes)
         if (count($toUserExpenses) > 0) {
             $breakdown .= "{$toUser->name}'s expenses (paid by {$toUser->name}):\n";
             $toTotal = 0;
             foreach ($toUserExpenses as $exp) {
                 $toTotal += $exp['amount'];
-                $breakdown .= "- {$exp['title']}: $" . number_format($exp['amount'], 2) . "\n";
+                $breakdown .= "- {$exp['title']}: -$" . number_format($exp['amount'], 2) . "\n";
             }
-            $breakdown .= "Subtotal: $" . number_format($toTotal, 2) . "\n\n";
+            $breakdown .= "Subtotal: -$" . number_format($toTotal, 2) . "\n\n";
         }
 
         // Adjustments section - only show if there are actual adjustments
@@ -338,14 +338,10 @@ class PaymentController extends Controller
 
                 if ($senderId === $user->id && isset($netBalances[$recipientId])) {
                     // CASE 1: User is the SENDER of the advance to recipient
-                    // The advance reduces what they owe (or increases what they're owed)
-                    // If positive (user owes recipient): subtract to reduce debt
-                    // If negative (recipient owes user): add to reduce what's owed to them
-                    if ($netBalances[$recipientId]['net_amount'] >= 0) {
-                        $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
-                    } else {
-                        $netBalances[$recipientId]['net_amount'] += $senderAdvanceCredit;
-                    }
+                    // The advance means user paid on behalf of recipient, so recipient owes MORE
+                    // SUBTRACT to make balance more negative (recipient owes sender more)
+                    // Example: +50.12 (sender owes recipient) - 200 (advance) = -149.88 (recipient owes sender)
+                    $netBalances[$recipientId]['net_amount'] -= $senderAdvanceCredit;
 
                     // Track advance per sender-recipient pair
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
@@ -358,14 +354,11 @@ class PaymentController extends Controller
 
                 } elseif ($recipientId === $user->id && isset($netBalances[$senderId])) {
                     // CASE 2: User is the RECIPIENT of the advance from sender
-                    // The advance reduces what they owe (or increases what they're owed)
-                    // If positive (user owes sender): subtract to reduce debt
-                    // If negative (sender owes user): add to reduce what's owed to them
-                    if ($netBalances[$senderId]['net_amount'] >= 0) {
-                        $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
-                    } else {
-                        $netBalances[$senderId]['net_amount'] += $senderAdvanceCredit;
-                    }
+                    // The advance INCREASES what user owes to sender (recipient owes more)
+                    // Semantics: positive net_amount = user owes sender, negative = sender owes user
+                    // Receiving advance means user owes MORE, so SUBTRACT to increase debt
+                    // Example: +50.12 (user owes sender) - 200 (advance received) = -149.88 (final balance)
+                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
 
                     // Track this as an advance received
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
@@ -421,16 +414,23 @@ class PaymentController extends Controller
                 // Use the received payment amount as-is (it's actual cash received)
                 $amount = $receivedPayment->amount;
 
-                // Payment received FROM someone reduces what they owe you (subtract from negative = make less negative, or reduce positive debt if any)
+                // Payment received FROM someone settles part of the debt
                 // Semantics: positive net_amount = user owes them, negative = they owe user
-                // Payment makes them owe less, so subtract from net_amount
-                $netBalances[$fromUserId]['net_amount'] -= $amount;
+                // Payment received means they paid you, so ADD to settle
+                // Example: -284.52 (they owe user) + 334.64 (payment) = +50.12
+                $netBalances[$fromUserId]['net_amount'] += $amount;
+                
+                // Add to expenses array so it shows in breakdown
+                $netBalances[$fromUserId]['expenses'][] = [
+                    'title' => 'Payment received',
+                    'amount' => $amount,
+                    'type' => 'payment_received',
+                ];
             }
         }
 
-        // Account for payments sent to others
-        // These reduce what others owe to the user (payment sent TO them)
-        // Sent payments are actual cash amounts and should NOT be adjusted by family count
+        // Account for payments sent by user to others
+        // These settle what user owes to others
         $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $user->id)
             ->with(['toUser'])
@@ -439,15 +439,22 @@ class PaymentController extends Controller
         foreach ($sentPayments as $sentPayment) {
             $toUserId = $sentPayment->to_user_id;
 
-            // If this person is in the settlement, reduce what they owe user
+            // If this person is in the settlement, this payment settles part of the debt
             if (isset($netBalances[$toUserId])) {
                 // Use the sent payment amount as-is (it's actual cash sent)
                 $amount = $sentPayment->amount;
 
-                // Payment sent TO someone reduces what they owe you (subtract from balance)
-                // Semantics: positive net_amount = user owes them, negative = they owe user
-                // Payment makes them owe less, so subtract from net_amount
+                // Payment sent TO someone settles the debt
+                // SUBTRACT to reduce what user owes them
+                // Example: +284.52 (user owes them) - 334.64 (payment sent) = -50.12
                 $netBalances[$toUserId]['net_amount'] -= $amount;
+                
+                // Add to expenses array so it shows in breakdown
+                $netBalances[$toUserId]['expenses'][] = [
+                    'title' => 'Payment sent',
+                    'amount' => $amount,
+                    'type' => 'payment_sent',
+                ];
             }
         }
 
@@ -563,211 +570,100 @@ class PaymentController extends Controller
      */
     private function calculateGroupSettlementMatrix(Group $group)
     {
-        // Build settlement matrix including both users and contacts
+        // Initialize result array
         $result = [];
-
-        // Get all members (users and contacts)
-        $groupMembers = $group->allMembers()->with(['user', 'contact'])->get();
-
+        
+        // Get all group members (users only, not contacts)
+        $groupMembers = $group->groupMembers()->with('user')->whereNotNull('user_id')->get();
+        
         // Initialize result for all members
         foreach ($groupMembers as $groupMember) {
-            $memberObj = $groupMember->isContact() ? $groupMember->contact : $groupMember->user;
-            if (!$memberObj) continue;
-
+            if (!$groupMember->user) continue;
+            
             $result[$groupMember->id] = [
-                'user' => $memberObj,
-                'is_contact' => $groupMember->isContact(),
+                'user' => $groupMember->user,
+                'is_contact' => false,
                 'owes' => []
             ];
         }
-
-        // For each USER only (not contacts), calculate their personal settlement
-        // Contacts don't have settlements since they can't make payments
-        foreach ($group->members as $member) {
-            $settlement = $this->calculateSettlement($group, $member);
-
-            // Find the GroupMember ID for this user
-            $memberGroupMemberId = null;
-            foreach ($result as $gmKey => $gmData) {
-                if (!$gmData['is_contact'] && $gmData['user']->id === $member->id) {
-                    $memberGroupMemberId = $gmKey;
-                    break;
-                }
-            }
-
-            if (!$memberGroupMemberId) {
-                continue; // Skip if GroupMember not found
-            }
-
-            // Convert settlement to matrix
+        
+        // Store processed pairs to avoid duplicates and ensure consistency
+        $processedPairs = [];
+        
+        // For each member, calculate their settlement with all other members
+        foreach ($groupMembers as $member) {
+            if (!$member->user) continue;
+            
+            // Get this member's settlement with everyone
+            $settlement = $this->calculateSettlement($group, $member->user);
+            
+            // Process each settlement item
             foreach ($settlement as $item) {
-                // Get the target person/contact info
-                $targetIsContact = isset($item['is_contact']) && $item['is_contact'];
                 $amount = $item['net_amount'];
-
-                if ($amount > 0) {
-                    // Member owes someone
-                    if ($targetIsContact) {
-                        // Member owes a contact - find contact in result by matching the contact object
-
-                        $contactId = $item['user']->id;
-                        foreach ($result as $key => $entry) {
-                            if ($entry['is_contact'] && $entry['user']->id === $contactId) {
-                                // Generate breakdown for contact owed
-                                $memberGroupMemberRecord = \App\Models\GroupMember::where('group_id', $group->id)
-                                    ->where('user_id', $member->id)
-                                    ->first();
-                                $memberFamilyCount = $memberGroupMemberRecord?->family_count ?? 1;
-                                if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
-
-                                // Use standardized breakdown format (contact can't be second payer in our system)
-                                $breakdownContact = $this->generateSettlementBreakdown($group, $member, $item['user'], $item);
-
-                                $result[$memberGroupMemberId]['owes'][$key] = [
-                                    'user' => $item['user'],
-                                    'is_contact' => true,
-                                    'amount' => round($amount, 2),
-                                    'breakdown' => $breakdownContact,
-                                ];
-                                break;
-                            }
-                        }
-                    } else {
-                        // Member owes a user - find the GroupMember ID for this user
-                        $targetUserId = $item['user']->id;
-                        foreach ($result as $gmKey => $gmData) {
-                            if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
-                                // Get family counts for breakdown context
-                                $memberGroupMemberRecord = \App\Models\GroupMember::where('group_id', $group->id)
-                                    ->where('user_id', $member->id)
-                                    ->first();
-                                $memberFamilyCount = $memberGroupMemberRecord?->family_count ?? 1;
-                                if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
-
-                                $targetGroupMemberRecord = \App\Models\GroupMember::where('group_id', $group->id)
-                                    ->where('user_id', $item['user']->id)
-                                    ->first();
-                                $targetFamilyCount = $targetGroupMemberRecord?->family_count ?? 1;
-                                if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
-
-                                // Use standardized breakdown format
-                                $breakdown = $this->generateSettlementBreakdown($group, $member, $item['user'], $item);
-
-                                $result[$memberGroupMemberId]['owes'][$gmKey] = [
-                                    'user' => $item['user'],
-                                    'is_contact' => false,
-                                    'amount' => round($amount, 2),
-                                    'breakdown' => $breakdown,
-                                ];
-                                break;
-                            }
-                        }
-                    }
-                } else if ($amount < 0) {
-                    // Someone owes member (negative amount means member is owed money)
-                    if ($targetIsContact) {
-                        // A contact owes the member (Arun) - find the contact in result and store that Arun is owed money
-
-                        $contactId = $item['user']->id;
-                        foreach ($result as $key => $entry) {
-                            if ($entry['is_contact'] && $entry['user']->id === $contactId) {
-                                // Generate breakdown - the member is owed by this contact
-                                $memberGroupMemberRecord = \App\Models\GroupMember::where('group_id', $group->id)
-                                    ->where('user_id', $member->id)
-                                    ->first();
-                                $memberFamilyCount = $memberGroupMemberRecord?->family_count ?? 1;
-                                if ($memberFamilyCount <= 0) $memberFamilyCount = 1;
-
-                                // Use standardized breakdown format
-                                $breakdown = $this->generateSettlementBreakdown($group, $item['user'], $member, $item);
-
-                                // Contact owes member - store in contact's owes array
-                                \Log::info('Storing breakdown in owes array', [
-                                    'key' => $key,
-                                    'memberGroupMemberId' => $memberGroupMemberId,
-                                    'breakdown' => $breakdown,
-                                    'breakdown_length' => strlen($breakdown)
-                                ]);
-
-                                $result[$key]['owes'][$memberGroupMemberId] = [
-                                    'user' => $result[$memberGroupMemberId]['user'],
-                                    'is_contact' => false,
-                                    'amount' => round(abs($amount), 2),
-                                    'breakdown' => $breakdown,
-                                ];
-                                break;
-                            }
-                        }
-                    } else if ($item['user']) {
-                        // A user owes the member - find which GroupMember corresponds to this user
-                        $targetUserId = $item['user']->id;
-                        foreach ($result as $gmKey => $gmData) {
-                            // Find if this is the user we're looking for
-                            if (!$gmData['is_contact'] && $gmData['user']->id === $targetUserId) {
-                                // This user owes the member
-                                if (!isset($result[$gmKey]['owes'])) {
-                                    $result[$gmKey]['owes'] = [];
-                                }
-
-                                // Generate breakdown string - this user owes the current member money
-                                // Get family count from GroupMember
-                                $groupMemberRecord = \App\Models\GroupMember::where('group_id', $group->id)
-                                    ->where('user_id', $gmData['user']->id)
-                                    ->first();
-                                $targetFamilyCount = $groupMemberRecord?->family_count ?? 1;
-                                if ($targetFamilyCount <= 0) $targetFamilyCount = 1;
-
-                                // Use standardized breakdown format
-                                $breakdown = $this->generateSettlementBreakdown($group, $item['user'], $member, $item);
-
-                                $result[$gmKey]['owes'][$memberGroupMemberId] = [
-                                    'user' => $group->members->find($member->id),
-                                    'is_contact' => false,
-                                    'amount' => round(abs($amount), 2),
-                                    'breakdown' => $breakdown,
-                                ];
-                                break;
-                            }
-                        }
-                    }
+                
+                // Skip if amount is negligible
+                if (abs($amount) < 0.01) continue;
+                
+                $targetIsContact = isset($item['is_contact']) && $item['is_contact'];
+                
+                if ($targetIsContact) {
+                    // Skip contacts for now
+                    continue;
                 }
-            }
-        }
-
-        // Handle contacts who owe users
-        // For each user, check their settlement to see if they're owed money by contacts
-        foreach ($group->members as $user) {
-            $settlement = $this->calculateSettlement($group, $user);
-
-            foreach ($settlement as $item) {
-                // If it's a contact and amount is negative (contact owes user)
-                if (isset($item['is_contact']) && $item['is_contact'] && $item['net_amount'] < 0) {
-                    $contactId = $item['user']->id;
-                    // Find the GroupMember for this contact
-                    foreach ($result as $gmKey => $gmData) {
-                        if ($gmData['is_contact'] && $gmData['user']->id === $contactId) {
-                            // Contact owes user - find the GroupMember ID for this user
-                            $targetUserId = $user->id;
-                            foreach ($result as $targetGmKey => $targetGmData) {
-                                if (!$targetGmData['is_contact'] && $targetGmData['user']->id === $targetUserId) {
-                                    if (!isset($result[$gmKey]['owes'])) {
-                                        $result[$gmKey]['owes'] = [];
-                                    }
-
-                                    // Only update if not already set (to preserve breakdown from previous processing)
-                                    if (!isset($result[$gmKey]['owes'][$targetGmKey])) {
-                                        $result[$gmKey]['owes'][$targetGmKey] = [
-                                            'user' => $user,
-                                            'is_contact' => false,
-                                            'amount' => round(abs($item['net_amount']), 2),
-                                        ];
-                                    }
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
+                
+                // Find the target user's group member ID
+                $targetUserId = $item['user']->id;
+                $targetGroupMember = $groupMembers->firstWhere('user_id', $targetUserId);
+                
+                if (!$targetGroupMember) continue;
+                
+                // Create a unique pair key (always use lower ID first to ensure consistency)
+                $pairKey = $member->id < $targetGroupMember->id 
+                    ? "{$member->id}-{$targetGroupMember->id}" 
+                    : "{$targetGroupMember->id}-{$member->id}";
+                
+                // Skip if we've already processed this pair
+                if (isset($processedPairs[$pairKey])) continue;
+                
+                // Mark this pair as processed
+                $processedPairs[$pairKey] = true;
+                
+                if ($amount < 0) {
+                    // Negative amount means this member owes the other person
+                    $owedAmount = abs($amount);
+                    
+                    // Generate detailed breakdown
+                    $breakdown = $this->generateSettlementBreakdown(
+                        $group,
+                        $member->user,
+                        $item['user'],
+                        $item
+                    );
+                    
+                    $result[$member->id]['owes'][$targetGroupMember->id] = [
+                        'user' => $item['user'],
+                        'is_contact' => false,
+                        'amount' => round($owedAmount, 2),
+                        'breakdown' => $breakdown
+                    ];
+                } else {
+                    // Positive amount means the other person owes this member
+                    $owedAmount = abs($amount);
+                    
+                    // Generate detailed breakdown (from target's perspective)
+                    $breakdown = $this->generateSettlementBreakdown(
+                        $group,
+                        $item['user'],
+                        $member->user,
+                        $item
+                    );
+                    
+                    $result[$targetGroupMember->id]['owes'][$member->id] = [
+                        'user' => $member->user,
+                        'is_contact' => false,
+                        'amount' => round($owedAmount, 2),
+                        'breakdown' => $breakdown
+                    ];
                 }
             }
         }
