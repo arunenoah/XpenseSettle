@@ -358,15 +358,34 @@
             <div class="space-y-3 overflow-y-auto max-h-screen pr-2" style="max-height: 600px;">
                 @foreach($allActivities as $activity)
                     @if($activity['type'] === 'expense')
-                        @php $expense = $activity['data']; @endphp
-                        <div class="bg-white p-5 rounded-xl border-2 border-orange-200 hover:shadow-lg hover:border-orange-400 transition-all transform hover:scale-102">
+                        @php 
+                            $expense = $activity['data'];
+                            $isPayer = $expense->payer->id === auth()->id();
+                            $userSplit = $expense->splits->first(function($split) {
+                                return ($split->user_id === auth()->id()) || 
+                                       ($split->contact && $split->contact->user_id === auth()->id());
+                            });
+                            $userOwes = $userSplit ? $userSplit->share_amount : 0;
+                            
+                            // Calculate how much others owe the payer
+                            $othersOwe = $expense->splits->filter(function($split) use ($expense) {
+                                $splitUserId = $split->user_id ?? ($split->contact ? $split->contact->user_id : null);
+                                return $splitUserId !== $expense->payer->id;
+                            })->sum('share_amount');
+                            
+                            $borderColor = $isPayer ? 'border-green-200' : 'border-orange-200';
+                            $hoverBorder = $isPayer ? 'hover:border-green-400' : 'hover:border-orange-400';
+                            $amountColor = $isPayer ? 'text-green-600' : 'text-orange-600';
+                            $emoji = $isPayer ? '💰' : '🛒';
+                        @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
                             <div class="flex items-start justify-between gap-3 mb-3">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
-                                        <span>💰</span>
+                                        <span>{{ $emoji }}</span>
                                         {{ $expense->title }}
                                     </h3>
-                                    <div class="flex items-center gap-2 mt-2">
+                                    <div class="flex items-center gap-2 mt-2 flex-wrap">
                                         <span class="text-sm font-semibold text-gray-700">
                                             👤 {{ $expense->payer->name }} paid
                                         </span>
@@ -375,14 +394,23 @@
                                             👥 {{ $expense->splits->count() }} people
                                         </span>
                                     </div>
+                                    @if($isPayer)
+                                        <p class="text-xs font-bold text-green-600 mt-1">
+                                            💵 Others owe you: ${{ number_format($othersOwe, 2) }}
+                                        </p>
+                                    @else
+                                        <p class="text-xs font-bold text-orange-600 mt-1">
+                                            💸 You owe: ${{ number_format($userOwes, 2) }}
+                                        </p>
+                                    @endif
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
                                         📅 {{ $expense->date->format('M d, Y') }}
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black text-orange-600">${{ number_format($expense->amount, 2) }}</p>
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($expense->amount, 2) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 text-xs font-bold rounded-full">
-                                        {{ ucfirst(str_replace('_', ' ', $expense->split_type)) }} split
+                                        {{ ucfirst(str_replace('_', ' ', $expense->split_type)) }}
                                     </span>
                                 </div>
                             </div>
