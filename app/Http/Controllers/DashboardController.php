@@ -61,25 +61,41 @@ class DashboardController extends Controller
                 return $payment->split->expense->group !== null;
             });
 
-        // Calculate totals across all groups
-        $totalYouOwe = 0;      // Total amount user owes to others
-        $totalTheyOweYou = 0;  // Total amount others owe to user
+        // Calculate totals across all groups - grouped by currency
+        $balancesByCurrency = [];  // currency => ['you_owe' => amount, 'they_owe' => amount]
         $pendingCount = 0;
 
+        // Use PaymentController for consistent calculations
+        $paymentController = app(PaymentController::class);
+        
         foreach ($user->groups as $group) {
-            // Get personal settlement for this group
-            $settlement = $this->calculateSettlementForDashboard($group, $user);
+            $currency = $group->currency ?? 'INR';
+            
+            // Initialize currency if not exists
+            if (!isset($balancesByCurrency[$currency])) {
+                $balancesByCurrency[$currency] = [
+                    'you_owe' => 0,
+                    'they_owe' => 0,
+                    'net' => 0
+                ];
+            }
+            
+            // Get personal settlement for this group using PaymentController
+            $settlement = $paymentController->calculateSettlement($group, $user);
 
             // Calculate totals from settlement
             foreach ($settlement as $item) {
                 if ($item['net_amount'] > 0) {
                     // User owes this person
-                    $totalYouOwe += $item['net_amount'];
+                    $balancesByCurrency[$currency]['you_owe'] += $item['net_amount'];
                 } else if ($item['net_amount'] < 0) {
                     // This person owes user
-                    $totalTheyOweYou += abs($item['net_amount']);
+                    $balancesByCurrency[$currency]['they_owe'] += abs($item['net_amount']);
                 }
             }
+            
+            // Calculate net for this currency
+            $balancesByCurrency[$currency]['net'] = $balancesByCurrency[$currency]['they_owe'] - $balancesByCurrency[$currency]['you_owe'];
 
             $pendingCount += $pendingPayments
                 ->filter(function ($payment) use ($group) {
@@ -88,8 +104,15 @@ class DashboardController extends Controller
                 ->count();
         }
 
-        // Calculate net balance
-        $netBalance = $totalTheyOweYou - $totalYouOwe;
+        // For backward compatibility, use primary currency (INR or first available)
+        $primaryCurrency = 'INR';
+        if (!isset($balancesByCurrency[$primaryCurrency]) && count($balancesByCurrency) > 0) {
+            $primaryCurrency = array_key_first($balancesByCurrency);
+        }
+        
+        $totalYouOwe = $balancesByCurrency[$primaryCurrency]['you_owe'] ?? 0;
+        $totalTheyOweYou = $balancesByCurrency[$primaryCurrency]['they_owe'] ?? 0;
+        $netBalance = $balancesByCurrency[$primaryCurrency]['net'] ?? 0;
 
         // Get recent expenses across all groups (exclude deleted groups)
         $recentExpenses = Expense::whereHas('group', function ($q) {
@@ -160,6 +183,8 @@ class DashboardController extends Controller
             'pendingCount' => $pendingCount,
             'recentExpenses' => $recentExpenses,
             'userExpenses' => $userExpenses,
+            'balancesByCurrency' => $balancesByCurrency,
+            'primaryCurrency' => $primaryCurrency,
         ]);
     }
 
