@@ -230,23 +230,26 @@ class PaymentController extends Controller
                     $payment = $split->payment;
 
                     if (!$payment || $payment->status !== 'paid') {
-                        $payerId = $expense->payer_id;
-                        if (!isset($netBalances[$payerId])) {
-                            $netBalances[$payerId] = [
-                                'user' => $expense->payer,
-                                'net_amount' => 0,
-                                'status' => 'pending',
-                                'expenses' => [],
-                                'split_ids' => [],
+                        // Only process splits with non-zero amounts
+                        if ($split->share_amount > 0) {
+                            $payerId = $expense->payer_id;
+                            if (!isset($netBalances[$payerId])) {
+                                $netBalances[$payerId] = [
+                                    'user' => $expense->payer,
+                                    'net_amount' => 0,
+                                    'status' => 'pending',
+                                    'expenses' => [],
+                                    'split_ids' => [],
+                                ];
+                            }
+                            $netBalances[$payerId]['net_amount'] += $split->share_amount;
+                            $netBalances[$payerId]['split_ids'][] = $split->id;
+                            $netBalances[$payerId]['expenses'][] = [
+                                'title' => $expense->title,
+                                'amount' => $split->share_amount,
+                                'type' => 'you_owe',  // User owes the payer
                             ];
                         }
-                        $netBalances[$payerId]['net_amount'] += $split->share_amount;
-                        $netBalances[$payerId]['split_ids'][] = $split->id;
-                        $netBalances[$payerId]['expenses'][] = [
-                            'title' => $expense->title,
-                            'amount' => $split->share_amount,
-                            'type' => 'you_owe',  // User owes the payer
-                        ];
                     }
                 } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
                     // User is the payer, someone else (a user, not contact) is a participant
