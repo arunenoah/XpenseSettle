@@ -357,9 +357,9 @@ class PaymentController extends Controller
                     // CASE 2: User is the RECIPIENT of the advance from sender
                     // The advance INCREASES what user owes to sender (recipient owes more)
                     // Semantics: positive net_amount = user owes sender, negative = sender owes user
-                    // Receiving advance means user owes MORE, so SUBTRACT to increase debt
-                    // Example: +50.12 (user owes sender) - 200 (advance received) = -149.88 (final balance)
-                    $netBalances[$senderId]['net_amount'] -= $senderAdvanceCredit;
+                    // Receiving advance means user owes MORE, so ADD to increase debt
+                    // Example: +50.12 (user owes sender) + 200 (advance received) = +250.12 (user owes sender more)
+                    $netBalances[$senderId]['net_amount'] += $senderAdvanceCredit;
 
                     // Track this as an advance received
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
