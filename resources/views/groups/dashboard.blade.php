@@ -574,7 +574,7 @@
 </div>
 
 <!-- Payment Modal -->
-<div id="groupPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" data-close-modal="true" data-modal-func="closeGroupPaymentModal">
+<div id="groupPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true" data-modal-func="closeGroupPaymentModal">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" data-stop-propagation="true">
         <h3 class="text-2xl font-black text-gray-900 mb-4">Mark Payment as Paid</h3>
 
@@ -600,7 +600,7 @@
             </div>
 
             <div class="flex gap-3">
-                <button type="button" data-close-button="true" data-modal-func="closeGroupPaymentModal" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
+                <button type="button" onclick="closeGroupPaymentModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
@@ -657,17 +657,19 @@ function closeAdvanceModal(event) {
 }
 
 function openGroupPaymentModal(splitId, payeeName, amount, expenseTitle) {
+    console.log('Opening modal for:', splitId, payeeName, amount);
+    const modal = document.getElementById('groupPaymentModal');
     document.getElementById('groupPayeeName').textContent = payeeName;
     document.getElementById('groupPaymentAmount').textContent = '$' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('groupPaymentForm').action = '/splits/' + splitId + '/mark-paid';
-    document.getElementById('groupPaymentModal').classList.remove('hidden');
-    document.getElementById('groupPaymentModal').classList.add('flex');
+    modal.classList.remove('hidden');
+    console.log('Modal opened, classes:', modal.className);
 }
 
 function closeGroupPaymentModal(event) {
     if (!event || event.target.id === 'groupPaymentModal') {
-        document.getElementById('groupPaymentModal').classList.add('hidden');
-        document.getElementById('groupPaymentModal').classList.remove('flex');
+        const modal = document.getElementById('groupPaymentModal');
+        modal.classList.add('hidden');
     }
 }
 
@@ -709,6 +711,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const modalFunc = this.getAttribute('data-modal-func');
             if (modalFunc === 'closeExpensesModal') {
                 closeExpensesModal();
+            } else if (modalFunc === 'closeGroupPaymentModal') {
+                closeGroupPaymentModal();
             }
         });
     });
@@ -719,6 +723,16 @@ document.addEventListener('DOMContentLoaded', function() {
         expensesModal.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeExpensesModal(e);
+            }
+        });
+    }
+    
+    // Close payment modal by clicking background
+    const groupPaymentModal = document.getElementById('groupPaymentModal');
+    if (groupPaymentModal) {
+        groupPaymentModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeGroupPaymentModal(e);
             }
         });
     }

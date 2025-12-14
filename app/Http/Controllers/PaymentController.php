@@ -237,9 +237,11 @@ class PaymentController extends Controller
                                 'net_amount' => 0,
                                 'status' => 'pending',
                                 'expenses' => [],
+                                'split_ids' => [],
                             ];
                         }
                         $netBalances[$payerId]['net_amount'] += $split->share_amount;
+                        $netBalances[$payerId]['split_ids'][] = $split->id;
                         $netBalances[$payerId]['expenses'][] = [
                             'title' => $expense->title,
                             'amount' => $split->share_amount,
@@ -465,35 +467,13 @@ class PaymentController extends Controller
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
             if ($data['net_amount'] != 0) {
-                // Find all split IDs if this is user owing money to someone
-                $splitIds = [];
-                if ($data['net_amount'] > 0) {
-                    // User owes this person money - find splits for all expenses in the list
-                    foreach ($data['expenses'] as $expenseData) {
-                        $expenseTitle = $expenseData['title'];
-                        $expense = Expense::where('title', $expenseTitle)
-                            ->where('group_id', $group->id)
-                            ->first();
-
-                        if ($expense) {
-                            $split = ExpenseSplit::where('expense_id', $expense->id)
-                                ->where('user_id', $user->id)
-                                ->first();
-
-                            if ($split) {
-                                $splitIds[] = $split->id;
-                            }
-                        }
-                    }
-                }
-
                 $settlements[] = [
                     'user' => $data['user'],
                     'amount' => abs($data['net_amount']),  // Final amount after all calculations including advances
                     'net_amount' => $data['net_amount'],  // Positive = user owes, Negative = user is owed
                     'status' => $data['status'],
                     'expenses' => $data['expenses'] ?? [],  // List of expenses contributing to this settlement
-                    'split_ids' => $splitIds,  // Split IDs for all expenses in this settlement (used for marking as paid)
+                    'split_ids' => $data['split_ids'] ?? [],  // Split IDs for all expenses in this settlement (used for marking as paid)
                     'is_contact' => $data['is_contact'] ?? false,  // Flag to indicate if this is a contact
                 ];
             }
