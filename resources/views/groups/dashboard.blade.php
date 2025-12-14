@@ -288,7 +288,7 @@
                             <div class="text-right flex-shrink-0">
                                 <p class="font-black text-base {{ $textColor }}">${{ number_format($item['amount'], 2) }}</p>
                                 @if($item['net_amount'] > 0 && isset($item['split_ids']) && count($item['split_ids']) > 0)
-                                    <button onclick="openGroupPaymentModal({{ $item['split_ids'][0] }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
+                                    <button onclick="openGroupPaymentModal({{ json_encode($item['split_ids']) }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
                                             class="mt-1 px-2 py-0.5 bg-green-500 text-white rounded text-xs font-bold">
                                         ✓ Pay
                                     </button>
@@ -656,14 +656,32 @@ function closeAdvanceModal(event) {
     }
 }
 
-function openGroupPaymentModal(splitId, payeeName, amount, expenseTitle) {
-    console.log('Opening modal for:', splitId, payeeName, amount);
+function openGroupPaymentModal(splitIds, payeeName, amount, expenseTitle) {
+    console.log('Opening modal for splits:', splitIds, payeeName, amount);
     const modal = document.getElementById('groupPaymentModal');
+    const form = document.getElementById('groupPaymentForm');
+    
+    // Set display info
     document.getElementById('groupPayeeName').textContent = payeeName;
     document.getElementById('groupPaymentAmount').textContent = '$' + amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('groupPaymentForm').action = '/splits/' + splitId + '/mark-paid';
+    
+    // Remove any existing split_ids inputs
+    form.querySelectorAll('input[name="split_ids[]"]').forEach(input => input.remove());
+    
+    // Add hidden inputs for all split IDs
+    splitIds.forEach(splitId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'split_ids[]';
+        input.value = splitId;
+        form.appendChild(input);
+    });
+    
+    // Set form action to batch payment endpoint
+    form.action = '/payments/mark-paid-batch';
+    
     modal.classList.remove('hidden');
-    console.log('Modal opened, classes:', modal.className);
+    console.log('Modal opened for', splitIds.length, 'splits');
 }
 
 function closeGroupPaymentModal(event) {

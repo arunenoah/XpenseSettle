@@ -835,6 +835,97 @@ class PaymentController extends Controller
     }
 
     /**
+     * Mark multiple splits as paid in batch (for settling total balance).
+     */
+    public function markPaidBatch(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'split_ids' => 'required|array',
+            'split_ids.*' => 'exists:expense_splits,id',
+            'paid_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+            'receipt' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
+        ]);
+
+        $successCount = 0;
+        $failedCount = 0;
+        $totalAmount = 0;
+        $payeeName = '';
+        $groupName = '';
+
+        foreach ($validated['split_ids'] as $splitId) {
+            $split = ExpenseSplit::find($splitId);
+
+            // Check authorization - only the person who owes can mark as paid
+            if ($split->user_id !== $user->id) {
+                $failedCount++;
+                continue;
+            }
+
+            try {
+                // Create or update payment
+                $payment = $this->paymentService->markAsPaid($split, $user, $validated);
+                
+                // Track total amount and payer info
+                $totalAmount += $split->share_amount;
+                if (!$payeeName) {
+                    $payeeName = $split->expense->payer->name;
+                    $groupName = $split->expense->group->name;
+                }
+
+                // Handle receipt attachment (only on first payment)
+                if ($successCount === 0 && $request->hasFile('receipt')) {
+                    $this->attachmentService->uploadAttachment(
+                        $request->file('receipt'),
+                        $payment,
+                        'payments'
+                    );
+                }
+
+                // Check if expense is fully paid
+                app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+
+                $successCount++;
+            } catch (\Exception $e) {
+                $failedCount++;
+                \Log::error("Failed to mark split {$splitId} as paid: " . $e->getMessage());
+            }
+        }
+
+        // Log batch payment
+        if ($successCount > 0) {
+            $this->auditService->logSuccess(
+                'mark_paid_batch',
+                'Payment',
+                "Batch payment of \${$totalAmount} marked as paid to {$payeeName} in group '{$groupName}' ({$successCount} splits)",
+                null,
+                null
+            );
+
+            // Notify the payer
+            if ($payeeName) {
+                $payer = \App\Models\User::where('name', $payeeName)->first();
+                if ($payer) {
+                    $this->notificationService->createNotification($payer, [
+                        'type' => 'payment_received',
+                        'title' => 'Payment Received',
+                        'message' => "{$user->name} paid you \${$totalAmount}",
+                        'url' => route('groups.dashboard', ['group' => $split->expense->group_id]),
+                    ]);
+                }
+            }
+        }
+
+        if ($failedCount > 0) {
+            return back()->with('warning', "Marked {$successCount} payments as paid. {$failedCount} failed.");
+        }
+
+        return back()->with('success', "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}");
+    }
+
+    /**
      * Approve a payment (for payer/admin).
      */
     public function approve(Request $request, Payment $payment)
