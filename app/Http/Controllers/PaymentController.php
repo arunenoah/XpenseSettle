@@ -884,6 +884,9 @@ class PaymentController extends Controller
                     );
                 }
 
+                // Notify the payer
+                $this->notificationService->notifyPaymentMarked($payment, $user);
+
                 // Check if expense is fully paid
                 app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
 
@@ -904,18 +907,8 @@ class PaymentController extends Controller
                 null
             );
 
-            // Notify the payer
-            if ($payeeName) {
-                $payer = \App\Models\User::where('name', $payeeName)->first();
-                if ($payer) {
-                    $this->notificationService->createNotification($payer, [
-                        'type' => 'payment_received',
-                        'title' => 'Payment Received',
-                        'message' => "{$user->name} paid you \${$totalAmount}",
-                        'url' => route('groups.dashboard', ['group' => $split->expense->group_id]),
-                    ]);
-                }
-            }
+            // Notify the payer about the first payment (notifications will be sent for each split)
+            // The notifyPaymentMarked is already called for each payment in the loop above
         }
 
         if ($failedCount > 0) {
