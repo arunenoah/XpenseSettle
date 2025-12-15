@@ -585,9 +585,6 @@ class PaymentController extends Controller
             foreach ($settlement as $item) {
                 $amount = $item['net_amount'];
                 
-                // Skip if amount is negligible
-                if (abs($amount) < 0.01) continue;
-                
                 $targetIsContact = isset($item['is_contact']) && $item['is_contact'];
                 
                 if ($targetIsContact) {
@@ -611,6 +608,27 @@ class PaymentController extends Controller
                 
                 // Mark this pair as processed
                 $processedPairs[$pairKey] = true;
+                
+                // Store settled pairs (amount = 0) with their expense history
+                if (abs($amount) < 0.01) {
+                    // Fully settled - store with amount 0 but keep expense history
+                    $breakdown = $this->generateSettlementBreakdown(
+                        $group,
+                        $member->user,
+                        $item['user'],
+                        $item
+                    );
+                    
+                    $result[$member->id]['settled'][$targetGroupMember->id] = [
+                        'user' => $item['user'],
+                        'is_contact' => false,
+                        'amount' => 0,
+                        'breakdown' => $breakdown,
+                        'expenses' => $item['expenses'] ?? [],
+                        'advance' => $item['advance'] ?? 0
+                    ];
+                    continue;
+                }
                 
                 if ($amount < 0) {
                     // Negative amount means this member owes the other person

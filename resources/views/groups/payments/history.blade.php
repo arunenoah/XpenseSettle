@@ -403,16 +403,33 @@
                                                     <span class="text-gray-300">—</span>
                                                 @endif
                                             @else
-                                                {{-- Fully settled - show green checkmark icon that's clickable --}}
-                                                <button class="settlement-btn inline-flex items-center justify-center w-7 h-7 bg-green-100 rounded-full cursor-pointer hover:bg-green-200 border-0 transition-all" 
-                                                    data-breakdown="{{ base64_encode('Fully settled') }}"
-                                                    data-person-name="{{ $fromData['user']->name }} & {{ $toData['user']->name }}"
-                                                    data-item-json="{{ base64_encode(json_encode(['amount' => 0, 'expenses' => [], 'user' => $toData['user']])) }}"
-                                                    title="Fully settled - click to view history">
-                                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                                                    </svg>
-                                                </button>
+                                                {{-- Fully settled - check if we have settled data --}}
+                                                @php
+                                                    $settledData = null;
+                                                    if (isset($fromData['settled'][$toMemberId])) {
+                                                        $settledData = $fromData['settled'][$toMemberId];
+                                                        $personName = $toData['user']->name;
+                                                    } elseif (isset($toData['settled'][$fromMemberId])) {
+                                                        $settledData = $toData['settled'][$fromMemberId];
+                                                        $personName = $fromData['user']->name;
+                                                    }
+                                                @endphp
+                                                
+                                                @if($settledData)
+                                                    {{-- Show green checkmark with transaction history --}}
+                                                    <button class="settlement-btn inline-flex items-center justify-center w-7 h-7 bg-green-100 rounded-full cursor-pointer hover:bg-green-200 border-0 transition-all" 
+                                                        data-breakdown="{{ base64_encode($settledData['breakdown'] ?? 'Fully settled') }}"
+                                                        data-person-name="{{ $personName }}"
+                                                        data-item-json="{{ base64_encode(json_encode($settledData)) }}"
+                                                        title="Fully settled - click to view history">
+                                                        <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                        </svg>
+                                                    </button>
+                                                @else
+                                                    {{-- No transaction history - just show dash --}}
+                                                    <span class="text-gray-300">—</span>
+                                                @endif
                                             @endif
                                         @endif
                                     </td>
@@ -739,26 +756,8 @@ function openBreakdownModal(personName, itemData) {
 
     let html = '<div class="space-y-4 text-sm">';
 
-    // Check if fully settled (amount is 0 and no expenses)
-    if (itemData.amount === 0 && (!itemData.expenses || itemData.expenses.length === 0)) {
-        html += `<div class="text-center py-8">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900 mb-2">✨ Fully Settled!</h3>
-                    <p class="text-gray-600">All balances between these members have been settled.</p>
-                    <p class="text-sm text-gray-500 mt-2">No outstanding payments.</p>
-                 </div>`;
-        html += '</div>';
-        details.innerHTML = html;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        modal.style.display = 'flex';
-        console.log('Modal displayed - fully settled');
-        return;
-    }
+    // Check if fully settled (amount is 0)
+    const isFullySettled = itemData.amount === 0;
 
     // Group expenses by payer
     let theyPaidExpenses = [];
@@ -850,16 +849,32 @@ function openBreakdownModal(personName, itemData) {
 
     // Use the pre-calculated amount from backend (already correct in the table)
     const finalAmount = itemData.amount || 0;
-    const netAmount = itemData.net_amount || 0;
-    const finalColor = netAmount > 0 ? 'text-red-600' : 'text-green-600';
-    const finalText = netAmount > 0 ? `(Arun owes ${personName})` : `(${personName} owes Arun)`;
-
-    html += `<div class="flex flex-col items-center pt-3 border-t-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
-                <span class="font-bold text-gray-700 mb-1 text-xs">${finalText}</span>
-                <span class="font-black text-3xl ${finalColor}">
-                    $${parseFloat(finalAmount).toFixed(2)}
-                </span>
-             </div>`;
+    
+    if (isFullySettled) {
+        // Show fully settled banner
+        html += `<div class="flex flex-col items-center pt-3 border-t-2 border-green-300 bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                        <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-gray-700 mb-1 text-sm">✨ Fully Settled!</span>
+                    <span class="font-black text-3xl text-green-600">$0.00</span>
+                    <span class="text-xs text-gray-500 mt-1">No outstanding balance</span>
+                 </div>`;
+    } else {
+        // Show regular balance
+        const netAmount = itemData.net_amount || 0;
+        const finalColor = netAmount > 0 ? 'text-red-600' : 'text-green-600';
+        const finalText = netAmount > 0 ? `(Arun owes ${personName})` : `(${personName} owes Arun)`;
+        
+        html += `<div class="flex flex-col items-center pt-3 border-t-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
+                    <span class="font-bold text-gray-700 mb-1 text-xs">${finalText}</span>
+                    <span class="font-black text-3xl ${finalColor}">
+                        $${parseFloat(finalAmount).toFixed(2)}
+                    </span>
+                 </div>`;
+    }
 
     html += '</div>';
     details.innerHTML = html;
