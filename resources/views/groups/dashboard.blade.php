@@ -554,7 +554,7 @@
                                         </p>
                                     @endif
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
-                                        📅 {{ $receivedPayment->payment_date->format('M d, Y') }}
+                                        📅 {{ ($receivedPayment->payment_date ?? $receivedPayment->created_at)->format('M d, Y') }}
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
