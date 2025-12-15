@@ -2,7 +2,7 @@
 
 <!-- Mobile-Responsive Group Navigation Tabs -->
 <div class="px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200 sticky top-32 sm:top-20 z-40 shadow-sm">
-    <div class="max-w-7xl mx-auto flex gap-1 sm:gap-8 overflow-x-auto scrollbar-hide">
+    <div class="max-w-7xl mx-auto flex gap-1 sm:gap-8 overflow-x-auto scrollbar-hide justify-center">
 
         <!-- All Groups Link -->
         <a href="{{ route('groups.index') }}"
