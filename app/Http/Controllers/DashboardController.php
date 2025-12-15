@@ -278,6 +278,13 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Get recent received payments for this group (for recent activity)
+        $recentReceivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->with(['fromUser', 'toUser'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
         // Calculate family statistics
         // family_count is the total headcount for that member/contact (not additional)
         // Get total headcount from users and contacts
@@ -313,6 +320,7 @@ class DashboardController extends Controller
             'memberAdvances' => $memberAdvances,
             'recentPayments' => $recentPayments,
             'recentAdvances' => $recentAdvances,
+            'recentReceivedPayments' => $recentReceivedPayments,
             'totalFamilyCount' => $totalFamilyCount,
             'totalFamilyCost' => $totalFamilyCost,
             'perHeadCost' => $perHeadCost,

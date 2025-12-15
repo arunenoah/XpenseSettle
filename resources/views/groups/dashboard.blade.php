@@ -325,7 +325,7 @@
             <span>Recent Activity</span>
         </h2>
         @php
-            // Combine expenses, payments, and advances into one array for chronological display
+            // Combine all activity types into one array for chronological display
             $allActivities = [];
 
             // Add expenses
@@ -337,7 +337,7 @@
                 ];
             }
 
-            // Add payments
+            // Add mark as paid payments
             foreach ($recentPayments as $payment) {
                 $allActivities[] = [
                     'type' => 'payment',
@@ -346,7 +346,7 @@
                 ];
             }
 
-            // Add advances
+            // Add advances (includes manual settlements)
             foreach ($recentAdvances as $advance) {
                 $allActivities[] = [
                     'type' => 'advance',
@@ -355,10 +355,22 @@
                 ];
             }
 
+            // Add received payments
+            foreach ($recentReceivedPayments as $receivedPayment) {
+                $allActivities[] = [
+                    'type' => 'received_payment',
+                    'timestamp' => $receivedPayment->created_at,
+                    'data' => $receivedPayment
+                ];
+            }
+
             // Sort by timestamp descending (newest first)
             usort($allActivities, function($a, $b) {
                 return $b['timestamp']->timestamp <=> $a['timestamp']->timestamp;
             });
+            
+            // Limit to 20 most recent activities
+            $allActivities = array_slice($allActivities, 0, 20);
         @endphp
 
         @if(count($allActivities) > 0)
@@ -507,6 +519,51 @@
                                     <p class="text-sm text-gray-600 italic">💬 "{{ $advance->description }}"</p>
                                 </div>
                             @endif
+                        </div>
+                    @elseif($activity['type'] === 'received_payment')
+                        @php 
+                            $receivedPayment = $activity['data'];
+                            $isFromMe = $receivedPayment->from_user_id === auth()->id();
+                            $borderColor = $isFromMe ? 'border-purple-200' : 'border-teal-200';
+                            $hoverBorder = $isFromMe ? 'hover:border-purple-400' : 'hover:border-teal-400';
+                            $amountColor = $isFromMe ? 'text-purple-600' : 'text-teal-600';
+                            $badgeBg = $isFromMe ? 'bg-purple-100' : 'bg-teal-100';
+                            $badgeText = $isFromMe ? 'text-purple-700' : 'text-teal-700';
+                            $emoji = $isFromMe ? '💸' : '💰';
+                            $title = $isFromMe ? 'Payment Sent' : 'Payment Received';
+                        @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
+                                        <span>{{ $emoji }}</span>
+                                        {{ $title }}
+                                    </h3>
+                                    <div class="flex items-center gap-2 mt-2 flex-wrap">
+                                        <span class="text-sm font-bold {{ $amountColor }}">
+                                            {{ $receivedPayment->fromUser->name }}
+                                        </span>
+                                        <span class="text-gray-400">→</span>
+                                        <span class="text-sm font-bold {{ $amountColor }}">
+                                            {{ $receivedPayment->toUser->name }}
+                                        </span>
+                                    </div>
+                                    @if($receivedPayment->notes)
+                                        <p class="text-xs text-gray-600 mt-1">
+                                            💬 {{ $receivedPayment->notes }}
+                                        </p>
+                                    @endif
+                                    <p class="text-xs font-semibold text-gray-500 mt-1">
+                                        📅 {{ $receivedPayment->payment_date->format('M d, Y') }}
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0 text-right">
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($receivedPayment->amount, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
+                                        ✓ {{ $isFromMe ? 'Sent' : 'Received' }}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     @endif
                 @endforeach
