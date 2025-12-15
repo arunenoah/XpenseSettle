@@ -755,14 +755,12 @@ function openBreakdownModal(personName, itemData) {
     console.log('Modal displayed via openBreakdownModal');
 }
 
-function closeBreakdownModal(event) {
-    if (!event || event.target.id === 'breakdownModal') {
-        const modal = document.getElementById('breakdownModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        modal.style.display = '';
-        console.log('Modal closed');
-    }
+function closeBreakdownModal() {
+    const modal = document.getElementById('breakdownModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.style.display = '';
+    console.log('✅ Breakdown modal closed');
 }
 
 // Close modal when clicking outside the image
@@ -853,7 +851,7 @@ function copySuggestion(text) {
         </div>
 
         <div class="px-6 py-4 border-t-2 border-gray-200 flex justify-end">
-            <button data-close-button="true" data-modal-func="closeBreakdownModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
+            <button onclick="closeBreakdownModal()" data-close-button="true" data-modal-func="closeBreakdownModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
                 Close
             </button>
         </div>
@@ -919,6 +917,8 @@ function copySuggestion(text) {
     </div>
 
     <script nonce="{{ request()->attributes->get('nonce', '') }}">
+    // Modal fix v3.0 - Removed problematic click handler entirely - 2025-12-15 14:22
+    console.log('🔧 Settlement modal script v3.0 loaded');
     function showExpensesModal() {
         document.getElementById('expensesModal').classList.remove('hidden');
         document.getElementById('expensesModal').classList.add('flex');
@@ -947,7 +947,10 @@ function copySuggestion(text) {
         buttons.forEach((btn, idx) => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation(); // Prevent event from bubbling to modal close handlers
+                e.stopPropagation();
+                e.stopImmediatePropagation(); // Completely stop event propagation
+                
+                console.log('Button clicked, event stopped');
                 
                 // Get structured data
                 const personName = this.getAttribute('data-person-name');
@@ -1024,33 +1027,7 @@ function copySuggestion(text) {
             });
         });
 
-        // Close button function
-        function closeModal() {
-            console.log('Closing modal');
-            modal.style.display = 'none';
-            modal.style.visibility = 'hidden';
-            modal.style.opacity = '0';
-        }
-
-        // Use event delegation - attach one handler to modal that catches all clicks
-        modal.addEventListener('click', function(e) {
-            console.log('Modal click detected on: ' + e.target.tagName);
-
-            // If clicking on close button (check by tag name and not on content area)
-            if (e.target.tagName === 'BUTTON') {
-                console.log('Button clicked, closing modal');
-                closeModal();
-                return false;
-            }
-
-            // Also close if clicking the modal background itself (the dark overlay)
-            if (e.target === modal) {
-                console.log('Modal overlay clicked');
-                closeModal();
-            }
-        });
-
-        console.log('Modal event listeners attached');
+        console.log('Settlement breakdown initialization complete');
     }
 
     // Run immediately if DOM is ready, otherwise wait
