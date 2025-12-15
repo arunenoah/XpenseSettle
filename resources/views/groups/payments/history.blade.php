@@ -403,7 +403,16 @@
                                                     <span class="text-gray-300">—</span>
                                                 @endif
                                             @else
-                                                <span class="text-gray-300">—</span>
+                                                {{-- Fully settled - show green checkmark icon that's clickable --}}
+                                                <button class="settlement-btn inline-flex items-center justify-center w-7 h-7 bg-green-100 rounded-full cursor-pointer hover:bg-green-200 border-0 transition-all" 
+                                                    data-breakdown="{{ base64_encode('Fully settled') }}"
+                                                    data-person-name="{{ $fromData['user']->name }} & {{ $toData['user']->name }}"
+                                                    data-item-json="{{ base64_encode(json_encode(['amount' => 0, 'expenses' => [], 'user' => $toData['user']])) }}"
+                                                    title="Fully settled - click to view history">
+                                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                </button>
                                             @endif
                                         @endif
                                     </td>
@@ -726,9 +735,30 @@ function openBreakdownModal(personName, itemData) {
     console.log('Item data:', itemData);
     console.log('Expenses:', itemData.expenses);
 
-    title.textContent = `Settlement: Arun ↔ ${personName}`;
+    title.textContent = `Settlement: ${personName}`;
 
     let html = '<div class="space-y-4 text-sm">';
+
+    // Check if fully settled (amount is 0 and no expenses)
+    if (itemData.amount === 0 && (!itemData.expenses || itemData.expenses.length === 0)) {
+        html += `<div class="text-center py-8">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">✨ Fully Settled!</h3>
+                    <p class="text-gray-600">All balances between these members have been settled.</p>
+                    <p class="text-sm text-gray-500 mt-2">No outstanding payments.</p>
+                 </div>`;
+        html += '</div>';
+        details.innerHTML = html;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.style.display = 'flex';
+        console.log('Modal displayed - fully settled');
+        return;
+    }
 
     // Group expenses by payer
     let theyPaidExpenses = [];
