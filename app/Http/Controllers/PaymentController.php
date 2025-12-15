@@ -628,7 +628,9 @@ class PaymentController extends Controller
                         'user' => $item['user'],
                         'is_contact' => false,
                         'amount' => round($owedAmount, 2),
-                        'breakdown' => $breakdown
+                        'breakdown' => $breakdown,
+                        'expenses' => $item['expenses'] ?? [],
+                        'advance' => $item['advance'] ?? 0
                     ];
                 } else {
                     // Positive amount means the other person owes this member
@@ -646,7 +648,9 @@ class PaymentController extends Controller
                         'user' => $member->user,
                         'is_contact' => false,
                         'amount' => round($owedAmount, 2),
-                        'breakdown' => $breakdown
+                        'breakdown' => $breakdown,
+                        'expenses' => $item['expenses'] ?? [],
+                        'advance' => $item['advance'] ?? 0
                     ];
                 }
             }

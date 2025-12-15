@@ -315,26 +315,40 @@
                                                 $amount = 0;
                                                 $color = 'gray';
                                                 $breakdown = '';
+                                                $itemData = null;
+                                                $personName = '';
 
                                                 if (isset($fromData['owes'][$toMemberId])) {
                                                     $amount = $fromData['owes'][$toMemberId]['amount'];
                                                     $color = 'red';
                                                     $breakdown = $fromData['owes'][$toMemberId]['breakdown'] ?? '';
+                                                    $itemData = $fromData['owes'][$toMemberId];
+                                                    $personName = $toData['user']->name;
                                                 }
                                                 elseif (isset($toData['owes'][$fromMemberId])) {
                                                     $amount = $toData['owes'][$fromMemberId]['amount'];
                                                     $color = 'green';
                                                     $breakdown = $toData['owes'][$fromMemberId]['breakdown'] ?? '';
+                                                    $itemData = $toData['owes'][$fromMemberId];
+                                                    $personName = $fromData['user']->name;
                                                 }
                                             @endphp
 
                                             @if($amount > 0)
                                                 @if($color === 'red')
-                                                    <button class="settlement-btn inline-block px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-red-200 border-0" data-breakdown="{{ strlen($breakdown) > 0 ? base64_encode($breakdown) : base64_encode('No breakdown data for Arun → Vel: $' . number_format($amount, 2)) }}" style="background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
+                                                    <button class="settlement-btn inline-block px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-red-200 border-0" 
+                                                        data-breakdown="{{ strlen($breakdown) > 0 ? base64_encode($breakdown) : base64_encode('No breakdown data') }}"
+                                                        data-person-name="{{ $personName }}"
+                                                        data-item-json="{{ base64_encode(json_encode($itemData)) }}"
+                                                        style="background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
                                                         ${{ number_format($amount, 2) }}
                                                     </button>
                                                 @elseif($color === 'green')
-                                                    <button class="settlement-btn inline-block px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-green-200 border-0" data-breakdown="{{ strlen($breakdown) > 0 ? base64_encode($breakdown) : base64_encode('No breakdown data for Vel → Arun: $' . number_format($amount, 2)) }}" style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
+                                                    <button class="settlement-btn inline-block px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-green-200 border-0" 
+                                                        data-breakdown="{{ strlen($breakdown) > 0 ? base64_encode($breakdown) : base64_encode('No breakdown data') }}"
+                                                        data-person-name="{{ $personName }}"
+                                                        data-item-json="{{ base64_encode(json_encode($itemData)) }}"
+                                                        style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
                                                         ${{ number_format($amount, 2) }}
                                                     </button>
                                                 @else
@@ -621,74 +635,133 @@ function openBreakdownModal(personName, itemData) {
     const title = document.getElementById('breakdownTitle');
     const details = document.getElementById('breakdownDetails');
 
-    title.textContent = `Breakdown with ${personName}`;
+    console.log('Opening breakdown for:', personName);
+    console.log('Item data:', itemData);
+    console.log('Expenses:', itemData.expenses);
 
-    let html = '<div class="space-y-3">';
+    title.textContent = `Settlement: Arun ↔ ${personName}`;
 
-    // Calculate they spent for me vs I spent for them
+    let html = '<div class="space-y-4 text-sm">';
+
+    // Group expenses by payer
+    let theyPaidExpenses = [];
+    let iPaidExpenses = [];
     let theySpentForMe = 0;
     let iSpentForThem = 0;
 
+    // Separate regular expenses from adjustments
+    let adjustments = [];
+    
     if (itemData.expenses && itemData.expenses.length > 0) {
         itemData.expenses.forEach(exp => {
-            if (exp.type === 'you_owe') {
+            // Check if this is an adjustment (advance or payment)
+            if (exp.title === 'Advance paid' || exp.title === 'Advance received' || 
+                exp.title === 'Payment received' || exp.title === 'Payment sent') {
+                adjustments.push(exp);
+            } else if (exp.type === 'you_owe') {
                 // They paid it, you need to reimburse them
+                theyPaidExpenses.push(exp);
                 theySpentForMe += parseFloat(exp.amount);
             } else {
                 // You paid it for them
+                iPaidExpenses.push(exp);
                 iSpentForThem += parseFloat(exp.amount);
             }
         });
     }
 
-    // Show "They spent for me"
-    if (theySpentForMe > 0) {
-        html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
-                    <span class="text-gray-700 font-semibold">${personName} spent for me</span>
+    // Show expenses paid by them (personName)
+    if (theyPaidExpenses.length > 0) {
+        html += `<div class="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <p class="font-bold text-gray-900 mb-2">${personName}'s expenses (paid by ${personName}):</p>
+                    <ul class="space-y-1 ml-2">`;
+        
+        theyPaidExpenses.forEach(exp => {
+            html += `<li class="flex justify-between">
+                        <span class="text-gray-700">• ${exp.title}:</span>
+                        <span class="font-semibold text-gray-900">$${parseFloat(exp.amount).toFixed(2)}</span>
+                     </li>`;
+        });
+        
+        html += `</ul>
+                 <div class="flex justify-between items-center mt-2 pt-2 border-t border-red-300">
+                    <span class="font-bold text-gray-900">Subtotal:</span>
                     <span class="font-bold text-red-600">$${theySpentForMe.toFixed(2)}</span>
-                 </div>`;
+                 </div>
+              </div>`;
     }
 
-    // Show "I spent for them"
-    if (iSpentForThem > 0) {
-        html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
-                    <span class="text-gray-700 font-semibold">I spent for ${personName}</span>
-                    <span class="font-bold text-green-600">-$${iSpentForThem.toFixed(2)}</span>
-                 </div>`;
+    // Show expenses paid by me (Arun)
+    if (iPaidExpenses.length > 0) {
+        html += `<div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p class="font-bold text-gray-900 mb-2">Arun's expenses (paid by Arun):</p>
+                    <ul class="space-y-1 ml-2">`;
+        
+        iPaidExpenses.forEach(exp => {
+            html += `<li class="flex justify-between">
+                        <span class="text-gray-700">• ${exp.title}:</span>
+                        <span class="font-semibold text-gray-900">$${parseFloat(exp.amount).toFixed(2)}</span>
+                     </li>`;
+        });
+        
+        html += `</ul>
+                 <div class="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
+                    <span class="font-bold text-gray-900">Subtotal:</span>
+                    <span class="font-bold text-green-600">$${iSpentForThem.toFixed(2)}</span>
+                 </div>
+              </div>`;
     }
 
-    // Show advance if any
-    const advance = itemData.advance || 0;
-    if (advance > 0) {
-        html += `<div class="flex justify-between items-center pb-3 border-b border-gray-200">
-                    <span class="text-gray-700 font-semibold">💰 Advance paid</span>
-                    <span class="font-bold text-blue-600">-$${parseFloat(advance).toFixed(2)}</span>
-                 </div>`;
+    // Show adjustments section only if there are adjustments
+    if (adjustments.length > 0) {
+        html += `<div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p class="font-bold text-gray-900 mb-2">Adjustments:</p>
+                    <ul class="space-y-1 ml-2">`;
+        
+        adjustments.forEach(adj => {
+            const isNegative = adj.title.includes('paid') || adj.title.includes('received');
+            const color = isNegative ? 'text-blue-600' : 'text-gray-900';
+            html += `<li class="flex justify-between">
+                        <span class="text-gray-700">• ${adj.title}:</span>
+                        <span class="font-semibold ${color}">-$${parseFloat(adj.amount).toFixed(2)}</span>
+                     </li>`;
+        });
+        
+        html += `</ul>
+              </div>`;
     }
 
-    // Show final balance calculation
-    const finalAmount = theySpentForMe - iSpentForThem - advance;
-    const finalLabel = finalAmount > 0 ? `You owe ${personName}` : `${personName} owes you`;
-    const finalColor = finalAmount > 0 ? 'text-red-600' : 'text-green-600';
+    // Use the pre-calculated amount from backend (already correct in the table)
+    const finalAmount = itemData.amount || 0;
+    const netAmount = itemData.net_amount || 0;
+    const finalColor = netAmount > 0 ? 'text-red-600' : 'text-green-600';
+    const finalText = netAmount > 0 ? `(Arun owes ${personName})` : `(${personName} owes Arun)`;
 
-    html += `<div class="flex flex-col items-start pt-3 border-t-2 border-gray-300">
-                <span class="font-bold text-gray-900 mb-2">${finalLabel}</span>
-                <span class="font-black text-4xl ${finalColor}">
-                    $${Math.abs(finalAmount).toFixed(2)}
+    html += `<div class="flex flex-col items-center pt-3 border-t-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
+                <span class="font-bold text-gray-700 mb-1 text-xs">${finalText}</span>
+                <span class="font-black text-3xl ${finalColor}">
+                    $${parseFloat(finalAmount).toFixed(2)}
                 </span>
              </div>`;
 
     html += '</div>';
     details.innerHTML = html;
 
+    // Show modal consistently
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+    modal.style.display = 'flex';
+    
+    console.log('Modal displayed via openBreakdownModal');
 }
 
 function closeBreakdownModal(event) {
     if (!event || event.target.id === 'breakdownModal') {
-        document.getElementById('breakdownModal').classList.add('hidden');
-        document.getElementById('breakdownModal').classList.remove('flex');
+        const modal = document.getElementById('breakdownModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.style.display = '';
+        console.log('Modal closed');
     }
 }
 
@@ -874,6 +947,30 @@ function copySuggestion(text) {
         buttons.forEach((btn, idx) => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation(); // Prevent event from bubbling to modal close handlers
+                
+                // Get structured data
+                const personName = this.getAttribute('data-person-name');
+                const encodedItemData = this.getAttribute('data-item-json');
+                
+                if (encodedItemData && personName) {
+                    try {
+                        const itemDataJson = atob(encodedItemData);
+                        const itemData = JSON.parse(itemDataJson);
+                        console.log('Opening breakdown for:', personName);
+                        console.log('Item data:', itemData);
+                        
+                        // Use setTimeout to ensure modal opens after any close handlers finish
+                        setTimeout(() => {
+                            openBreakdownModal(personName, itemData);
+                        }, 10);
+                        return;
+                    } catch (error) {
+                        console.error('Error parsing item data:', error);
+                    }
+                }
+                
+                // Fallback to old text-based breakdown
                 const encodedBreakdown = this.getAttribute('data-breakdown');
                 if (encodedBreakdown) {
                     try {
