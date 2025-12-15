@@ -73,9 +73,57 @@
 
             <!-- Personal Settlement Section -->
             <div>
-                <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Your Settlement</h2>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">💳 Your Settlement</h2>
                 @if(count($personalSettlement) > 0)
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                
+                <!-- Mobile Cards (hidden on sm+) -->
+                <div class="sm:hidden space-y-3 mb-4">
+                    @foreach($personalSettlement as $item)
+                        @php
+                            $isOwed = $item['net_amount'] > 0;
+                            $finalAmount = abs($item['net_amount']);
+                        @endphp
+                        <div class="bg-white rounded-xl shadow-sm border-2 {{ $isOwed ? 'border-red-200' : 'border-green-200' }} p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 rounded-full bg-gradient-to-br {{ $isOwed ? 'from-red-400 to-red-500' : 'from-green-400 to-green-500' }} flex items-center justify-center">
+                                        <span class="text-lg font-bold text-white">{{ strtoupper(substr($item['user']->name, 0, 1)) }}</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-gray-900">{{ $item['user']->name }}</p>
+                                        <p class="text-xs {{ $isOwed ? 'text-red-600' : 'text-green-600' }} font-semibold">
+                                            {{ $isOwed ? 'You Owe' : 'Owes You' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-2xl font-black {{ $isOwed ? 'text-red-600' : 'text-green-600' }}">
+                                        ${{ number_format($finalAmount, 2) }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                @if($isOwed && isset($item['split_ids']) && count($item['split_ids']) > 0)
+                                    <button onclick="openPaymentModal('{{ $item['split_ids'][0] }}', '{{ addslashes($item['user']->name) }}', '{{ $finalAmount }}')" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">
+                                        💸 Pay Now
+                                    </button>
+                                @elseif(!$isOwed)
+                                    <button type="button"
+                                            class="mark-paid-btn-history flex-1 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700"
+                                            data-member-name="{{ $item['user']->name }}"
+                                            data-member-id="{{ $item['user']->id }}"
+                                            data-is-user="true"
+                                            data-suggested-amount="{{ $finalAmount }}">
+                                        ✅ Mark Paid
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <!-- Desktop Table (hidden on mobile) -->
+                <div class="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
@@ -278,13 +326,13 @@
 
     <!-- Overall Settlement Matrix (visible to everyone) -->
     <div>
-        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Overall Group Settlement</h2>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">📊 Overall Group Settlement</h2>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 <table class="w-full text-xs sm:text-sm">
                     <thead>
                         <tr class="bg-gray-50 border-b border-gray-200">
-                            <th class="px-3 sm:px-4 py-3 text-left font-bold text-gray-600 text-xs uppercase">Person</th>
+                            <th class="sticky left-0 z-10 bg-gray-50 px-3 sm:px-4 py-3 text-left font-bold text-gray-600 text-xs uppercase shadow-sm">Person</th>
                             @foreach($overallSettlement as $memberId => $data)
                                 <th class="px-2 sm:px-3 py-3 text-center font-bold text-gray-700 whitespace-nowrap text-xs sm:text-sm">
                                     <div>{{ substr($data['user']->name, 0, 2) }}</div>
@@ -298,7 +346,7 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach($overallSettlement as $fromMemberId => $fromData)
                             <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-3 sm:px-4 py-3 font-semibold text-gray-900 text-sm whitespace-nowrap">
+                                <td class="sticky left-0 z-10 bg-white px-3 sm:px-4 py-3 font-semibold text-gray-900 text-sm whitespace-nowrap shadow-sm">
                                     <div class="flex items-center gap-2">
                                         <span>{{ $fromData['user']->name }}</span>
                                         @if($fromData['is_contact'])
@@ -439,7 +487,46 @@
     <div>
         <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4">📜 Transaction History</h2>
         @if(count($transactionHistory) > 0)
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            
+            <!-- Mobile Cards (hidden on sm+) -->
+            <div class="sm:hidden space-y-3 mb-4">
+                @foreach($transactionHistory as $transaction)
+                    @php
+                        $isExpense = $transaction['type'] === 'expense';
+                    @endphp
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br {{ $isExpense ? 'from-blue-400 to-blue-500' : 'from-green-400 to-green-500' }} flex items-center justify-center">
+                                    <span class="text-sm font-bold text-white">{{ strtoupper(substr($transaction['payer']->name, 0, 1)) }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">{{ $transaction['payer']->name }}</p>
+                                    <p class="text-xs text-gray-500">{{ $transaction['timestamp']->format('M d, h:i A') }}</p>
+                                </div>
+                            </div>
+                            <p class="text-lg font-black {{ $isExpense ? 'text-blue-600' : 'text-green-600' }}">
+                                ${{ number_format($transaction['amount'], 2) }}
+                            </p>
+                        </div>
+                        <div class="pt-2 border-t border-gray-100">
+                            <p class="text-sm font-medium text-gray-900">{{ $transaction['title'] }}</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                @if($isExpense)
+                                    💰 Added expense
+                                @else
+                                    @if(isset($transaction['recipient']))
+                                        ✓ Payment to {{ $transaction['recipient']->name }}
+                                    @endif
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <!-- Desktop Table (hidden on mobile) -->
+            <div class="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>

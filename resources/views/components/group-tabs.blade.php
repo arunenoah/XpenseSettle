@@ -1,7 +1,7 @@
 @props(['group', 'active' => 'dashboard'])
 
 <!-- Mobile-Responsive Group Navigation Tabs -->
-<div class="px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200 sticky top-16 z-40 shadow-sm">
+<div class="px-4 sm:px-6 lg:px-8 bg-white border-b border-gray-200 sticky top-28 sm:top-16 z-50 shadow-sm">
     <div class="max-w-7xl mx-auto flex gap-1 sm:gap-8 overflow-x-auto scrollbar-hide">
 
         <!-- All Groups Link -->
