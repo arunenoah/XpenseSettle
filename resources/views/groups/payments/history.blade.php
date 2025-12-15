@@ -505,7 +505,63 @@
             </div>
         </div>
     @endif
-    @if($payments->count() === 0 && $advances->count() === 0)
+
+    <!-- Received Payments Section -->
+    @php
+        $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->with('fromUser', 'toUser')
+            ->latest()
+            ->get();
+    @endphp
+
+    @if($receivedPayments->count() > 0)
+        <div class="bg-gradient-to-br from-teal-50 via-emerald-50 to-green-50 rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-4 sm:px-6 py-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <span class="text-3xl">💸</span>
+                    <span>Received Payments</span>
+                </h2>
+
+                <div class="space-y-4">
+                    @foreach($receivedPayments as $payment)
+                        @php
+                            $isFromMe = $payment->from_user_id === auth()->id();
+                            $isToMe = $payment->to_user_id === auth()->id();
+                        @endphp
+                        <div class="bg-white rounded-xl p-5 border-2 {{ $isToMe ? 'border-teal-200' : 'border-purple-200' }} shadow-sm">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3 flex-1">
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br {{ $isToMe ? 'from-teal-400 to-emerald-400' : 'from-purple-400 to-pink-400' }} flex items-center justify-center flex-shrink-0">
+                                        <span class="text-sm font-bold text-white">{{ $isToMe ? '💰' : '💸' }}</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-bold text-gray-900">
+                                            {{ $payment->fromUser->name }} → {{ $payment->toUser->name }}
+                                        </p>
+                                        <p class="text-sm {{ $isToMe ? 'text-teal-600' : 'text-purple-600' }} font-semibold">
+                                            {{ $isToMe ? 'You received' : 'You sent' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold {{ $isToMe ? 'text-teal-600' : 'text-purple-600' }}">${{ number_format($payment->amount, 2) }}</p>
+                                    <p class="text-xs text-gray-500">{{ ($payment->payment_date ?? $payment->created_at)->format('M d, Y') }}</p>
+                                </div>
+                            </div>
+
+                            @if($payment->notes)
+                                <div class="pt-3 border-t border-gray-200">
+                                    <p class="text-sm text-gray-600">💬 {{ $payment->notes }}</p>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($payments->count() === 0 && $advances->count() === 0 && $receivedPayments->count() === 0)
         <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl shadow-lg p-8 text-center">
             <p class="text-4xl mb-4">📭</p>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">No Payments Yet</h2>
