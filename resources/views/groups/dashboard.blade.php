@@ -580,7 +580,6 @@
 
         <form id="groupPaymentForm" method="POST" enctype="multipart/form-data">
             @csrf
-            @method('PUT')
 
             <div class="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
                 <p class="text-sm text-gray-600">Paying to:</p>
