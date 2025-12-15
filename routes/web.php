@@ -98,6 +98,7 @@ Route::middleware('auth')->group(function () {
 
     // Settlement Management (nested under groups)
     Route::post('/groups/{group}/settlements/confirm', [SettlementController::class, 'confirmSettlement'])->name('groups.settlements.confirm');
+    Route::post('/groups/{group}/manual-settle', [PaymentController::class, 'manualSettle'])->name('groups.manual-settle');
     Route::get('/groups/{group}/settlements/history', [SettlementController::class, 'getSettlementHistory'])->name('groups.settlements.history');
     Route::get('/groups/{group}/settlements/unsettled', [SettlementController::class, 'getUnsettledTransactions'])->name('groups.settlements.unsettled');
 

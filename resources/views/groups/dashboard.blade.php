@@ -287,11 +287,18 @@
                             </div>
                             <div class="text-right flex-shrink-0">
                                 <p class="font-black text-base {{ $textColor }}">${{ number_format($item['amount'], 2) }}</p>
-                                @if($item['net_amount'] > 0 && isset($item['split_ids']) && count($item['split_ids']) > 0)
-                                    <button onclick="openGroupPaymentModal({{ json_encode($item['split_ids']) }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
-                                            class="mt-1 px-2 py-0.5 bg-green-500 text-white rounded text-xs font-bold">
-                                        ✓ Pay
-                                    </button>
+                                @if($item['net_amount'] > 0)
+                                    @if(isset($item['split_ids']) && count($item['split_ids']) > 0)
+                                        <button onclick="openGroupPaymentModal({{ json_encode($item['split_ids']) }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
+                                                class="mt-1 px-2 py-0.5 bg-green-500 text-white rounded text-xs font-bold">
+                                            ✓ Pay
+                                        </button>
+                                    @else
+                                        <button onclick="openManualSettleModal('{{ $item['user']->name }}', {{ $item['user']->id }}, {{ $item['amount'] }})"
+                                                class="mt-1 px-2 py-0.5 bg-blue-500 text-white rounded text-xs font-bold">
+                                            ⚡ Settle
+                                        </button>
+                                    @endif
                                 @endif
                             </div>
                         </div>
@@ -573,6 +580,37 @@
     </div>
 </div>
 
+<!-- Manual Settlement Modal -->
+<div id="manualSettleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+        <h3 class="text-2xl font-black text-gray-900 mb-4">⚡ Settle Balance</h3>
+
+        <div class="mb-4 p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200">
+            <p class="text-sm text-gray-600">Settling with:</p>
+            <p class="text-lg font-black text-gray-900" id="settleUserName"></p>
+            <p class="text-3xl font-black text-blue-600 mt-2" id="settleAmount"></p>
+        </div>
+
+        <div class="mb-4 p-4 bg-amber-50 rounded-lg border-l-4 border-amber-500">
+            <p class="text-sm text-amber-900">
+                <strong>ℹ️ Note:</strong> This will create a manual settlement record to clear this balance.
+            </p>
+            <p class="text-xs text-amber-800 mt-2">
+                This is for balances without specific expense splits (e.g., rounding differences, adjustments).
+            </p>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="button" onclick="closeManualSettleModal()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-bold">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmManualSettle()" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold">
+                Settle
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Payment Modal -->
 <div id="groupPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true" data-modal-func="closeGroupPaymentModal">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" data-stop-propagation="true">
@@ -688,6 +726,56 @@ function closeGroupPaymentModal(event) {
         const modal = document.getElementById('groupPaymentModal');
         modal.classList.add('hidden');
     }
+}
+
+let settleData = {};
+
+function openManualSettleModal(userName, userId, amount) {
+    // Store data for later use
+    settleData = { userName, userId, amount };
+    
+    // Update modal content
+    document.getElementById('settleUserName').textContent = userName;
+    document.getElementById('settleAmount').textContent = '$' + amount.toFixed(2);
+    
+    // Show modal
+    document.getElementById('manualSettleModal').classList.remove('hidden');
+}
+
+function closeManualSettleModal() {
+    document.getElementById('manualSettleModal').classList.add('hidden');
+    settleData = {};
+}
+
+function confirmManualSettle() {
+    // Create a form and submit it
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/groups/{{ $group->id }}/manual-settle';
+    
+    // CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = '_token';
+    csrfInput.value = '{{ csrf_token() }}';
+    form.appendChild(csrfInput);
+    
+    // User ID
+    const userInput = document.createElement('input');
+    userInput.type = 'hidden';
+    userInput.name = 'user_id';
+    userInput.value = settleData.userId;
+    form.appendChild(userInput);
+    
+    // Amount
+    const amountInput = document.createElement('input');
+    amountInput.type = 'hidden';
+    amountInput.name = 'amount';
+    amountInput.value = settleData.amount;
+    form.appendChild(amountInput);
+    
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function toggleAttachments(paymentId) {

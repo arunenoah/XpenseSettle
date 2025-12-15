@@ -941,6 +941,41 @@ class PaymentController extends Controller
     }
 
     /**
+     * Manual settlement for balances without specific split_ids (e.g., rounding differences, adjustments).
+     */
+    public function manualSettle(Request $request, Group $group)
+    {
+        $user = auth()->user();
+        
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'amount' => 'required|numeric|min:0.01',
+        ]);
+        
+        $otherUser = \App\Models\User::findOrFail($validated['user_id']);
+        
+        // Create a manual settlement record as an advance payment
+        $advance = new \App\Models\Advance();
+        $advance->group_id = $group->id;
+        $advance->from_user_id = $user->id;
+        $advance->to_user_id = $otherUser->id;
+        $advance->amount = $validated['amount'];
+        $advance->description = "Manual settlement - clearing balance";
+        $advance->save();
+        
+        // Log the manual settlement
+        $this->auditService->logSuccess(
+            'manual_settle',
+            'Advance',
+            "Manual settlement of \${$validated['amount']} from {$user->name} to {$otherUser->name} in group '{$group->name}'",
+            $advance->id,
+            $group->id
+        );
+        
+        return back()->with('success', "Balance of \${$validated['amount']} settled with {$otherUser->name}!");
+    }
+
+    /**
      * Approve a payment (for payer/admin).
      */
     public function approve(Request $request, Payment $payment)
