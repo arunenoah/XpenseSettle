@@ -506,7 +506,7 @@ class PaymentController extends Controller
 
         // Get all expenses in the group
         $expenses = Expense::where('group_id', $group->id)
-            ->with(['payer', 'splits.user', 'splits.payment'])
+            ->with(['payer', 'splits.user', 'splits.payment', 'attachments'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -522,6 +522,8 @@ class PaymentController extends Controller
                 'participants_count' => $expense->splits->count(),
                 'split_type' => $expense->split_type,
                 'expense_id' => $expense->id,
+                'attachments' => $expense->attachments,
+                'has_attachments' => $expense->attachments->count() > 0,
             ];
         }
 

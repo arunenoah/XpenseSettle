@@ -359,7 +359,14 @@
                             </p>
                         </div>
                         <div class="pt-2 border-t border-gray-100">
-                            <p class="text-sm font-medium text-gray-900">{{ $transaction['title'] }}</p>
+                            <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                {{ $transaction['title'] }}
+                                @if($isExpense && isset($transaction['has_attachments']) && $transaction['has_attachments'])
+                                    <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
+                                        📎 {{ $transaction['attachments']->count() }}
+                                    </span>
+                                @endif
+                            </p>
                             <p class="text-xs text-gray-500 mt-1">
                                 @if($isExpense)
                                     💰 Added expense
@@ -416,7 +423,14 @@
                                     <td class="px-3 sm:px-4 py-3">
                                         <div class="flex flex-col gap-0.5">
                                             @if($isExpense)
-                                                <span class="text-xs font-medium text-gray-900">{{ $transaction['title'] }}</span>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-medium text-gray-900">{{ $transaction['title'] }}</span>
+                                                    @if(isset($transaction['has_attachments']) && $transaction['has_attachments'])
+                                                        <span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
+                                                            📎 {{ $transaction['attachments']->count() }}
+                                                        </span>
+                                                    @endif
+                                                </div>
                                                 <span class="text-xs text-gray-500">💰 Added expense</span>
                                             @else
                                                 <span class="text-xs font-medium text-gray-900">{{ $transaction['title'] }}</span>
