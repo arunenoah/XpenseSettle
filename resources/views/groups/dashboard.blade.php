@@ -270,6 +270,11 @@
             <div class="space-y-2">
                 @foreach($settlement as $item)
                     @php
+                        // Skip settlements with negligible or zero amounts
+                        if (abs($item['net_amount']) < 0.01) {
+                            continue;
+                        }
+
                         $isOwed = $item['net_amount'] > 0;
                         $bgColor = $isOwed ? 'bg-red-50' : 'bg-green-50';
                         $borderColor = $isOwed ? 'border-red-200' : 'border-green-200';
