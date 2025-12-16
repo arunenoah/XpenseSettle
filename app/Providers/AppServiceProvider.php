@@ -25,10 +25,5 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('nonce', function () {
             return "<?php echo request()->attributes->get('nonce', ''); ?>";
         });
-
-        // Register a Blade macro for formatting currency with 1 decimal place
-        Blade::macro('currency', function ($amount, $decimals = 1) {
-            return number_format($amount, $decimals, '.', '');
-        });
     }
 }

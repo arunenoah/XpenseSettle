@@ -116,14 +116,14 @@
                 <!-- You Owe -->
                 <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-6">
                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-2">You Owe</h3>
-                    <p class="text-lg sm:text-3xl font-bold text-red-600">{{ $group->currency }}@currency($totalOwed)</p>
+                    <p class="text-lg sm:text-3xl font-bold text-red-600">{{ $group->currency }}{{ formatCurrency($totalOwed) }}</p>
                     <p class="hidden sm:block text-xs text-gray-500 mt-2">Amount owed in this group</p>
                 </div>
 
                 <!-- They Owe You -->
                 <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-6">
                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-2">They Owe You</h3>
-                    <p class="text-lg sm:text-3xl font-bold text-green-600">{{ $group->currency }}@currency($totalOwe)</p>
+                    <p class="text-lg sm:text-3xl font-bold text-green-600">{{ $group->currency }}{{ formatCurrency($totalOwe) }}</p>
                     <p class="hidden sm:block text-xs text-gray-500 mt-2">Amount owed to you</p>
                 </div>
 
@@ -131,7 +131,7 @@
                 <div class="bg-white rounded-lg shadow-sm border {{ $netBalance >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-6">
                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-2">Your Balance</h3>
                     <p class="text-lg sm:text-3xl font-bold {{ $netBalance >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                        {{ $netBalance >= 0 ? '+' : '' }}{{ $group->currency }}@currency(abs($netBalance))
+                        {{ $netBalance >= 0 ? '+' : '' }}{{ $group->currency }}{{ formatCurrency(abs($netBalance)) }}
                     </p>
                     <p class="hidden sm:block text-xs text-gray-500 mt-2">{{ $netBalance >= 0 ? 'You are owed' : 'You owe' }}</p>
                 </div>
@@ -145,9 +145,9 @@
                         <span class="text-xl sm:text-2xl">💰</span>
                         <h3 class="text-xs sm:text-sm font-semibold text-purple-900">Member Share</h3>
                     </div>
-                    <p class="text-lg sm:text-3xl font-bold text-purple-700">{{ $group->currency }}@currency($perMemberShare)</p>
+                    <p class="text-lg sm:text-3xl font-bold text-purple-700">{{ $group->currency }}{{ formatCurrency($perMemberShare) }}</p>
                     <p class="text-xs text-purple-600 mt-1 sm:mt-2">
-                        <span class="font-semibold">Total: {{ $group->currency }}@currency($totalFamilyCost)</span>
+                        <span class="font-semibold">Total: {{ $group->currency }}{{ formatCurrency($totalFamilyCost) }}</span>
                     </p>
                 </div>
 
@@ -157,7 +157,7 @@
                         <span class="text-xl sm:text-2xl">👤</span>
                         <h3 class="text-xs sm:text-sm font-semibold text-blue-900">Per Head Cost</h3>
                     </div>
-                    <p class="text-lg sm:text-3xl font-bold text-blue-700">{{ $group->currency }}@currency($perHeadCost)</p>
+                    <p class="text-lg sm:text-3xl font-bold text-blue-700">{{ $group->currency }}{{ formatCurrency($perHeadCost) }}</p>
                     <p class="text-xs text-blue-600 mt-1 sm:mt-2">
                         <span class="font-semibold">{{ $totalFamilyCount }} family members</span>
                         <span class="hidden sm:inline"> total</span>
@@ -225,16 +225,16 @@
                     <div class="space-y-1">
                         <div class="flex justify-between items-center text-xs">
                             <span class="font-semibold text-gray-600">💸 Paid</span>
-                            <span class="font-bold text-gray-900">${{ @currency($balance['total_paid']) }}</span>
+                            <span class="font-bold text-gray-900">${{ formatCurrency($balance['total_paid']) }}</span>
                         </div>
                         <div class="flex justify-between items-center text-xs">
                             <span class="font-semibold text-gray-600">💰 Share</span>
-                            <span class="font-bold text-gray-900">${{ @currency($balance['total_owed']) }}</span>
+                            <span class="font-bold text-gray-900">${{ formatCurrency($balance['total_owed']) }}</span>
                         </div>
                         @if(isset($memberAdvances[$balance['user']->id]) && $memberAdvances[$balance['user']->id] > 0)
                             <div class="flex justify-between items-center text-xs">
                                 <span class="font-semibold text-blue-600">🚀 Adv</span>
-                                <span class="font-bold text-blue-600">${{ @currency($memberAdvances[$balance['user']->id]) }}</span>
+                                <span class="font-bold text-blue-600">${{ formatCurrency($memberAdvances[$balance['user']->id]) }}</span>
                             </div>
                         @endif
                         <div class="pt-1 sm:pt-2 border-t border-gray-100">
@@ -243,7 +243,7 @@
                                     {{ $balance['net_balance'] >= 0 ? '🤑' : '😬' }}
                                 </span>
                                 <span class="text-base sm:text-lg font-black {{ $balance['net_balance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $balance['net_balance'] >= 0 ? '+' : '' }}${{ @currency(abs($balance['net_balance'])) }}
+                                    {{ $balance['net_balance'] >= 0 ? '+' : '' }}${{ formatCurrency(abs($balance['net_balance'])) }}
                                 </span>
                             </div>
                         </div>
@@ -291,7 +291,7 @@
                                 </div>
                             </div>
                             <div class="text-right flex-shrink-0">
-                                <p class="font-black text-base {{ $textColor }}">${{ @currency($item['amount']) }}</p>
+                                <p class="font-black text-base {{ $textColor }}">${{ formatCurrency($item['amount']) }}</p>
                                 @if($item['net_amount'] > 0)
                                     @if(isset($item['split_ids']) && count($item['split_ids']) > 0)
                                         <button onclick="openGroupPaymentModal({{ json_encode($item['split_ids']) }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
