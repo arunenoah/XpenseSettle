@@ -946,23 +946,27 @@ class PaymentController extends Controller
     public function manualSettle(Request $request, Group $group)
     {
         $user = auth()->user();
-        
+
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'amount' => 'required|numeric|min:0.01',
         ]);
-        
+
         $otherUser = \App\Models\User::findOrFail($validated['user_id']);
-        
+
         // Create a manual settlement record as an advance payment
+        // Advances are created with sent_to_user_id (recipient) and tracked senders via pivot table
         $advance = new \App\Models\Advance();
         $advance->group_id = $group->id;
-        $advance->from_user_id = $user->id;
-        $advance->to_user_id = $otherUser->id;
-        $advance->amount = $validated['amount'];
+        $advance->sent_to_user_id = $otherUser->id;  // The person receiving the advance
+        $advance->amount_per_person = $validated['amount'];
+        $advance->date = now()->toDateString();
         $advance->description = "Manual settlement - clearing balance";
         $advance->save();
-        
+
+        // Add the current user as the sender of this advance
+        $advance->senders()->attach($user->id);
+
         // Log the manual settlement
         $this->auditService->logSuccess(
             'manual_settle',
@@ -971,7 +975,7 @@ class PaymentController extends Controller
             $advance->id,
             $group->id
         );
-        
+
         return back()->with('success', "Balance of \${$validated['amount']} settled with {$otherUser->name}!");
     }
 
