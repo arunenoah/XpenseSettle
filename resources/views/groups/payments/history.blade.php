@@ -646,12 +646,13 @@ function openBreakdownModal(personName, itemData) {
 
     // Separate regular expenses from adjustments
     let adjustments = [];
-    
+
     if (itemData.expenses && itemData.expenses.length > 0) {
         itemData.expenses.forEach(exp => {
             // Check if this is an adjustment (advance or payment)
-            if (exp.title === 'Advance paid' || exp.title === 'Advance received' || 
-                exp.title === 'Payment received' || exp.title === 'Payment sent') {
+            if (exp.title === 'Advance paid' || exp.title === 'Advance received' ||
+                exp.title === 'Payment received' || exp.title === 'Payment sent' ||
+                exp.title === 'Payment Sent' || exp.title === 'Payment Received') {
                 adjustments.push(exp);
             } else if (exp.type === 'you_owe') {
                 // They paid it, you need to reimburse them

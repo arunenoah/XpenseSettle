@@ -299,6 +299,7 @@ class PaymentController extends Controller
         // They should only be applied to the settlement between senders and the recipient
         // Track: [senderId][recipientId] => total_credit
         $advanceCreditPerPersonPair = []; // senderId => [recipientId => amount]
+        $advanceTypePerPersonPair = []; // senderId => [recipientId => type] ('advance' or 'manual_settlement')
 
         $advances = \App\Models\Advance::where('group_id', $group->id)
             ->with(['senders', 'sentTo'])
@@ -307,6 +308,9 @@ class PaymentController extends Controller
         foreach ($advances as $advance) {
             $recipientId = $advance->sent_to_user_id;
             $senders = $advance->senders;
+
+            // Determine if this is a manual settlement or regular advance
+            $isManualSettlement = strpos($advance->description, 'Manual settlement') !== false;
 
             // Get recipient's family count
             $recipientFamilyCount = $group->members()
@@ -352,9 +356,11 @@ class PaymentController extends Controller
                     // Track advance per sender-recipient pair
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
                         $advanceCreditPerPersonPair[$senderId] = [];
+                        $advanceTypePerPersonPair[$senderId] = [];
                     }
                     if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
                         $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
+                        $advanceTypePerPersonPair[$senderId][$recipientId] = $isManualSettlement ? 'manual_settlement' : 'advance';
                     }
                     $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
 
@@ -369,9 +375,11 @@ class PaymentController extends Controller
                     // Track this as an advance received
                     if (!isset($advanceCreditPerPersonPair[$senderId])) {
                         $advanceCreditPerPersonPair[$senderId] = [];
+                        $advanceTypePerPersonPair[$senderId] = [];
                     }
                     if (!isset($advanceCreditPerPersonPair[$senderId][$recipientId])) {
                         $advanceCreditPerPersonPair[$senderId][$recipientId] = 0;
+                        $advanceTypePerPersonPair[$senderId][$recipientId] = $isManualSettlement ? 'manual_settlement' : 'advance';
                     }
                     $advanceCreditPerPersonPair[$senderId][$recipientId] += $senderAdvanceCredit;
                 }
@@ -380,23 +388,26 @@ class PaymentController extends Controller
 
         // Add aggregated advance entries to relevant settlements
         // Advances appear in two cases:
-        // 1. Sender's settlement: "Advance paid" (credit, reduces their debt)
-        // 2. Recipient's settlement: "Advance received" (credit, reduces their debt)
+        // 1. Sender's settlement: "Advance paid" or "Payment Sent" (credit, reduces their debt)
+        // 2. Recipient's settlement: "Advance received" or "Payment Received" (credit, reduces their debt)
         foreach ($advanceCreditPerPersonPair as $senderId => $recipients) {
             foreach ($recipients as $recipientId => $advanceAmount) {
+                $isManualSettlement = isset($advanceTypePerPersonPair[$senderId][$recipientId]) &&
+                                     $advanceTypePerPersonPair[$senderId][$recipientId] === 'manual_settlement';
+
                 if ($senderId === $user->id && isset($netBalances[$recipientId])) {
                     // CASE 1: Current user is the SENDER
-                    // Show "Advance paid" in sender's settlement with recipient
+                    $title = $isManualSettlement ? 'Payment sent' : 'Advance paid';
                     $netBalances[$recipientId]['expenses'][] = [
-                        'title' => 'Advance paid',
+                        'title' => $title,
                         'amount' => $advanceAmount,
                         'type' => 'advance',
                     ];
                 } elseif ($recipientId === $user->id && isset($netBalances[$senderId])) {
                     // CASE 2: Current user is the RECIPIENT
-                    // Show "Advance received" in recipient's settlement with sender
+                    $title = $isManualSettlement ? 'Payment received' : 'Advance received';
                     $netBalances[$senderId]['expenses'][] = [
-                        'title' => 'Advance received',
+                        'title' => $title,
                         'amount' => $advanceAmount,
                         'type' => 'advance',
                     ];
