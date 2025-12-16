@@ -37,10 +37,9 @@
         </a>
 
         <!-- All Expenses Tab -->
-        <a href="#"
-           data-show-expenses-modal="true"
+        <a href="{{ route('groups.payments.history', $group) }}"
            title="All Expenses"
-           class="flex items-center gap-2 px-2 sm:px-4 py-4 border-b-2 {{ $active === 'expenses' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }} font-semibold text-sm whitespace-nowrap transition-colors cursor-pointer">
+           class="flex items-center gap-2 px-2 sm:px-4 py-4 border-b-2 {{ $active === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }} font-semibold text-sm whitespace-nowrap transition-colors">
             <span class="text-lg sm:text-base">📋</span>
             <span class="hidden sm:inline">All Expenses</span>
         </a>
