@@ -53,7 +53,7 @@
                                     <span class="text-lg sm:text-2xl">📤</span>
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-1 sm:mb-2">
-                                    {{ $currencySymbols[$currency] ?? $currency }}{{ number_format($balances['you_owe'], 2) }}
+                                    {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['you_owe']) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
                                     Amount owed in {{ $currency }}
@@ -67,7 +67,7 @@
                                     <span class="text-lg sm:text-2xl">📥</span>
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-1 sm:mb-2">
-                                    {{ $currencySymbols[$currency] ?? $currency }}{{ number_format($balances['they_owe'], 2) }}
+                                    {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['they_owe']) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
                                     Amount owed to you
@@ -81,7 +81,7 @@
                                     <span class="text-lg sm:text-2xl">{{ $balances['net'] >= 0 ? '✅' : '⚠️' }}</span>
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold {{ $balances['net'] >= 0 ? 'text-green-600' : 'text-red-600' }} mb-1 sm:mb-2">
-                                    {{ $balances['net'] >= 0 ? '+' : '' }}{{ $currencySymbols[$currency] ?? $currency }}{{ number_format(abs($balances['net']), 2) }}
+                                    {{ $balances['net'] >= 0 ? '+' : '' }}{{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency(abs($balances['net'])) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
                                     {{ $balances['net'] >= 0 ? 'You are owed' : 'You owe' }}

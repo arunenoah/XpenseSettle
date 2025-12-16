@@ -52,7 +52,7 @@
                                 <p class="text-xs text-gray-500 mt-1">{{ $expense->date->format('M d, Y') }}</p>
                             </div>
                             <div class="flex-shrink-0 text-right">
-                                <p class="font-bold text-lg text-gray-900">{{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($expense->amount, 2) }}</p>
+                                <p class="font-bold text-lg text-gray-900">{{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ formatCurrency($expense->amount) }}</p>
                                 <span class="inline-block mt-1 px-2 py-1 {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }} text-xs font-semibold rounded">
                                     {{ ucfirst(str_replace('_', ' ', $expense->status)) }}
                                 </span>
@@ -78,7 +78,7 @@
                                                     <span class="text-xs text-cyan-600">(Contact)</span>
                                                 @endif
                                             </span>
-                                            <span class="text-sm font-semibold text-gray-900">{{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($split->share_amount, 2) }}</span>
+                                            <span class="text-sm font-semibold text-gray-900">{{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ formatCurrency($split->share_amount) }}</span>
                                         </div>
                                     @endforeach
                                 </div>

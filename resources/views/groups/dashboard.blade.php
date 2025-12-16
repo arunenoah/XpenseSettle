@@ -175,15 +175,15 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-gray-600 mb-1">💰 Total</p>
-                <p class="text-xl font-black text-gray-900">${{ number_format($totalOwed + $totalOwe, 2) }}</p>
+                <p class="text-xl font-black text-gray-900">${{ formatCurrency($totalOwed + $totalOwe) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-red-600 mb-1">😬 You Owe</p>
-                <p class="text-xl font-black text-red-600">${{ number_format($totalOwed, 2) }}</p>
+                <p class="text-xl font-black text-red-600">${{ formatCurrency($totalOwed) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-green-600 mb-1">🤑 They Owe</p>
-                <p class="text-xl font-black text-green-600">${{ number_format($totalOwe, 2) }}</p>
+                <p class="text-xl font-black text-green-600">${{ formatCurrency($totalOwe) }}</p>
             </div>
             <div class="bg-white rounded-xl p-3 shadow-sm">
                 <p class="text-xs font-bold text-blue-600 mb-1">📝 Expenses</p>
@@ -420,11 +420,11 @@
                                     </div>
                                     @if($isPayer)
                                         <p class="text-xs font-bold text-green-600 mt-1">
-                                            💵 Others owe you: ${{ number_format($othersOwe, 2) }}
+                                            💵 Others owe you: ${{ formatCurrency($othersOwe) }}
                                         </p>
                                     @else
                                         <p class="text-xs font-bold text-orange-600 mt-1">
-                                            💸 You owe: ${{ number_format($userOwes, 2) }}
+                                            💸 You owe: ${{ formatCurrency($userOwes) }}
                                         </p>
                                     @endif
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
@@ -432,7 +432,7 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($expense->amount, 2) }}</p>
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($expense->amount) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 text-xs font-bold rounded-full">
                                         {{ ucfirst(str_replace('_', ' ', $expense->split_type)) }}
                                     </span>
@@ -483,7 +483,7 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($payment->split->share_amount, 2) }}</p>
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($payment->split->share_amount) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
                                         {{ $isReceived ? '✓ Received' : '✓ Sent' }}
                                     </span>
@@ -536,7 +536,7 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($advance->amount_per_person, 2) }}</p>
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($advance->amount_per_person) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
                                         {{ $badgeLabel }}
                                     </span>
@@ -586,7 +586,7 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($receivedPayment->amount, 2) }}</p>
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($receivedPayment->amount) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
                                         ✓ {{ $isFromMe ? 'Sent' : 'Received' }}
                                     </span>
@@ -638,7 +638,7 @@
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
                                 <h4 class="font-bold text-gray-900 truncate">{{ $expense->title }}</h4>
-                                <p class="text-sm text-gray-600 mt-1">💰 {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ number_format($expense->amount, 2) }}</p>
+                                <p class="text-sm text-gray-600 mt-1">💰 {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : '₹')) }}{{ formatCurrency($expense->amount) }}</p>
                                 <p class="text-xs text-gray-500 mt-1">📅 {{ $expense->date->format('M d, Y') }} • 👤 {{ $expense->payer->name }}</p>
                             </div>
                             <span class="inline-block px-2 py-1 rounded text-xs font-semibold flex-shrink-0 {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }}">

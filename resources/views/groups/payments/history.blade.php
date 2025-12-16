@@ -212,7 +212,7 @@
                                                         data-person-name="{{ $personName }}"
                                                         data-item-json="{{ base64_encode(json_encode($itemData)) }}"
                                                         style="background: #fee2e2; color: #b91c1c; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
-                                                        ${{ number_format($amount, 2) }}
+                                                        ${{ formatCurrency($amount) }}
                                                     </button>
                                                 @elseif($color === 'green')
                                                     <button class="settlement-btn inline-block px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-bold text-xs whitespace-nowrap cursor-pointer hover:bg-green-200 border-0" 
@@ -220,7 +220,7 @@
                                                         data-person-name="{{ $personName }}"
                                                         data-item-json="{{ base64_encode(json_encode($itemData)) }}"
                                                         style="background: #dcfce7; color: #15803d; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; border: none; cursor: pointer;">
-                                                        ${{ number_format($amount, 2) }}
+                                                        ${{ formatCurrency($amount) }}
                                                     </button>
                                                 @else
                                                     <span class="text-gray-300">—</span>
@@ -313,7 +313,7 @@
                                     </span>
                                 </td>
                                 <td class="px-3 sm:px-4 py-3 text-right">
-                                    <span class="font-bold text-gray-900">${{ number_format($catData['total'], 2) }}</span>
+                                    <span class="font-bold text-gray-900">${{ formatCurrency($catData['total']) }}</span>
                                 </td>
                                 <td class="px-3 sm:px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
@@ -355,7 +355,7 @@
                                 </div>
                             </div>
                             <p class="text-lg font-black {{ $isExpense ? 'text-blue-600' : 'text-green-600' }}">
-                                ${{ number_format($transaction['amount'], 2) }}
+                                ${{ formatCurrency($transaction['amount']) }}
                             </p>
                         </div>
                         <div class="pt-2 border-t border-gray-100">
@@ -430,7 +430,7 @@
                                     <!-- Amount -->
                                     <td class="px-3 sm:px-4 py-3 text-right">
                                         <p class="text-xs font-bold {{ $isExpense ? 'text-blue-600' : 'text-green-600' }}">
-                                            ${{ number_format($transaction['amount'], 2) }}
+                                            ${{ formatCurrency($transaction['amount']) }}
                                         </p>
                                     </td>
                                 </tr>
@@ -474,11 +474,11 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <p class="font-bold text-gray-900">Advanced to {{ $advance->sentTo->name }}</p>
-                                        <p class="text-sm text-gray-600">💰 ${{ number_format($advance->amount_per_person, 2) }} per person</p>
+                                        <p class="text-sm text-gray-600">💰 ${{ formatCurrency($advance->amount_per_person) }} per person</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-lg font-bold text-cyan-600">${{ number_format($advance->amount_per_person * $advance->senders->count(), 2) }}</p>
+                                    <p class="text-lg font-bold text-cyan-600">${{ formatCurrency($advance->amount_per_person * $advance->senders->count()) }}</p>
                                     <p class="text-xs text-gray-500">{{ $advance->created_at->format('M d, Y') }}</p>
                                 </div>
                             </div>
@@ -544,7 +544,7 @@
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-lg font-bold {{ $isToMe ? 'text-teal-600' : 'text-purple-600' }}">${{ number_format($payment->amount, 2) }}</p>
+                                    <p class="text-lg font-bold {{ $isToMe ? 'text-teal-600' : 'text-purple-600' }}">${{ formatCurrency($payment->amount) }}</p>
                                     <p class="text-xs text-gray-500">{{ ($payment->payment_date ?? $payment->created_at)->format('M d, Y') }}</p>
                                 </div>
                             </div>
@@ -910,7 +910,7 @@ function copySuggestion(text) {
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-bold text-gray-900 truncate">{{ $expense->title }}</h4>
-                                    <p class="text-sm text-gray-600 mt-1">💰 ${{ number_format($expense->amount, 2) }}</p>
+                                    <p class="text-sm text-gray-600 mt-1">💰 ${{ formatCurrency($expense->amount) }}</p>
                                     <p class="text-xs text-gray-500 mt-1">📅 {{ $expense->date->format('M d, Y') }} • 👤 {{ $expense->payer->name }}</p>
                                 </div>
                                 <span class="inline-block px-2 py-1 rounded text-xs font-semibold flex-shrink-0 {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }}">

@@ -65,7 +65,7 @@
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3 text-right">
-                                                <span class="font-bold text-green-600">${{ number_format($payment->amount, 2) }}</span>
+                                                <span class="font-bold text-green-600">${{ formatCurrency($payment->amount) }}</span>
                                             </td>
                                             <td class="px-4 py-3">
                                                 <span class="text-gray-600">{{ $payment->received_date->format('M d, Y') }}</span>
@@ -86,7 +86,7 @@
                                         <td colspan="5" class="px-4 py-3">
                                             <div class="flex justify-end items-center gap-4">
                                                 <span class="text-sm font-semibold text-gray-600">Total Received:</span>
-                                                <span class="text-lg font-bold text-green-600">${{ number_format($totalReceived, 2) }}</span>
+                                                <span class="text-lg font-bold text-green-600">${{ formatCurrency($totalReceived) }}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -133,7 +133,7 @@
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3 text-right">
-                                                <span class="font-bold text-blue-600">${{ number_format($payment->amount, 2) }}</span>
+                                                <span class="font-bold text-blue-600">${{ formatCurrency($payment->amount) }}</span>
                                             </td>
                                             <td class="px-4 py-3">
                                                 <span class="text-gray-600">{{ $payment->received_date->format('M d, Y') }}</span>
@@ -154,7 +154,7 @@
                                         <td colspan="5" class="px-4 py-3">
                                             <div class="flex justify-end items-center gap-4">
                                                 <span class="text-sm font-semibold text-gray-600">Total Sent:</span>
-                                                <span class="text-lg font-bold text-blue-600">${{ number_format($totalSent, 2) }}</span>
+                                                <span class="text-lg font-bold text-blue-600">${{ formatCurrency($totalSent) }}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -178,16 +178,16 @@
                 <div class="grid grid-cols-3 gap-4">
                     <div>
                         <p class="text-sm text-gray-600 mb-1">Total Received</p>
-                        <p class="text-2xl font-bold text-green-600">${{ number_format($totalReceived, 2) }}</p>
+                        <p class="text-2xl font-bold text-green-600">${{ formatCurrency($totalReceived) }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600 mb-1">Total Sent</p>
-                        <p class="text-2xl font-bold text-blue-600">${{ number_format($totalSent, 2) }}</p>
+                        <p class="text-2xl font-bold text-blue-600">${{ formatCurrency($totalSent) }}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-600 mb-1">Net Balance</p>
                         <p class="text-2xl font-bold {{ $netAmount >= 0 ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $netAmount >= 0 ? '+' : '−' }}${{ number_format(abs($netAmount), 2) }}
+                            {{ $netAmount >= 0 ? '+' : '−' }}${{ formatCurrency(abs($netAmount)) }}
                         </p>
                     </div>
                 </div>

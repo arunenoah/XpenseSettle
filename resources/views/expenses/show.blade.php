@@ -13,7 +13,7 @@
             </div>
             <div class="text-right">
                 <div class="text-3xl sm:text-4xl font-bold text-blue-600">
-                    {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($expense->amount, 2) }}
+                    {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ formatCurrency($expense->amount) }}
                 </div>
                 <span class="inline-block mt-2 px-3 py-1 rounded-full text-xs font-semibold {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }}">
                     {{ ucfirst(str_replace('_', ' ', $expense->status)) }}
@@ -63,7 +63,7 @@
                         </div>
                         <div class="text-right">
                             <div class="text-lg font-bold text-blue-600">
-                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($item['amount'], 2) }}
+                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ formatCurrency($item['amount']) }}
                             </div>
                             @if($item['paid'])
                                 <span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-semibold">✓ Paid</span>
@@ -80,7 +80,7 @@
                 <div class="flex justify-between items-center">
                     <span class="text-gray-700 font-semibold">Total to be settled:</span>
                     <span class="text-xl font-bold text-blue-600">
-                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format(collect($settlement)->sum('amount'), 2) }}
+                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ formatCurrency(collect($settlement)->sum('amount')) }}
                     </span>
                 </div>
             </div>
@@ -98,12 +98,12 @@
                         <div class="flex-1">
                             <p class="font-semibold text-gray-900">{{ $item->name }}</p>
                             <p class="text-sm text-gray-600 mt-1">
-                                Qty: {{ $item->quantity }} × {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($item->unit_price, 2) }}
+                                Qty: {{ $item->quantity }} × {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ formatCurrency($item->unit_price) }}
                             </p>
                         </div>
                         <div class="text-right">
                             <div class="text-lg font-bold text-blue-600">
-                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($item->total_price, 2) }}
+                                {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ formatCurrency($item->total_price) }}
                             </div>
                             @if($item->user_id)
                                 <p class="text-xs text-gray-600 mt-2 font-semibold">
@@ -135,7 +135,7 @@
                         @endif
                     </div>
                     <span class="font-semibold text-gray-900">
-                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ number_format($split->share_amount, 2) }}
+                        {{ $group->currency === 'USD' ? '$' : ($group->currency === 'EUR' ? '€' : ($group->currency === 'GBP' ? '£' : ($group->currency === 'AUD' ? '$' : '₹'))) }}{{ formatCurrency($split->share_amount) }}
                     </span>
                 </div>
             @empty

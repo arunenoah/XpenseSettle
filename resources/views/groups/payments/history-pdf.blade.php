@@ -169,7 +169,7 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Total Expenses:</div>
-                <div class="info-value">${{ number_format($totalExpenses, 2) }}</div>
+                <div class="info-value">${{ formatCurrency($totalExpenses) }}</div>
             </div>
         </div>
 
@@ -222,7 +222,7 @@
                                     @endphp
 
                                     @if($amount > 0)
-                                        <span class="{{ $class }}">{{ number_format($amount, 2) }}</span>
+                                        <span class="{{ $class }}">{{ formatCurrency($amount) }}</span>
                                     @else
                                         —
                                     @endif
@@ -283,7 +283,7 @@
                             @endif
                         </td>
                         <td class="amount {{ $isExpense ? 'amount-negative' : 'amount-positive' }}">
-                            ${{ number_format($transaction['amount'], 2) }}
+                            ${{ formatCurrency($transaction['amount']) }}
                         </td>
                     </tr>
                 @endforeach
@@ -316,14 +316,14 @@
                     <tr>
                         <td><strong>{{ $catData['category'] }}</strong></td>
                         <td class="amount">{{ $catData['count'] }}</td>
-                        <td class="amount amount-negative">${{ number_format($catData['total'], 2) }}</td>
+                        <td class="amount amount-negative">${{ formatCurrency($catData['total']) }}</td>
                         <td class="amount">{{ number_format($percentage, 1) }}%</td>
                     </tr>
                 @endforeach
                 <tr style="font-weight: bold; border-top: 2px solid #D1D5DB;">
                     <td><strong>TOTAL</strong></td>
                     <td class="amount">{{ collect($categoryBreakdown)->sum('count') }}</td>
-                    <td class="amount amount-negative"><strong>${{ number_format($grandTotal, 2) }}</strong></td>
+                    <td class="amount amount-negative"><strong>${{ formatCurrency($grandTotal) }}</strong></td>
                     <td class="amount"><strong>100.0%</strong></td>
                 </tr>
             </tbody>
@@ -358,12 +358,12 @@
                                 <td style="padding: 5px 6px; font-size: 9px; color: #1F2937;">{{ $expense['title'] }}</td>
                                 <td style="padding: 5px 6px; font-size: 9px; color: #6B7280;">{{ $expense['date']->format('M d, Y') }}</td>
                                 <td style="padding: 5px 6px; font-size: 9px; color: #6B7280;">{{ $expense['payer'] }}</td>
-                                <td style="padding: 5px 6px; text-align: right; font-size: 9px; font-weight: bold; color: #DC2626;">${{ number_format($expense['amount'], 2) }}</td>
+                                <td style="padding: 5px 6px; text-align: right; font-size: 9px; font-weight: bold; color: #DC2626;">${{ formatCurrency($expense['amount']) }}</td>
                             </tr>
                         @endforeach
                         <tr style="font-weight: bold; background-color: #FEF3C7; border-top: 2px solid #D1D5DB;">
                             <td colspan="3" style="padding: 6px; font-size: 9px;">Subtotal for {{ $catData['category'] }}</td>
-                            <td style="padding: 6px; text-align: right; font-size: 9px; color: #DC2626;">${{ number_format($catData['total'], 2) }}</td>
+                            <td style="padding: 6px; text-align: right; font-size: 9px; color: #DC2626;">${{ formatCurrency($catData['total']) }}</td>
                         </tr>
                     </tbody>
                 </table>

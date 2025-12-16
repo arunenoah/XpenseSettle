@@ -326,7 +326,7 @@
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex-1 min-w-0">
                                     <h4 class="font-bold text-gray-900 truncate">{{ $expense->title }}</h4>
-                                    <p class="text-sm text-gray-600 mt-1">💰 ${{ number_format($expense->amount, 2) }}</p>
+                                    <p class="text-sm text-gray-600 mt-1">💰 ${{ formatCurrency($expense->amount) }}</p>
                                     <p class="text-xs text-gray-500 mt-1">📅 {{ $expense->date->format('M d, Y') }} • 👤 {{ $expense->payer->name }}</p>
                                 </div>
                                 <span class="inline-block px-2 py-1 rounded text-xs font-semibold flex-shrink-0 {{ $expense->status === 'fully_paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800' }}">
