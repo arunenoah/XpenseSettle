@@ -491,20 +491,43 @@
                             </div>
                         </div>
                     @elseif($activity['type'] === 'advance')
-                        @php $advance = $activity['data']; @endphp
-                        <div class="bg-white p-5 rounded-xl border-2 border-blue-200 hover:shadow-lg hover:border-blue-400 transition-all transform hover:scale-102">
+                        @php
+                            $advance = $activity['data'];
+                            $isManualSettlement = strpos($advance->description, 'Manual settlement') !== false;
+
+                            if ($isManualSettlement) {
+                                $borderColor = 'border-purple-200';
+                                $hoverBorder = 'hover:border-purple-400';
+                                $titleEmoji = '💸';
+                                $titleText = 'Payment Sent';
+                                $amountColor = 'text-purple-600';
+                                $badgeBg = 'bg-purple-100';
+                                $badgeText = 'text-purple-700';
+                                $badgeLabel = '✓ Sent';
+                            } else {
+                                $borderColor = 'border-blue-200';
+                                $hoverBorder = 'hover:border-blue-400';
+                                $titleEmoji = '🚀';
+                                $titleText = 'Advance Payment';
+                                $amountColor = 'text-blue-600';
+                                $badgeBg = 'bg-blue-100';
+                                $badgeText = 'text-blue-700';
+                                $badgeLabel = '💰 Advance';
+                            }
+                        @endphp
+                        <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
                             <div class="flex items-start justify-between gap-3 mb-2">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
-                                        <span>🚀</span>
-                                        Advance Payment
+                                        <span>{{ $titleEmoji }}</span>
+                                        {{ $titleText }}
                                     </h3>
                                     <div class="flex items-center gap-2 mt-2 flex-wrap">
-                                        <span class="text-sm font-bold text-blue-700">
+                                        <span class="text-sm font-bold {{ $amountColor }}">
                                             {{ $advance->senders->pluck('name')->join(', ') }}
                                         </span>
                                         <span class="text-gray-400">→</span>
-                                        <span class="text-sm font-bold text-blue-700">
+                                        <span class="text-sm font-bold {{ $amountColor }}">
                                             {{ $advance->sentTo->name }}
                                         </span>
                                     </div>
@@ -513,9 +536,9 @@
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black text-blue-600">${{ number_format($advance->amount_per_person, 2) }}</p>
-                                    <span class="inline-block mt-1 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                                        💰 Advance
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ number_format($advance->amount_per_person, 2) }}</p>
+                                    <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
+                                        {{ $badgeLabel }}
                                     </span>
                                 </div>
                             </div>
