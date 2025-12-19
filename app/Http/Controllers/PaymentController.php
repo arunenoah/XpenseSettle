@@ -475,12 +475,17 @@ class PaymentController extends Controller
             }
         }
 
-        // Convert to settlement array, filtering out zero balances
+        // Convert to settlement array
+        // Include all relationships: non-zero balances AND zero-balance settled relationships
         // Positive net_amount = user owes this person
         // Negative net_amount = this person owes user (we show as positive amount they owe)
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
-            if ($data['net_amount'] != 0) {
+            // Always include settlements with non-zero balances
+            // Also include zero-balance entries if they have payment history (meaning they've been settled)
+            $hasPaymentHistory = !empty($data['expenses']);
+
+            if ($data['net_amount'] != 0 || $hasPaymentHistory) {
                 $settlements[] = [
                     'user' => $data['user'],
                     'amount' => abs($data['net_amount']),  // Final amount after all calculations including advances
