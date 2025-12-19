@@ -651,8 +651,8 @@ class PaymentController extends Controller
                     continue;
                 }
 
-                if ($amount < 0) {
-                    // Negative amount means this member owes the other person
+                if ($amount > 0) {
+                    // Positive amount means this member owes the other person
                     $owedAmount = abs($amount);
 
                     // Generate detailed breakdown
@@ -672,7 +672,7 @@ class PaymentController extends Controller
                         'advance' => $item['advance'] ?? 0
                     ];
                 } else {
-                    // Positive amount means the other person owes this member
+                    // Negative amount means the other person owes this member
                     $owedAmount = abs($amount);
 
                     // Generate detailed breakdown (from target's perspective)
