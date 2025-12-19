@@ -569,59 +569,62 @@ class PaymentController extends Controller
     {
         // Initialize result array
         $result = [];
-        
+
         // Get all group members (users only, not contacts)
         $groupMembers = $group->groupMembers()->with('user')->whereNotNull('user_id')->get();
-        
+
         // Initialize result for all members
         foreach ($groupMembers as $groupMember) {
             if (!$groupMember->user) continue;
-            
+
             $result[$groupMember->id] = [
                 'user' => $groupMember->user,
                 'is_contact' => false,
                 'owes' => []
             ];
         }
-        
+
         // Store processed pairs to avoid duplicates and ensure consistency
+        // Key format: "groupMemberId1-groupMemberId2" where ID1 < ID2
         $processedPairs = [];
-        
+
         // For each member, calculate their settlement with all other members
         foreach ($groupMembers as $member) {
             if (!$member->user) continue;
-            
+
             // Get this member's settlement with everyone
             $settlement = $this->calculateSettlement($group, $member->user);
-            
+
             // Process each settlement item
             foreach ($settlement as $item) {
                 $amount = $item['net_amount'];
-                
+
                 $targetIsContact = isset($item['is_contact']) && $item['is_contact'];
-                
+
                 if ($targetIsContact) {
                     // Skip contacts for now
                     continue;
                 }
-                
+
                 // Find the target user's group member ID
                 $targetUserId = $item['user']->id;
                 $targetGroupMember = $groupMembers->firstWhere('user_id', $targetUserId);
-                
+
                 if (!$targetGroupMember) continue;
-                
+
                 // Create a unique pair key (always use lower ID first to ensure consistency)
-                $pairKey = $member->id < $targetGroupMember->id 
-                    ? "{$member->id}-{$targetGroupMember->id}" 
+                $pairKey = $member->id < $targetGroupMember->id
+                    ? "{$member->id}-{$targetGroupMember->id}"
                     : "{$targetGroupMember->id}-{$member->id}";
-                
-                // Skip if we've already processed this pair
-                if (isset($processedPairs[$pairKey])) continue;
-                
-                // Mark this pair as processed
-                $processedPairs[$pairKey] = true;
-                
+
+                // Check if we've already processed this exact pair relationship
+                // We need to track the direction to avoid duplicate entries in the same cell
+                $directedKey = "{$member->id}-{$targetGroupMember->id}";
+                if (isset($processedPairs[$directedKey])) continue;
+
+                // Mark this specific direction as processed
+                $processedPairs[$directedKey] = true;
+
                 // Store settled pairs (amount = 0) with their expense history
                 if (abs($amount) < 0.01) {
                     // Fully settled - store with amount 0 but keep expense history
@@ -631,7 +634,7 @@ class PaymentController extends Controller
                         $item['user'],
                         $item
                     );
-                    
+
                     $result[$member->id]['settled'][$targetGroupMember->id] = [
                         'user' => $item['user'],
                         'is_contact' => false,
@@ -642,11 +645,11 @@ class PaymentController extends Controller
                     ];
                     continue;
                 }
-                
+
                 if ($amount < 0) {
                     // Negative amount means this member owes the other person
                     $owedAmount = abs($amount);
-                    
+
                     // Generate detailed breakdown
                     $breakdown = $this->generateSettlementBreakdown(
                         $group,
@@ -654,7 +657,7 @@ class PaymentController extends Controller
                         $item['user'],
                         $item
                     );
-                    
+
                     $result[$member->id]['owes'][$targetGroupMember->id] = [
                         'user' => $item['user'],
                         'is_contact' => false,
@@ -666,7 +669,7 @@ class PaymentController extends Controller
                 } else {
                     // Positive amount means the other person owes this member
                     $owedAmount = abs($amount);
-                    
+
                     // Generate detailed breakdown (from target's perspective)
                     $breakdown = $this->generateSettlementBreakdown(
                         $group,
@@ -674,7 +677,7 @@ class PaymentController extends Controller
                         $member->user,
                         $item
                     );
-                    
+
                     $result[$targetGroupMember->id]['owes'][$member->id] = [
                         'user' => $member->user,
                         'is_contact' => false,

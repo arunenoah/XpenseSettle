@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\AddExpenseOCRController;
 use App\Http\Controllers\AdvanceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ReceivedPaymentController;
@@ -85,6 +86,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/groups/{group}/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('groups.expenses.edit');
     Route::put('/groups/{group}/expenses/{expense}', [ExpenseController::class, 'update'])->name('groups.expenses.update');
     Route::delete('/groups/{group}/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('groups.expenses.destroy');
+
+    // OCR-Based Expenses Management (separate flow for testing)
+    Route::get('/groups/{group}/expenses-ocr/create', [AddExpenseOCRController::class, 'create'])->name('groups.expenses-ocr.create');
+    Route::post('/groups/{group}/expenses-ocr/extract', [AddExpenseOCRController::class, 'extractReceiptData'])->name('groups.expenses-ocr.extract');
+    Route::post('/groups/{group}/expenses-ocr', [AddExpenseOCRController::class, 'store'])->name('groups.expenses-ocr.store');
 
     // Advances Management (nested under groups)
     Route::post('/groups/{group}/advances', [AdvanceController::class, 'store'])->name('groups.advances.store');
