@@ -669,11 +669,11 @@ function openBreakdownModal(personName, itemData) {
                 exp.title === 'Payment Sent' || exp.title === 'Payment Received') {
                 adjustments.push(exp);
             } else if (exp.type === 'you_owe') {
-                // They paid it, you need to reimburse them
+                // They paid it, you need to reimburse them (user is participant, other person is payer)
                 theyPaidExpenses.push(exp);
                 theySpentForMe += parseFloat(exp.amount);
-            } else {
-                // You paid it for them
+            } else if (exp.type === 'they_owe') {
+                // You paid it for them (user is payer, other person is participant)
                 iPaidExpenses.push(exp);
                 iSpentForThem += parseFloat(exp.amount);
             }
