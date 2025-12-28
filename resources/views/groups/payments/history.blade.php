@@ -680,68 +680,66 @@ function openBreakdownModal(personName, itemData) {
         });
     }
 
-    // Only show expense details if settlement is NOT fully settled
-    if (!isFullySettled) {
-        // Show expenses paid by them (personName)
-        if (theyPaidExpenses.length > 0) {
-            html += `<div class="bg-red-50 p-3 rounded-lg border border-red-200">
-                        <p class="font-bold text-gray-900 mb-2">${personName}'s expenses (paid by ${personName}):</p>
-                        <ul class="space-y-1 ml-2">`;
+    // Always show expense details for transparency, whether settled or not
+    // Show expenses paid by them (personName) - these are expenses where they are the payer and you are a participant
+    if (theyPaidExpenses.length > 0) {
+        html += `<div class="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <p class="font-bold text-gray-900 mb-2">Expenses paid by ${personName} (you participated):</p>
+                    <ul class="space-y-1 ml-2">`;
 
-            theyPaidExpenses.forEach(exp => {
-                html += `<li class="flex justify-between">
-                            <span class="text-gray-700">• ${exp.title}:</span>
-                            <span class="font-semibold text-gray-900">$${parseFloat(exp.amount).toFixed(2)}</span>
-                         </li>`;
-            });
+        theyPaidExpenses.forEach(exp => {
+            html += `<li class="flex justify-between">
+                        <span class="text-gray-700">• ${exp.title}:</span>
+                        <span class="font-semibold text-gray-900">$${parseFloat(exp.amount).toFixed(2)}</span>
+                     </li>`;
+        });
 
-            html += `</ul>
-                     <div class="flex justify-between items-center mt-2 pt-2 border-t border-red-300">
-                        <span class="font-bold text-gray-900">Subtotal:</span>
-                        <span class="font-bold text-red-600">$${theySpentForMe.toFixed(2)}</span>
-                     </div>
-                  </div>`;
-        }
+        html += `</ul>
+                 <div class="flex justify-between items-center mt-2 pt-2 border-t border-red-300">
+                    <span class="font-bold text-gray-900">Subtotal:</span>
+                    <span class="font-bold text-red-600">$${theySpentForMe.toFixed(2)}</span>
+                 </div>
+              </div>`;
+    }
 
-        // Show expenses paid by me (currentUser)
-        if (iPaidExpenses.length > 0) {
-            html += `<div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                        <p class="font-bold text-gray-900 mb-2">${currentUserName}'s expenses (paid by ${currentUserName}):</p>
-                        <ul class="space-y-1 ml-2">`;
+    // Show expenses paid by me (currentUser) - these are expenses where you are the payer and they are a participant
+    if (iPaidExpenses.length > 0) {
+        html += `<div class="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p class="font-bold text-gray-900 mb-2">Expenses you paid for ${personName}:</p>
+                    <ul class="space-y-1 ml-2">`;
 
-            iPaidExpenses.forEach(exp => {
-                html += `<li class="flex justify-between">
-                            <span class="text-gray-700">• ${exp.title}:</span>
-                            <span class="font-semibold text-gray-900">$${parseFloat(exp.amount).toFixed(2)}</span>
-                         </li>`;
-            });
+        iPaidExpenses.forEach(exp => {
+            html += `<li class="flex justify-between">
+                        <span class="text-gray-700">• ${exp.title}:</span>
+                        <span class="font-semibold text-gray-900">$${parseFloat(exp.amount).toFixed(2)}</span>
+                     </li>`;
+        });
 
-            html += `</ul>
-                     <div class="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
-                        <span class="font-bold text-gray-900">Subtotal:</span>
-                        <span class="font-bold text-green-600">$${iSpentForThem.toFixed(2)}</span>
-                     </div>
-                  </div>`;
-        }
+        html += `</ul>
+                 <div class="flex justify-between items-center mt-2 pt-2 border-t border-green-300">
+                    <span class="font-bold text-gray-900">Subtotal:</span>
+                    <span class="font-bold text-green-600">$${iSpentForThem.toFixed(2)}</span>
+                 </div>
+              </div>`;
+    }
 
-        // Show adjustments section only if there are adjustments
-        if (adjustments.length > 0) {
-            html += `<div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <p class="font-bold text-gray-900 mb-2">Adjustments:</p>
-                        <ul class="space-y-1 ml-2">`;
+    // Show adjustments section only if there are adjustments
+    if (adjustments.length > 0) {
+        html += `<div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p class="font-bold text-gray-900 mb-2">Adjustments:</p>
+                    <ul class="space-y-1 ml-2">`;
 
-            adjustments.forEach(adj => {
-                const isNegative = adj.title.includes('paid') || adj.title.includes('received');
-                const color = isNegative ? 'text-blue-600' : 'text-gray-900';
-                html += `<li class="flex justify-between">
-                            <span class="text-gray-700">• ${adj.title}:</span>
-                            <span class="font-semibold ${color}">-$${parseFloat(adj.amount).toFixed(2)}</span>
-                         </li>`;
-            });
+        adjustments.forEach(adj => {
+            const isNegative = adj.title.includes('paid') || adj.title.includes('received');
+            const color = isNegative ? 'text-blue-600' : 'text-gray-900';
+            html += `<li class="flex justify-between">
+                        <span class="text-gray-700">• ${adj.title}:</span>
+                        <span class="font-semibold ${color}">-$${parseFloat(adj.amount).toFixed(2)}</span>
+                     </li>`;
+        });
 
-            html += `</ul>
-                  </div>`;
-        }
+        html += `</ul>
+              </div>`;
     }
 
     // Use the pre-calculated amount from backend (already correct in the table)
