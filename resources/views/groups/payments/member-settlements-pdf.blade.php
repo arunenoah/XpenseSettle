@@ -192,97 +192,71 @@
                 }
             @endphp
 
-            <!-- Two Column Layout: Expenses Paid & Expenses for User -->
-            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                <!-- LEFT: Expenses Paid Section -->
-                @if($hasPaidExpenses)
-                    <div style="flex: 1; border: 1px solid #FECACA; background-color: #FEE2E2; padding: 10px; border-radius: 4px;">
-                        <div style="background-color: #FCA5A5; color: white; padding: 6px 8px; margin: -10px -10px 8px -10px; border-radius: 3px 3px 0 0; font-weight: bold; font-size: 11px;">Expenses Paid by {{ $data['user']->name }}</div>
+            <!-- Cleaner Single-Column Layout with Table Format -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 10px;">
+                <thead>
+                    <tr style="background-color: #F3F4F6;">
+                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Expense Description</th>
+                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Paid By</th>
+                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: right; font-weight: bold;">Amount</th>
+                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: center; font-weight: bold;">Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php
+                        $totalPaidAmount = 0;
+                        $totalParticipatedAmount = 0;
+                        $rowCount = 0;
+                    @endphp
 
-                        @php
-                            $totalPaidAmount = 0;
-                        @endphp
+                    @foreach($settlement as $otherId => $settleData)
+                        @if(!empty($settleData['expenses']))
+                            @foreach($settleData['expenses'] as $exp)
+                                @php
+                                    $bgColor = $rowCount % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                                    $type = $exp['type'];
+                                    $isPaid = ($type === 'they_owe');
 
-                        @foreach($settlement as $otherId => $settleData)
-                            @php
-                                $paidByThisMember = [];
-                                if (!empty($settleData['expenses'])) {
-                                    foreach ($settleData['expenses'] as $exp) {
-                                        if ($exp['type'] === 'they_owe') {
-                                            $paidByThisMember[] = $exp;
-                                            $totalPaidAmount += $exp['amount'];
-                                        }
+                                    if ($isPaid) {
+                                        $totalPaidAmount += $exp['amount'];
+                                        $typeLabel = '👤 They Owe';
+                                        $typeColor = '#DC2626';
+                                    } else {
+                                        $totalParticipatedAmount += $exp['amount'];
+                                        $typeLabel = '✓ You Owe';
+                                        $typeColor = '#059669';
                                     }
-                                }
-                            @endphp
-
-                            @if(!empty($paidByThisMember))
-                                <div style="margin-bottom: 8px;">
-                                    <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 4px; font-size: 10px;">For {{ $settleData['user']->name }}:</div>
-                                    @foreach($paidByThisMember as $exp)
-                                        <div style="display: flex; justify-content: space-between; padding: 2px 0; margin-left: 6px; font-size: 9px;">
-                                            <span style="flex: 1;">• {{ $exp['title'] }}</span>
-                                            <span style="text-align: right; font-weight: bold; color: #DC2626; min-width: 60px; padding-left: 8px;">${{ number_format($exp['amount'], 2) }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        @endforeach
-
-                        @if($totalPaidAmount > 0)
-                            <div style="border-top: 2px solid #FECACA; padding-top: 6px; margin-top: 6px;">
-                                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 10px;">
-                                    <span>Subtotal:</span>
-                                    <span style="color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</span>
-                                </div>
-                            </div>
+                                    $rowCount++;
+                                @endphp
+                                <tr style="background-color: {{ $bgColor }};">
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $exp['title'] }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $settleData['user']->name }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; font-weight: bold;">${{ number_format($exp['amount'], 2) }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: center; color: {{ $typeColor }}; font-weight: bold;">{{ $typeLabel }}</td>
+                                </tr>
+                            @endforeach
                         @endif
+                    @endforeach
+                </tbody>
+            </table>
+
+            <!-- Summary Section -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <!-- Left: What User Paid -->
+                @if($totalPaidAmount > 0)
+                    <div style="border: 2px solid #FECACA; background-color: #FEE2E2; padding: 10px; border-radius: 4px;">
+                        <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 6px; font-size: 11px;">💰 What {{ $data['user']->name }} Paid:</div>
+                        <div style="font-size: 14px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
+                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 4px;">Amount paid for others who owe you</div>
                     </div>
                 @endif
 
-                <!-- RIGHT: Expenses Participated Section -->
-                @if($hasParticipatedExpenses)
-                    <div style="flex: 1; border: 1px solid #BBF7D0; background-color: #DCFCE7; padding: 10px; border-radius: 4px;">
-                        <div style="background-color: #86EFAC; color: white; padding: 6px 8px; margin: -10px -10px 8px -10px; border-radius: 3px 3px 0 0; font-weight: bold; font-size: 11px;">Expenses for {{ $data['user']->name }} (Paid by Others)</div>
-
-                        @php
-                            $totalParticipatedAmount = 0;
-                        @endphp
-
-                        @foreach($settlement as $otherId => $settleData)
-                            @php
-                                $participatedInExpenses = [];
-                                if (!empty($settleData['expenses'])) {
-                                    foreach ($settleData['expenses'] as $exp) {
-                                        if ($exp['type'] === 'you_owe') {
-                                            $participatedInExpenses[] = $exp;
-                                            $totalParticipatedAmount += $exp['amount'];
-                                        }
-                                    }
-                                }
-                            @endphp
-
-                            @if(!empty($participatedInExpenses))
-                                <div style="margin-bottom: 8px;">
-                                    <div style="font-weight: bold; color: #15803D; margin-bottom: 4px; font-size: 10px;">Paid by {{ $settleData['user']->name }}:</div>
-                                    @foreach($participatedInExpenses as $exp)
-                                        <div style="display: flex; justify-content: space-between; padding: 2px 0; margin-left: 6px; font-size: 9px;">
-                                            <span style="flex: 1;">• {{ $exp['title'] }}</span>
-                                            <span style="text-align: right; font-weight: bold; color: #059669; min-width: 60px; padding-left: 8px;">${{ number_format($exp['amount'], 2) }}</span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-                        @endforeach
-
-                        @if($totalParticipatedAmount > 0)
-                            <div style="border-top: 2px solid #BBF7D0; padding-top: 6px; margin-top: 6px;">
-                                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 10px;">
-                                    <span>Subtotal:</span>
-                                    <span style="color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</span>
-                                </div>
-                            </div>
-                        @endif
+                <!-- Right: What User Owes -->
+                @if($totalParticipatedAmount > 0)
+                    <div style="border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 10px; border-radius: 4px;">
+                        <div style="font-weight: bold; color: #15803D; margin-bottom: 6px; font-size: 11px;">💳 What {{ $data['user']->name }} Owes:</div>
+                        <div style="font-size: 14px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
+                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 4px;">Amount you owe for expenses others paid</div>
                     </div>
                 @endif
             </div>
