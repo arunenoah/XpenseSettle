@@ -229,48 +229,56 @@ class PaymentController extends Controller
                     // User is a participant and is not the payer
                     $payment = $split->payment;
 
-                    if (!$payment || $payment->status !== 'paid') {
-                        // Only process splits with non-zero amounts
-                        if ($split->share_amount > 0) {
-                            $payerId = $expense->payer_id;
-                            if (!isset($netBalances[$payerId])) {
-                                $netBalances[$payerId] = [
-                                    'user' => $expense->payer,
-                                    'net_amount' => 0,
-                                    'status' => 'pending',
-                                    'expenses' => [],
-                                    'split_ids' => [],
-                                ];
-                            }
+                    // Only process splits with non-zero amounts
+                    if ($split->share_amount > 0) {
+                        $payerId = $expense->payer_id;
+                        if (!isset($netBalances[$payerId])) {
+                            $netBalances[$payerId] = [
+                                'user' => $expense->payer,
+                                'net_amount' => 0,
+                                'status' => 'pending',
+                                'expenses' => [],
+                                'split_ids' => [],
+                            ];
+                        }
+
+                        // Always add to expenses for visibility (even if paid individually)
+                        $netBalances[$payerId]['expenses'][] = [
+                            'title' => $expense->title,
+                            'amount' => $split->share_amount,
+                            'type' => 'you_owe',  // User owes the payer
+                        ];
+
+                        // Only add to net_amount if NOT individually paid
+                        if (!$payment || $payment->status !== 'paid') {
                             $netBalances[$payerId]['net_amount'] += $split->share_amount;
                             $netBalances[$payerId]['split_ids'][] = $split->id;
-                            $netBalances[$payerId]['expenses'][] = [
-                                'title' => $expense->title,
-                                'amount' => $split->share_amount,
-                                'type' => 'you_owe',  // User owes the payer
-                            ];
                         }
                     }
                 } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
                     // User is the payer, someone else (a user, not contact) is a participant
                     $payment = $split->payment;
 
-                    if (!$payment || $payment->status !== 'paid') {
-                        $memberId = $split->user_id;
-                        if (!isset($netBalances[$memberId])) {
-                            $netBalances[$memberId] = [
-                                'user' => $split->user,
-                                'net_amount' => 0,
-                                'status' => 'pending',
-                                'expenses' => [],
-                            ];
-                        }
-                        $netBalances[$memberId]['net_amount'] -= $split->share_amount;
-                        $netBalances[$memberId]['expenses'][] = [
-                            'title' => $expense->title,
-                            'amount' => $split->share_amount,
-                            'type' => 'they_owe',  // Member owes the user (who paid)
+                    $memberId = $split->user_id;
+                    if (!isset($netBalances[$memberId])) {
+                        $netBalances[$memberId] = [
+                            'user' => $split->user,
+                            'net_amount' => 0,
+                            'status' => 'pending',
+                            'expenses' => [],
                         ];
+                    }
+
+                    // Always add to expenses for visibility (even if paid individually)
+                    $netBalances[$memberId]['expenses'][] = [
+                        'title' => $expense->title,
+                        'amount' => $split->share_amount,
+                        'type' => 'they_owe',  // Member owes the user (who paid)
+                    ];
+
+                    // Only subtract from net_amount if NOT individually paid
+                    if (!$payment || $payment->status !== 'paid') {
+                        $netBalances[$memberId]['net_amount'] -= $split->share_amount;
                     }
                 } elseif ($expense->payer_id === $user->id && $split->contact_id && !$split->user_id) {
                     // User is the payer, a contact is a participant (contacts owe user money)
