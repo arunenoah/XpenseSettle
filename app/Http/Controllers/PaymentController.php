@@ -1353,8 +1353,8 @@ class PaymentController extends Controller
             $detailedOwings = [];
 
             foreach ($settlement as $otherId => $settleData) {
-                $amount = $settleData['net_amount'];
-                if ($amount > 0) {
+                $amount = (float)$settleData['net_amount'];
+                if ($amount > 0 && isset($settleData['user'])) {
                     $totalOwedByMember += $amount;
                     $detailedOwings[$otherId] = [
                         'name' => $settleData['user']->name,
@@ -1372,29 +1372,37 @@ class PaymentController extends Controller
             ];
         }
 
-        // Generate PDF
-        $pdf = Pdf::loadView('groups.payments.member-settlements-pdf', [
-            'group' => $group,
-            'memberSettlements' => $memberSettlements,
-            'exportDate' => now()->format('F d, Y'),
-        ]);
+        try {
+            // Generate PDF
+            $pdf = Pdf::loadView('groups.payments.member-settlements-pdf', [
+                'group' => $group,
+                'memberSettlements' => $memberSettlements,
+                'exportDate' => now()->format('F d, Y'),
+            ]);
 
-        // Set PDF options
-        $pdf->setPaper('a4', 'portrait');
+            // Set PDF options
+            $pdf->setPaper('a4', 'portrait');
 
-        // Generate filename
-        $filename = 'Member_Settlements_' . str_replace(' ', '_', $group->name) . '_' . now()->format('Y-m-d') . '.pdf';
+            // Generate filename
+            $filename = 'Member_Settlements_' . str_replace(' ', '_', $group->name) . '_' . now()->format('Y-m-d') . '.pdf';
 
-        // For Android WebView compatibility, use download with proper headers
-        return response()->streamDownload(function() use ($pdf) {
-            echo $pdf->output();
-        }, $filename, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
+            // For Android WebView compatibility, use download with proper headers
+            return response()->streamDownload(function() use ($pdf) {
+                echo $pdf->output();
+            }, $filename, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PDF Export Error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'group_id' => $group->id,
+            ]);
+            abort(500, 'Failed to generate PDF: ' . $e->getMessage());
+        }
     }
 
     /**
