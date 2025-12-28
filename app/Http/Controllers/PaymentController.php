@@ -1319,6 +1319,85 @@ class PaymentController extends Controller
     }
 
     /**
+     * Export individual settlement reports for all members in a group as a PDF.
+     * Shows detailed breakdown for each member: expenses paid, expenses participated in,
+     * advances, payments, and net amount owed to other members.
+     */
+    public function exportMemberSettlementsPdf(Group $group)
+    {
+        // Check if user is member of group
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        // Load group with all necessary relationships
+        $group->load(['members.user', 'contacts', 'expenses.splits.user', 'expenses.splits.contact', 'expenses.splits.payment', 'expenses.payer']);
+
+        // Get all group members
+        $members = $group->members;
+
+        // Calculate settlement details for each member
+        $memberSettlements = [];
+        foreach ($members as $member) {
+            $user = $member->user;
+            $settlement = $this->calculateSettlement($group, $user);
+
+            // Get received payments for this member
+            $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+                ->where('to_user_id', $user->id)
+                ->orderBy('received_date', 'desc')
+                ->get();
+
+            // Calculate total owed to each member
+            $totalOwedByMember = 0;
+            $detailedOwings = [];
+
+            foreach ($settlement as $otherId => $settleData) {
+                $amount = $settleData['net_amount'];
+                if ($amount > 0) {
+                    $totalOwedByMember += $amount;
+                    $detailedOwings[$otherId] = [
+                        'name' => $settleData['user']->name,
+                        'amount' => $amount,
+                    ];
+                }
+            }
+
+            $memberSettlements[$user->id] = [
+                'user' => $user,
+                'settlement' => $settlement,
+                'receivedPayments' => $receivedPayments,
+                'totalOwed' => $totalOwedByMember,
+                'detailedOwings' => $detailedOwings,
+            ];
+        }
+
+        // Generate PDF
+        $pdf = Pdf::loadView('groups.payments.member-settlements-pdf', [
+            'group' => $group,
+            'memberSettlements' => $memberSettlements,
+            'exportDate' => now()->format('F d, Y'),
+        ]);
+
+        // Set PDF options
+        $pdf->setPaper('a4', 'portrait');
+
+        // Generate filename
+        $filename = 'Member_Settlements_' . str_replace(' ', '_', $group->name) . '_' . now()->format('Y-m-d') . '.pdf';
+
+        // For Android WebView compatibility, use download with proper headers
+        return response()->streamDownload(function() use ($pdf) {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    /**
      * Get received payments for a specific member in a group.
      * Shows both payments received FROM and TO the member.
      */
