@@ -215,12 +215,12 @@
                         @endphp
 
                         @if(!empty($paidByThisMember))
-                            <div style="margin-bottom: 10px;">
-                                <div style="font-weight: bold; color: #374151; margin-bottom: 5px;">For {{ $settleData['user']->name }}:</div>
+                            <div style="margin-bottom: 12px; margin-left: 10px;">
+                                <div style="font-weight: bold; color: #374151; margin-bottom: 6px; font-size: 11px;">For {{ $settleData['user']->name }}:</div>
                                 @foreach($paidByThisMember as $exp)
-                                    <div class="expense-item">
-                                        <span class="expense-title">• {{ $exp['title'] }}</span>
-                                        <span class="expense-amount red-text">${{ number_format($exp['amount'], 2) }}</span>
+                                    <div style="display: flex; justify-content: space-between; padding: 3px 0; margin-left: 8px; font-size: 10px;">
+                                        <span style="flex: 1;">• {{ $exp['title'] }}</span>
+                                        <span style="text-align: right; font-weight: bold; color: #DC2626; min-width: 70px; padding-left: 10px;">${{ number_format($exp['amount'], 2) }}</span>
                                     </div>
                                 @endforeach
                             </div>
@@ -259,12 +259,12 @@
                         @endphp
 
                         @if(!empty($participatedInExpenses))
-                            <div style="margin-bottom: 10px;">
-                                <div style="font-weight: bold; color: #374151; margin-bottom: 5px;">Paid by {{ $settleData['user']->name }}:</div>
+                            <div style="margin-bottom: 12px; margin-left: 10px;">
+                                <div style="font-weight: bold; color: #374151; margin-bottom: 6px; font-size: 11px;">Paid by {{ $settleData['user']->name }}:</div>
                                 @foreach($participatedInExpenses as $exp)
-                                    <div class="expense-item">
-                                        <span class="expense-title">• {{ $exp['title'] }}</span>
-                                        <span class="expense-amount green-text">${{ number_format($exp['amount'], 2) }}</span>
+                                    <div style="display: flex; justify-content: space-between; padding: 3px 0; margin-left: 8px; font-size: 10px;">
+                                        <span style="flex: 1;">• {{ $exp['title'] }}</span>
+                                        <span style="text-align: right; font-weight: bold; color: #059669; min-width: 70px; padding-left: 10px;">${{ number_format($exp['amount'], 2) }}</span>
                                     </div>
                                 @endforeach
                             </div>
@@ -308,9 +308,9 @@
                     <div class="subsection-title">Advances Received</div>
 
                     @foreach($advancesReceived as $advance)
-                        <div class="expense-item">
-                            <span class="expense-title">• Advance from {{ $advance['senders'] }}</span>
-                            <span class="expense-amount adjustment-label">-${{ number_format($advance['amount'], 2) }}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 10px;">
+                            <span style="flex: 1;">• Advance from {{ $advance['senders'] }}</span>
+                            <span style="text-align: right; font-weight: bold; color: #7C3AED; min-width: 70px; padding-left: 10px;">-${{ number_format($advance['amount'], 2) }}</span>
                         </div>
                     @endforeach
 
@@ -336,9 +336,9 @@
                         @php
                             $totalPaymentsReceived += $payment->amount;
                         @endphp
-                        <div class="expense-item">
-                            <span class="expense-title">• From {{ $payment->fromUser->name }} on {{ $payment->received_date->format('M d, Y') }}</span>
-                            <span class="expense-amount adjustment-label">-${{ number_format($payment->amount, 2) }}</span>
+                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 10px;">
+                            <span style="flex: 1;">• From {{ $payment->fromUser->name }} on {{ $payment->received_date->format('M d, Y') }}</span>
+                            <span style="text-align: right; font-weight: bold; color: #7C3AED; min-width: 70px; padding-left: 10px;">-${{ number_format($payment->amount, 2) }}</span>
                         </div>
                     @endforeach
 
