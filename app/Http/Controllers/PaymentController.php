@@ -1331,15 +1331,15 @@ class PaymentController extends Controller
         }
 
         // Load group with all necessary relationships
-        $group->load(['members.user', 'contacts', 'expenses.splits.user', 'expenses.splits.contact', 'expenses.splits.payment', 'expenses.payer']);
+        $group->load(['members', 'contacts', 'expenses.splits.user', 'expenses.splits.contact', 'expenses.splits.payment', 'expenses.payer']);
 
-        // Get all group members
+        // Get all group members (members() returns User objects directly)
         $members = $group->members;
 
         // Calculate settlement details for each member
         $memberSettlements = [];
-        foreach ($members as $member) {
-            $user = $member->user;
+        foreach ($members as $user) {
+            // $members contains User objects directly from belongsToMany relationship
             $settlement = $this->calculateSettlement($group, $user);
 
             // Get received payments for this member
