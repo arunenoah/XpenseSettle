@@ -204,10 +204,12 @@
                     @foreach($settlement as $otherId => $settleData)
                         @php
                             $paidByThisMember = [];
-                            foreach ($settleData['expenses'] as $exp) {
-                                if ($exp['type'] === 'they_owe') {
-                                    $paidByThisMember[] = $exp;
-                                    $totalPaidAmount += $exp['amount'];
+                            if (!empty($settleData['expenses'])) {
+                                foreach ($settleData['expenses'] as $exp) {
+                                    if ($exp['type'] === 'they_owe') {
+                                        $paidByThisMember[] = $exp;
+                                        $totalPaidAmount += $exp['amount'];
+                                    }
                                 }
                             }
                         @endphp
@@ -246,10 +248,12 @@
                     @foreach($settlement as $otherId => $settleData)
                         @php
                             $participatedInExpenses = [];
-                            foreach ($settleData['expenses'] as $exp) {
-                                if ($exp['type'] === 'you_owe') {
-                                    $participatedInExpenses[] = $exp;
-                                    $totalParticipatedAmount += $exp['amount'];
+                            if (!empty($settleData['expenses'])) {
+                                foreach ($settleData['expenses'] as $exp) {
+                                    if ($exp['type'] === 'you_owe') {
+                                        $participatedInExpenses[] = $exp;
+                                        $totalParticipatedAmount += $exp['amount'];
+                                    }
                                 }
                             }
                         @endphp
@@ -288,11 +292,13 @@
                 foreach ($advances as $advance) {
                     if ($advance->sent_to_user_id === $data['user']->id) {
                         $senderNames = $advance->senders->pluck('name')->implode(', ');
+                        // Calculate total amount for this advance (amount_per_person × number of senders)
+                        $totalAdvanceAmount = $advance->amount_per_person * $advance->senders->count();
                         $advancesReceived[] = [
                             'senders' => $senderNames,
-                            'amount' => $advance->amount,
+                            'amount' => $totalAdvanceAmount,
                         ];
-                        $totalAdvanceReceived += $advance->amount;
+                        $totalAdvanceReceived += $totalAdvanceAmount;
                     }
                 }
             @endphp
