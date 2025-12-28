@@ -127,10 +127,9 @@ class ReceivedPaymentController extends Controller
             $userSplit = $expense->splits->where('user_id', $user->id)->first();
 
             if ($userSplit) {
-                // Only count unpaid splits
-                if (!$userSplit->payment || $userSplit->payment->status !== 'paid') {
-                    $amountOwed += $userSplit->share_amount;
-                }
+                // Count all splits regardless of payment status
+                // Individual payments don't eliminate the split from settlement calculations
+                $amountOwed += $userSplit->share_amount;
             }
         }
 
@@ -157,11 +156,10 @@ class ReceivedPaymentController extends Controller
             $targetUserSplit = $expense->splits->where('user_id', $targetUser->id)->first();
 
             if ($targetUserSplit) {
-                // Only count unpaid splits
-                if (!$targetUserSplit->payment || $targetUserSplit->payment->status !== 'paid') {
-                    // Subtract: targetUser owes user for this (reduces amount owed TO targetUser)
-                    $amountOwed -= $targetUserSplit->share_amount;
-                }
+                // Count all splits regardless of payment status
+                // Individual payments don't eliminate the split from settlement calculations
+                // Subtract: targetUser owes user for this (reduces amount owed TO targetUser)
+                $amountOwed -= $targetUserSplit->share_amount;
             }
         }
 
