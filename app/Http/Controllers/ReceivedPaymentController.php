@@ -65,9 +65,21 @@ class ReceivedPaymentController extends Controller
         $remainingOwed = $amountOwed - $alreadyReceived;
 
         // Validate that the amount doesn't exceed what is owed
-        if ($validated['amount'] > $remainingOwed) {
+        // Note: amountOwed can be negative (they owe us) or positive (we owe them)
+        // If negative, they owe us money, so we can receive any amount up to abs(amountOwed) - alreadyReceived
+        if ($amountOwed < 0) {
+            // They owe us money
+            // We can receive up to the absolute amount they owe minus what we've already received
+            $maxCanReceive = abs($amountOwed) - $alreadyReceived;
+            if ($validated['amount'] > $maxCanReceive) {
+                return redirect()->back()
+                    ->withErrors(['amount' => "Amount cannot exceed $" . round($maxCanReceive, 2) . " owed to you. You've already received $" . round($alreadyReceived, 2) . "."])
+                    ->withInput();
+            }
+        } else {
+            // We owe them money, should not be recording as received
             return redirect()->back()
-                ->withErrors(['amount' => "Amount cannot exceed $" . round($remainingOwed, 2) . " owed. You've already received $" . round($alreadyReceived, 2) . "."])
+                ->withErrors(['amount' => "You owe this person money, you cannot record receiving payment from them. Use 'Mark as Paid' instead."])
                 ->withInput();
         }
 
