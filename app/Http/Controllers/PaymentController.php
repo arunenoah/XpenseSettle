@@ -656,12 +656,18 @@ class PaymentController extends Controller
                         $item
                     );
 
+                    // Normalize expenses for settled pairs (keep as-is for member's perspective)
+                    $normalizedExpenses = [];
+                    foreach ($item['expenses'] ?? [] as $exp) {
+                        $normalizedExpenses[] = $exp;
+                    }
+
                     $result[$member->id]['settled'][$targetGroupMember->id] = [
                         'user' => $item['user'],
                         'is_contact' => false,
                         'amount' => 0,
                         'breakdown' => $breakdown,
-                        'expenses' => $item['expenses'] ?? [],
+                        'expenses' => $normalizedExpenses,
                         'advance' => $item['advance'] ?? 0
                     ];
                     continue;
@@ -679,12 +685,21 @@ class PaymentController extends Controller
                         $item
                     );
 
+                    // Normalize expenses: invert types based on direction
+                    // From $member->user's perspective with $item['user']
+                    $normalizedExpenses = [];
+                    foreach ($item['expenses'] ?? [] as $exp) {
+                        $normalized = $exp;
+                        // Keep types as-is for member's perspective (they're already calculated correctly)
+                        $normalizedExpenses[] = $normalized;
+                    }
+
                     $result[$member->id]['owes'][$targetGroupMember->id] = [
                         'user' => $item['user'],
                         'is_contact' => false,
                         'amount' => round($owedAmount, 2),
                         'breakdown' => $breakdown,
-                        'expenses' => $item['expenses'] ?? [],
+                        'expenses' => $normalizedExpenses,
                         'advance' => $item['advance'] ?? 0
                     ];
                 } else {
@@ -699,12 +714,28 @@ class PaymentController extends Controller
                         $item
                     );
 
+                    // Normalize expenses: invert types from target's perspective
+                    // From $targetGroupMember->user's perspective with $member->user
+                    $normalizedExpenses = [];
+                    foreach ($item['expenses'] ?? [] as $exp) {
+                        $normalized = $exp;
+                        // Invert the type because we're switching perspectives
+                        if (isset($normalized['type'])) {
+                            if ($normalized['type'] === 'you_owe') {
+                                $normalized['type'] = 'they_owe';
+                            } elseif ($normalized['type'] === 'they_owe') {
+                                $normalized['type'] = 'you_owe';
+                            }
+                        }
+                        $normalizedExpenses[] = $normalized;
+                    }
+
                     $result[$targetGroupMember->id]['owes'][$member->id] = [
                         'user' => $member->user,
                         'is_contact' => false,
                         'amount' => round($owedAmount, 2),
                         'breakdown' => $breakdown,
-                        'expenses' => $item['expenses'] ?? [],
+                        'expenses' => $normalizedExpenses,
                         'advance' => $item['advance'] ?? 0
                     ];
                 }
