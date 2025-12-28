@@ -703,10 +703,10 @@ function openBreakdownModal(personName, itemData) {
                   </div>`;
         }
 
-        // Show expenses paid by me (Arun)
+        // Show expenses paid by me (currentUser)
         if (iPaidExpenses.length > 0) {
             html += `<div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                        <p class="font-bold text-gray-900 mb-2">Arun's expenses (paid by Arun):</p>
+                        <p class="font-bold text-gray-900 mb-2">${currentUserName}'s expenses (paid by ${currentUserName}):</p>
                         <ul class="space-y-1 ml-2">`;
 
             iPaidExpenses.forEach(exp => {
@@ -763,7 +763,7 @@ function openBreakdownModal(personName, itemData) {
         // Show regular balance
         const netAmount = itemData.net_amount || 0;
         const finalColor = netAmount > 0 ? 'text-red-600' : 'text-green-600';
-        const finalText = netAmount > 0 ? `(Arun owes ${personName})` : `(${personName} owes Arun)`;
+        const finalText = netAmount > 0 ? `(${currentUserName} owes ${personName})` : `(${personName} owes ${currentUserName})`;
         
         html += `<div class="flex flex-col items-center pt-3 border-t-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
                     <span class="font-bold text-gray-700 mb-1 text-xs">${finalText}</span>
@@ -947,6 +947,8 @@ function copySuggestion(text) {
 
     <script nonce="{{ request()->attributes->get('nonce', '') }}">
     // Modal fix v3.0 - Removed problematic click handler entirely - 2025-12-15 14:22
+    // Store current authenticated user's name for settlement popup
+    const currentUserName = '{{ auth()->user()->name ?? "You" }}';
     console.log('🔧 Settlement modal script v3.0 loaded');
     function showExpensesModal() {
         document.getElementById('expensesModal').classList.remove('hidden');
