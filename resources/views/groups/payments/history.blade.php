@@ -881,7 +881,7 @@ function copySuggestion(text) {
             <h3 id="breakdownTitle" class="text-base sm:text-lg font-bold text-gray-900">Breakdown Details</h3>
         </div>
 
-        <div id="breakdownDetails" class="p-4 sm:p-6 overflow-y-auto flex-grow">
+        <div id="breakdownDetails" class="p-4 sm:p-6 overflow-y-scroll flex-grow scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
             <!-- Details will be inserted here by JavaScript -->
         </div>
 
@@ -892,6 +892,24 @@ function copySuggestion(text) {
         </div>
     </div>
 </div>
+
+<style>
+    /* Custom scrollbar styling for breakdown modal */
+    #breakdownDetails::-webkit-scrollbar {
+        width: 8px;
+    }
+    #breakdownDetails::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 4px;
+    }
+    #breakdownDetails::-webkit-scrollbar-thumb {
+        background: #64748b;
+        border-radius: 4px;
+    }
+    #breakdownDetails::-webkit-scrollbar-thumb:hover {
+        background: #475569;
+    }
+</style>
 
 <!-- Image Modal -->
 <div id="imageModal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" data-close-image-modal="true">
