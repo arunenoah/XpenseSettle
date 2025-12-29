@@ -194,7 +194,7 @@
 
             <!-- Cleaner Single-Column Layout with Table Format -->
             <div style="margin-bottom: 15px;">
-                <div style="background-color: #F3F4F6; color: #374151; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; font-weight: bold; border-radius: 4px;">📋 Expenses Breakdown</div>
+                <div style="background-color: #F3F4F6; color: #374151; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; font-weight: bold; border-radius: 4px;">Expenses Breakdown</div>
                 <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
                     <thead>
                         <tr style="background-color: #F3F4F6;">
@@ -221,11 +221,11 @@
 
                                         if ($isPaid) {
                                             $totalPaidAmount += $exp['amount'];
-                                            $typeLabel = '👤 They Owe';
+                                            $typeLabel = 'They Owe';
                                             $typeColor = '#DC2626';
                                         } else {
                                             $totalParticipatedAmount += $exp['amount'];
-                                            $typeLabel = '✓ You Owe';
+                                            $typeLabel = 'You Owe';
                                             $typeColor = '#059669';
                                         }
                                         $rowCount++;
@@ -248,7 +248,7 @@
                 <!-- Left: What User Paid -->
                 @if($totalPaidAmount > 0)
                     <div style="border: 2px solid #FECACA; background-color: #FEE2E2; padding: 12px; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">? What {{ $data['user']->name }} Paid:</div>
+                        <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Paid:</div>
                         <div style="font-size: 18px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
                         <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount paid for others who owe you</div>
                     </div>
@@ -257,7 +257,7 @@
                 <!-- Right: What User Owes -->
                 @if($totalParticipatedAmount > 0)
                     <div style="border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 12px; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">? What {{ $data['user']->name }} Owes:</div>
+                        <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Owes:</div>
                         <div style="font-size: 18px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
                         <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount you owe for expenses others paid</div>
                     </div>
@@ -291,7 +291,7 @@
 
             @if($hasAdjustments)
                 <div style="margin-bottom: 15px;">
-                    <div style="background-color: #DBEAFE; color: #1E40AF; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; font-weight: bold; border-radius: 4px;">⚙️ Adjustments & Payments</div>
+                    <div style="background-color: #DBEAFE; color: #1E40AF; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; font-weight: bold; border-radius: 4px;">Adjustments & Payments</div>
 
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">
                         <thead>
