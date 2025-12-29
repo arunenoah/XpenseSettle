@@ -193,70 +193,73 @@
             @endphp
 
             <!-- Cleaner Single-Column Layout with Table Format -->
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 10px;">
-                <thead>
-                    <tr style="background-color: #F3F4F6;">
-                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Expense Description</th>
-                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Paid By</th>
-                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: right; font-weight: bold;">Amount</th>
-                        <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: center; font-weight: bold;">Type</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php
-                        $totalPaidAmount = 0;
-                        $totalParticipatedAmount = 0;
-                        $rowCount = 0;
-                    @endphp
+            <div style="margin-bottom: 15px;">
+                <div style="background-color: #F3F4F6; color: #374151; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; font-weight: bold; border-radius: 4px;">📋 Expenses Breakdown</div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 10px;">
+                    <thead>
+                        <tr style="background-color: #F3F4F6;">
+                            <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Expense Description</th>
+                            <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Paid By</th>
+                            <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: right; font-weight: bold;">Amount</th>
+                            <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: center; font-weight: bold;">Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $totalPaidAmount = 0;
+                            $totalParticipatedAmount = 0;
+                            $rowCount = 0;
+                        @endphp
 
-                    @foreach($settlement as $otherId => $settleData)
-                        @if(!empty($settleData['expenses']))
-                            @foreach($settleData['expenses'] as $exp)
-                                @php
-                                    $bgColor = $rowCount % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
-                                    $type = $exp['type'];
-                                    $isPaid = ($type === 'they_owe');
+                        @foreach($settlement as $otherId => $settleData)
+                            @if(!empty($settleData['expenses']))
+                                @foreach($settleData['expenses'] as $exp)
+                                    @php
+                                        $bgColor = $rowCount % 2 === 0 ? '#FFFFFF' : '#F9FAFB';
+                                        $type = $exp['type'];
+                                        $isPaid = ($type === 'they_owe');
 
-                                    if ($isPaid) {
-                                        $totalPaidAmount += $exp['amount'];
-                                        $typeLabel = '👤 They Owe';
-                                        $typeColor = '#DC2626';
-                                    } else {
-                                        $totalParticipatedAmount += $exp['amount'];
-                                        $typeLabel = '✓ You Owe';
-                                        $typeColor = '#059669';
-                                    }
-                                    $rowCount++;
-                                @endphp
-                                <tr style="background-color: {{ $bgColor }};">
-                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $exp['title'] }}</td>
-                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $settleData['user']->name }}</td>
-                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; font-weight: bold;">${{ number_format($exp['amount'], 2) }}</td>
-                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: center; color: {{ $typeColor }}; font-weight: bold;">{{ $typeLabel }}</td>
-                                </tr>
-                            @endforeach
-                        @endif
-                    @endforeach
-                </tbody>
-            </table>
+                                        if ($isPaid) {
+                                            $totalPaidAmount += $exp['amount'];
+                                            $typeLabel = '👤 They Owe';
+                                            $typeColor = '#DC2626';
+                                        } else {
+                                            $totalParticipatedAmount += $exp['amount'];
+                                            $typeLabel = '✓ You Owe';
+                                            $typeColor = '#059669';
+                                        }
+                                        $rowCount++;
+                                    @endphp
+                                    <tr style="background-color: {{ $bgColor }};">
+                                        <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $exp['title'] }}</td>
+                                        <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $settleData['user']->name }}</td>
+                                        <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; font-weight: bold;">${{ number_format($exp['amount'], 2) }}</td>
+                                        <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: center; color: {{ $typeColor }}; font-weight: bold;">{{ $typeLabel }}</td>
+                                    </tr>
+                                @endforeach
+                            @endif
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-            <!-- Summary Section -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+            <!-- Summary Section - Left and Right Cards -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
                 <!-- Left: What User Paid -->
                 @if($totalPaidAmount > 0)
-                    <div style="border: 2px solid #FECACA; background-color: #FEE2E2; padding: 10px; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 6px; font-size: 11px;">💰 What {{ $data['user']->name }} Paid:</div>
-                        <div style="font-size: 14px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
-                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 4px;">Amount paid for others who owe you</div>
+                    <div style="border: 2px solid #FECACA; background-color: #FEE2E2; padding: 12px; border-radius: 4px;">
+                        <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">? What {{ $data['user']->name }} Paid:</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
+                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount paid for others who owe you</div>
                     </div>
                 @endif
 
                 <!-- Right: What User Owes -->
                 @if($totalParticipatedAmount > 0)
-                    <div style="border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 10px; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #15803D; margin-bottom: 6px; font-size: 11px;">💳 What {{ $data['user']->name }} Owes:</div>
-                        <div style="font-size: 14px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
-                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 4px;">Amount you owe for expenses others paid</div>
+                    <div style="border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 12px; border-radius: 4px;">
+                        <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">? What {{ $data['user']->name }} Owes:</div>
+                        <div style="font-size: 18px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
+                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount you owe for expenses others paid</div>
                     </div>
                 @endif
             </div>
