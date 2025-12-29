@@ -192,6 +192,34 @@
                 }
             @endphp
 
+            <!-- Total Amount Owed - Displayed First -->
+            <div class="summary-box" style="margin-bottom: 15px;">
+                <div style="text-align: center; font-size: 12px; color: #666; margin-bottom: 5px;">Total Amount Owed</div>
+                <div class="summary-amount">
+                    @if($data['totalOwed'] > 0)
+                        <span class="red-text">${{ number_format($data['totalOwed'], 2) }}</span>
+                    @else
+                        <span class="green-text">$0.00</span>
+                    @endif
+                </div>
+
+                @if($data['totalOwed'] > 0 && !empty($data['detailedOwings']))
+                    <div class="owed-details">
+                        <div style="font-weight: bold; margin-bottom: 5px; color: #0284C7;">Breakdown of Owed Amounts:</div>
+                        @foreach($data['detailedOwings'] as $owed)
+                            <div class="owed-item">
+                                <span>{{ $owed['name'] }}:</span>
+                                <span style="font-weight: bold; color: #DC2626;">${{ number_format($owed['amount'], 2) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                @elseif($data['totalOwed'] == 0)
+                    <div class="owed-details" style="text-align: center; color: #059669; font-weight: bold;">
+                        Fully Settled
+                    </div>
+                @endif
+            </div>
+
             <!-- Cleaner Single-Column Layout with Table Format -->
             <div style="margin-bottom: 15px;">
                 <div style="background-color: #F3F4F6; color: #374151; padding: 6px 10px; margin-bottom: 8px; font-size: 11px; font-weight: bold; border-radius: 4px;">Expenses Breakdown</div>
@@ -349,34 +377,6 @@
                     @endif
                 </div>
             @endif
-
-            <!-- Summary Section -->
-            <div class="summary-box">
-                <div style="text-align: center; font-size: 12px; color: #666; margin-bottom: 5px;">Total Amount Owed</div>
-                <div class="summary-amount">
-                    @if($data['totalOwed'] > 0)
-                        <span class="red-text">${{ number_format($data['totalOwed'], 2) }}</span>
-                    @else
-                        <span class="green-text">$0.00</span>
-                    @endif
-                </div>
-
-                @if($data['totalOwed'] > 0 && !empty($data['detailedOwings']))
-                    <div class="owed-details">
-                        <div style="font-weight: bold; margin-bottom: 5px; color: #0284C7;">Breakdown of Owed Amounts:</div>
-                        @foreach($data['detailedOwings'] as $owed)
-                            <div class="owed-item">
-                                <span>{{ $owed['name'] }}:</span>
-                                <span style="font-weight: bold; color: #DC2626;">${{ number_format($owed['amount'], 2) }}</span>
-                            </div>
-                        @endforeach
-                    </div>
-                @elseif($data['totalOwed'] == 0)
-                    <div class="owed-details" style="text-align: center; color: #059669; font-weight: bold;">
-                        ✓ Fully Settled
-                    </div>
-                @endif
-            </div>
         </div>
 
         @if(!$loop->last)
