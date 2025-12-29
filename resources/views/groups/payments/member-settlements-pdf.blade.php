@@ -261,7 +261,7 @@
                 @endif
             </div>
 
-            <!-- Advances Section -->
+            <!-- Adjustments Section - Table Format -->
             @php
                 $advances = \App\Models\Advance::where('group_id', $group->id)
                     ->with(['senders', 'sentTo'])
@@ -273,7 +273,6 @@
                 foreach ($advances as $advance) {
                     if ($advance->sent_to_user_id === $data['user']->id) {
                         $senderNames = $advance->senders->pluck('name')->implode(', ');
-                        // Calculate total amount for this advance (amount_per_person × number of senders)
                         $totalAdvanceAmount = $advance->amount_per_person * $advance->senders->count();
                         $advancesReceived[] = [
                             'senders' => $senderNames,
@@ -282,51 +281,71 @@
                         $totalAdvanceReceived += $totalAdvanceAmount;
                     }
                 }
+
+                $totalPaymentsReceived = 0;
+                $hasAdjustments = !empty($advancesReceived) || $data['receivedPayments']->count() > 0;
             @endphp
 
-            @if(!empty($advancesReceived))
-                <div class="subsection blue-section">
-                    <div class="subsection-title">Advances Received</div>
+            @if($hasAdjustments)
+                <div style="margin-bottom: 15px;">
+                    <div style="background-color: #DBEAFE; color: #1E40AF; padding: 8px 10px; margin-bottom: 10px; font-size: 12px; font-weight: bold; border-radius: 4px;">⚙️ Adjustments & Payments</div>
 
-                    @foreach($advancesReceived as $advance)
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 10px;">
-                            <span style="flex: 1;">• Advance from {{ $advance['senders'] }}</span>
-                            <span style="text-align: right; font-weight: bold; color: #7C3AED; min-width: 70px; padding-left: 10px;">-${{ number_format($advance['amount'], 2) }}</span>
-                        </div>
-                    @endforeach
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">
+                        <thead>
+                            <tr style="background-color: #F3F4F6;">
+                                <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">Description</th>
+                                <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: left; font-weight: bold;">From/Source</th>
+                                <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: right; font-weight: bold;">Amount</th>
+                                <th style="border: 1px solid #D1D5DB; padding: 8px; text-align: center; font-weight: bold;">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @php $adjRowCount = 0; @endphp
 
-                    @if($totalAdvanceReceived > 0)
-                        <div class="subtotal-row">
-                            <span class="subtotal-label">Subtotal (Advances):</span>
-                            <span class="subtotal-amount adjustment-label">-${{ number_format($totalAdvanceReceived, 2) }}</span>
-                        </div>
-                    @endif
-                </div>
-            @endif
+                            <!-- Advances Received -->
+                            @foreach($advancesReceived as $advance)
+                                @php $totalAdvanceReceived += $advance['amount']; @endphp
+                                <tr style="background-color: {{ $adjRowCount % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }};">
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">Advance Received</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $advance['senders'] }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; font-weight: bold; color: #7C3AED;">-${{ number_format($advance['amount'], 2) }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: center;">-</td>
+                                </tr>
+                                @php $adjRowCount++; @endphp
+                            @endforeach
 
-            <!-- Payments Received Section -->
-            @if($data['receivedPayments']->count() > 0)
-                <div class="subsection blue-section">
-                    <div class="subsection-title">Payments Received</div>
+                            <!-- Payments Received -->
+                            @foreach($data['receivedPayments'] as $payment)
+                                @php $totalPaymentsReceived += $payment->amount; @endphp
+                                <tr style="background-color: {{ $adjRowCount % 2 === 0 ? '#FFFFFF' : '#F9FAFB' }};">
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">Payment Received</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px;">{{ $payment->fromUser->name }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: right; font-weight: bold; color: #7C3AED;">-${{ number_format($payment->amount, 2) }}</td>
+                                    <td style="border: 1px solid #E5E7EB; padding: 6px 8px; text-align: center; font-size: 9px;">{{ $payment->received_date->format('M d, Y') }}</td>
+                                </tr>
+                                @php $adjRowCount++; @endphp
+                            @endforeach
+                        </tbody>
+                    </table>
 
-                    @php
-                        $totalPaymentsReceived = 0;
-                    @endphp
-
-                    @foreach($data['receivedPayments'] as $payment)
-                        @php
-                            $totalPaymentsReceived += $payment->amount;
-                        @endphp
-                        <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 10px;">
-                            <span style="flex: 1;">• From {{ $payment->fromUser->name }} on {{ $payment->received_date->format('M d, Y') }}</span>
-                            <span style="text-align: right; font-weight: bold; color: #7C3AED; min-width: 70px; padding-left: 10px;">-${{ number_format($payment->amount, 2) }}</span>
-                        </div>
-                    @endforeach
-
-                    @if($totalPaymentsReceived > 0)
-                        <div class="subtotal-row">
-                            <span class="subtotal-label">Subtotal (Payments Received):</span>
-                            <span class="subtotal-amount adjustment-label">-${{ number_format($totalPaymentsReceived, 2) }}</span>
+                    <!-- Adjustments Summary -->
+                    @php $totalAdjustments = $totalAdvanceReceived + $totalPaymentsReceived; @endphp
+                    @if($totalAdjustments > 0)
+                        <div style="display: flex; justify-content: flex-end; padding: 8px 0; border-top: 2px solid #BFDBFE; margin-top: 8px;">
+                            <div style="display: flex; gap: 30px;">
+                                @if($totalAdvanceReceived > 0)
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 9px; color: #666;">Advances:</div>
+                                        <div style="font-weight: bold; color: #7C3AED; font-size: 11px;">-${{ number_format($totalAdvanceReceived, 2) }}</div>
+                                    </div>
+                                @endif
+                                @if($totalPaymentsReceived > 0)
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 9px; color: #666;">Payments:</div>
+                                        <div style="font-weight: bold; color: #7C3AED; font-size: 11px;">-${{ number_format($totalPaymentsReceived, 2) }}</div>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     @endif
                 </div>
