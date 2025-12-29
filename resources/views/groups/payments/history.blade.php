@@ -876,17 +876,17 @@ function copySuggestion(text) {
 
 <!-- Breakdown Modal -->
 <div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" data-close-modal="true" data-modal-func="closeBreakdownModal">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto sm:max-w-2xl" data-stop-propagation="true">
-        <div class="sticky top-0 px-4 sm:px-6 py-4 border-b-2 border-gray-200 bg-white rounded-t-2xl">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-h-[85vh] flex flex-col sm:max-w-2xl" data-stop-propagation="true">
+        <div class="px-4 sm:px-6 py-4 border-b-2 border-gray-200 flex-shrink-0">
             <h3 id="breakdownTitle" class="text-lg sm:text-xl font-bold text-gray-900">Breakdown Details</h3>
         </div>
 
-        <div id="breakdownDetails" class="p-4 sm:p-6">
+        <div id="breakdownDetails" class="p-4 sm:p-6 overflow-y-auto flex-1 min-h-0">
             <!-- Details will be inserted here by JavaScript -->
         </div>
 
-        <div class="sticky bottom-0 px-4 sm:px-6 py-4 border-t-2 border-gray-200 flex justify-end bg-white rounded-b-2xl">
-            <button onclick="closeBreakdownModal()" data-close-button="true" data-modal-func="closeBreakdownModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm sm:text-base">
+        <div class="px-4 sm:px-6 py-4 border-t-2 border-gray-200 flex justify-end gap-2 flex-shrink-0 bg-gray-50">
+            <button onclick="closeBreakdownModal()" data-close-button="true" data-modal-func="closeBreakdownModal" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm sm:text-base">
                 Close
             </button>
         </div>
