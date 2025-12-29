@@ -243,25 +243,21 @@
                 </table>
             </div>
 
-            <!-- Summary Section - Left and Right Cards -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
+            <!-- Summary Section - Left and Right Cards (Always Side by Side) -->
+            <div style="display: flex; gap: 12px; margin-bottom: 15px;">
                 <!-- Left: What User Paid -->
-                @if($totalPaidAmount > 0)
-                    <div style="border: 2px solid #FECACA; background-color: #FEE2E2; padding: 12px; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Paid:</div>
-                        <div style="font-size: 18px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
-                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount paid for others who owe you</div>
-                    </div>
-                @endif
+                <div style="flex: 1; border: 2px solid #FECACA; background-color: #FEE2E2; padding: 12px; border-radius: 4px;">
+                    <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Paid:</div>
+                    <div style="font-size: 18px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
+                    <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount paid for others who owe you</div>
+                </div>
 
                 <!-- Right: What User Owes -->
-                @if($totalParticipatedAmount > 0)
-                    <div style="border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 12px; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Owes:</div>
-                        <div style="font-size: 18px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
-                        <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount you owe for expenses others paid</div>
-                    </div>
-                @endif
+                <div style="flex: 1; border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 12px; border-radius: 4px;">
+                    <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Owes:</div>
+                    <div style="font-size: 18px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
+                    <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount you owe for expenses others paid</div>
+                </div>
             </div>
 
             <!-- Adjustments Section - Table Format -->
