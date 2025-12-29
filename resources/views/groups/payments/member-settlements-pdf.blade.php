@@ -167,6 +167,13 @@
     </div>
 
     @foreach($memberSettlements as $memberId => $data)
+        @php
+            // Skip members with $0.00 total owed
+            if ($data['totalOwed'] == 0 && $data['totalPaidAmount'] == 0 && $data['totalParticipatedAmount'] == 0) {
+                continue;
+            }
+        @endphp
+
         <div class="member-section">
             <div class="member-header">
                 {{ $data['user']->name }}
@@ -206,10 +213,12 @@
                     <div class="owed-details">
                         <div style="font-weight: bold; margin-bottom: 5px; color: #0284C7;">Breakdown of Owed Amounts:</div>
                         @foreach($data['detailedOwings'] as $owed)
-                            <div class="owed-item">
-                                <span>{{ $owed['name'] }}:</span>
-                                <span style="font-weight: bold; color: #DC2626;">${{ number_format($owed['amount'], 2) }}</span>
-                            </div>
+                            @if($owed['amount'] > 0)
+                                <div class="owed-item">
+                                    <span>{{ $owed['name'] }}:</span>
+                                    <span style="font-weight: bold; color: #DC2626;">${{ number_format($owed['amount'], 2) }}</span>
+                                </div>
+                            @endif
                         @endforeach
                     </div>
                 @elseif($data['totalOwed'] == 0)
@@ -233,8 +242,6 @@
                     </thead>
                     <tbody>
                         @php
-                            $totalPaidAmount = 0;
-                            $totalParticipatedAmount = 0;
                             $rowCount = 0;
                         @endphp
 
@@ -247,11 +254,9 @@
                                         $isPaid = ($type === 'they_owe');
 
                                         if ($isPaid) {
-                                            $totalPaidAmount += $exp['amount'];
                                             $typeLabel = 'They Owe';
                                             $typeColor = '#DC2626';
                                         } else {
-                                            $totalParticipatedAmount += $exp['amount'];
                                             $typeLabel = 'You Owe';
                                             $typeColor = '#059669';
                                         }
@@ -270,22 +275,28 @@
                 </table>
             </div>
 
-            <!-- Summary Section - Left and Right Cards (Always Side by Side) -->
-            <div style="display: flex; gap: 12px; margin-bottom: 15px;">
-                <!-- Left: What User Paid -->
-                <div style="flex: 1; border: 2px solid #FECACA; background-color: #FEE2E2; padding: 12px; border-radius: 4px;">
-                    <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Paid:</div>
-                    <div style="font-size: 18px; font-weight: bold; color: #DC2626;">${{ number_format($totalPaidAmount, 2) }}</div>
-                    <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount paid for others who owe you</div>
-                </div>
+            <!-- Summary Section - Left and Right Tables -->
+            <table style="width: 100%; margin-bottom: 15px; border-collapse: collapse;">
+                <tr>
+                    <!-- Left Table: What User Paid -->
+                    <td style="width: 50%; padding-right: 8px; vertical-align: top;">
+                        <div style="background-color: #FEE2E2; border: 2px solid #FECACA; padding: 12px; border-radius: 4px; text-align: center;">
+                            <div style="font-weight: bold; color: #7F1D1D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Paid:</div>
+                            <div style="font-size: 20px; font-weight: bold; color: #DC2626;">${{ number_format($data['totalPaidAmount'], 2) }}</div>
+                            <div style="font-size: 9px; color: #666; margin-top: 6px;">Amount paid for others who owe you</div>
+                        </div>
+                    </td>
 
-                <!-- Right: What User Owes -->
-                <div style="flex: 1; border: 2px solid #BBF7D0; background-color: #DCFCE7; padding: 12px; border-radius: 4px;">
-                    <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Owes:</div>
-                    <div style="font-size: 18px; font-weight: bold; color: #059669;">${{ number_format($totalParticipatedAmount, 2) }}</div>
-                    <div style="font-size: 9px; color: #9CA3AF; margin-top: 6px;">Amount you owe for expenses others paid</div>
-                </div>
-            </div>
+                    <!-- Right Table: What User Owes -->
+                    <td style="width: 50%; padding-left: 8px; vertical-align: top;">
+                        <div style="background-color: #DCFCE7; border: 2px solid #BBF7D0; padding: 12px; border-radius: 4px; text-align: center;">
+                            <div style="font-weight: bold; color: #15803D; margin-bottom: 8px; font-size: 12px;">What {{ $data['user']->name }} Owes:</div>
+                            <div style="font-size: 20px; font-weight: bold; color: #059669;">${{ number_format($data['totalParticipatedAmount'], 2) }}</div>
+                            <div style="font-size: 9px; color: #666; margin-top: 6px;">Amount you owe for expenses others paid</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
 
             <!-- Adjustments Section - Table Format -->
             @php

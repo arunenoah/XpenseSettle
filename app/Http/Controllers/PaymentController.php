@@ -1351,15 +1351,31 @@ class PaymentController extends Controller
             // Calculate total owed to each member
             $totalOwedByMember = 0;
             $detailedOwings = [];
+            $totalPaidAmount = 0;
+            $totalParticipatedAmount = 0;
 
             foreach ($settlement as $otherId => $settleData) {
                 $amount = (float)$settleData['net_amount'];
                 if ($amount > 0 && isset($settleData['user'])) {
                     $totalOwedByMember += $amount;
-                    $detailedOwings[$otherId] = [
-                        'name' => $settleData['user']->name,
-                        'amount' => $amount,
-                    ];
+                    // Only add to detailed owings if amount is greater than 0
+                    if ($amount > 0) {
+                        $detailedOwings[$otherId] = [
+                            'name' => $settleData['user']->name,
+                            'amount' => $amount,
+                        ];
+                    }
+                }
+
+                // Calculate what they paid vs what they owe
+                if (!empty($settleData['expenses'])) {
+                    foreach ($settleData['expenses'] as $exp) {
+                        if ($exp['type'] === 'they_owe') {
+                            $totalPaidAmount += $exp['amount'];
+                        } else {
+                            $totalParticipatedAmount += $exp['amount'];
+                        }
+                    }
                 }
             }
 
@@ -1369,6 +1385,8 @@ class PaymentController extends Controller
                 'receivedPayments' => $receivedPayments,
                 'totalOwed' => $totalOwedByMember,
                 'detailedOwings' => $detailedOwings,
+                'totalPaidAmount' => $totalPaidAmount,
+                'totalParticipatedAmount' => $totalParticipatedAmount,
             ];
         }
 
