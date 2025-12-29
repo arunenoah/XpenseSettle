@@ -14,8 +14,8 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
             border-bottom: 3px solid #4F46E5;
         }
         .header h1 {
@@ -29,8 +29,7 @@
             font-size: 10px;
         }
         .member-section {
-            page-break-inside: avoid;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border: 1px solid #D1D5DB;
             border-radius: 6px;
             padding: 15px;
