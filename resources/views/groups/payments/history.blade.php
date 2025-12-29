@@ -782,11 +782,12 @@ function openBreakdownModal(personName, itemData) {
     html += '</div>';
     details.innerHTML = html;
 
-    // Show modal consistently
+    // Show modal consistently and prevent background scroll
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.style.display = 'flex';
-    
+    document.body.style.overflow = 'hidden';
+
     console.log('Modal displayed via openBreakdownModal');
 }
 
@@ -795,6 +796,7 @@ function closeBreakdownModal() {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
     modal.style.display = '';
+    document.body.style.overflow = 'auto';
     console.log('✅ Breakdown modal closed');
 }
 
@@ -875,8 +877,8 @@ function copySuggestion(text) {
 </div>
 
 <!-- Breakdown Modal -->
-<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" data-close-modal="true" data-modal-func="closeBreakdownModal" style="overflow: auto;">
-    <div class="bg-white rounded-2xl shadow-2xl w-full sm:w-11/12 sm:max-w-2xl my-auto" data-stop-propagation="true">
+<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-hidden" data-close-modal="true" data-modal-func="closeBreakdownModal">
+    <div class="bg-white rounded-2xl shadow-2xl w-full sm:w-11/12 sm:max-w-2xl max-h-screen overflow-y-auto" data-stop-propagation="true">
         <div class="px-4 sm:px-6 py-4 border-b-2 border-gray-200 sticky top-0 bg-white z-10">
             <h3 id="breakdownTitle" class="text-lg sm:text-xl font-bold text-gray-900">Breakdown Details</h3>
         </div>
