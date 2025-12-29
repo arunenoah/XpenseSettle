@@ -875,18 +875,18 @@ function copySuggestion(text) {
 </div>
 
 <!-- Breakdown Modal -->
-<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-hidden" data-close-modal="true" data-modal-func="closeBreakdownModal">
-    <div class="bg-white rounded-2xl shadow-2xl w-full h-[90vh] flex flex-col sm:max-w-2xl sm:h-auto sm:max-h-[90vh]" data-stop-propagation="true">
-        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b-2 border-gray-200 flex-shrink-0">
-            <h3 id="breakdownTitle" class="text-base sm:text-lg font-bold text-gray-900">Breakdown Details</h3>
+<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" data-close-modal="true" data-modal-func="closeBreakdownModal" style="overflow: auto;">
+    <div class="bg-white rounded-2xl shadow-2xl w-full sm:w-11/12 sm:max-w-2xl my-auto" data-stop-propagation="true">
+        <div class="px-4 sm:px-6 py-4 border-b-2 border-gray-200 sticky top-0 bg-white z-10">
+            <h3 id="breakdownTitle" class="text-lg sm:text-xl font-bold text-gray-900">Breakdown Details</h3>
         </div>
 
-        <div id="breakdownDetails" class="p-4 sm:p-6 overflow-y-scroll flex-grow scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+        <div id="breakdownDetails" class="p-4 sm:p-6 max-h-96 overflow-y-scroll">
             <!-- Details will be inserted here by JavaScript -->
         </div>
 
-        <div class="px-4 sm:px-6 py-3 sm:py-4 border-t-2 border-gray-200 flex justify-end gap-2 flex-shrink-0 bg-gray-50">
-            <button onclick="closeBreakdownModal()" data-close-button="true" data-modal-func="closeBreakdownModal" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm">
+        <div class="px-4 sm:px-6 py-4 border-t-2 border-gray-200 flex justify-end gap-2 bg-gray-50 sticky bottom-0 z-10">
+            <button onclick="closeBreakdownModal()" data-close-button="true" data-modal-func="closeBreakdownModal" class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-bold text-sm">
                 Close
             </button>
         </div>
@@ -896,18 +896,17 @@ function copySuggestion(text) {
 <style>
     /* Custom scrollbar styling for breakdown modal */
     #breakdownDetails::-webkit-scrollbar {
-        width: 8px;
+        width: 10px;
     }
     #breakdownDetails::-webkit-scrollbar-track {
-        background: #f1f5f9;
-        border-radius: 4px;
+        background: #f0f0f0;
     }
     #breakdownDetails::-webkit-scrollbar-thumb {
-        background: #64748b;
-        border-radius: 4px;
+        background: #0066cc;
+        border-radius: 5px;
     }
     #breakdownDetails::-webkit-scrollbar-thumb:hover {
-        background: #475569;
+        background: #0052a3;
     }
 </style>
 
