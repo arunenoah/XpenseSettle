@@ -877,8 +877,8 @@ function copySuggestion(text) {
 </div>
 
 <!-- Breakdown Modal -->
-<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 p-2 sm:p-4 overflow-y-auto" data-close-modal="true" data-modal-func="closeBreakdownModal">
-    <div class="bg-white rounded-2xl shadow-2xl w-full sm:max-w-2xl mx-auto my-4 flex flex-col max-h-[calc(100vh-32px)] sm:max-h-[calc(100vh-64px)]" data-stop-propagation="true">
+<div id="breakdownModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-start justify-center pt-4 overflow-y-auto" data-close-modal="true" data-modal-func="closeBreakdownModal">
+    <div class="bg-white rounded-2xl shadow-2xl w-full sm:max-w-2xl mx-2 sm:mx-4 flex flex-col max-h-[calc(100vh-32px)]" data-stop-propagation="true">
         <div class="px-3 sm:px-6 py-3 border-b border-gray-200 bg-white flex-shrink-0">
             <h3 id="breakdownTitle" class="text-base sm:text-lg font-bold text-gray-900">Breakdown Details</h3>
         </div>
