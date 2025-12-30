@@ -444,6 +444,43 @@
     </div>
 </div>
 
+<!-- Payment Modal (for Mark as Paid from balance) -->
+<div id="paymentModalFromBalance" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" data-stop-propagation="true">
+        <h3 class="text-2xl font-black text-gray-900 mb-4">Mark Payment as Paid</h3>
+
+        <form id="paymentFormFromBalance" method="POST" enctype="multipart/form-data">
+            @csrf
+
+            <div class="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                <p class="text-sm text-gray-600">Paying to:</p>
+                <p class="text-lg font-black text-gray-900" id="payeeNameFromBalance"></p>
+                <p class="text-3xl font-black text-green-600 mt-2" id="paymentAmountFromBalance"></p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Payment Notes (Optional)</label>
+                <textarea name="notes" rows="2" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200" placeholder="e.g., Paid via UPI, Reference: TXN123"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Upload Receipt (Optional)</label>
+                <input type="file" name="receipt" accept="image/png,image/jpeg" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500">
+                <p class="text-xs text-gray-500 mt-1">📸 PNG or JPEG, max 5MB (auto-compressed to 50KB)</p>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="closePaymentModalFromBalance()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
+                    ✓ Mark as Paid
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Balance Details Modal -->
 <div id="balanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
     <div class="bg-white rounded-lg max-w-2xl w-full mx-4 shadow-lg my-8" data-stop-propagation="true">
@@ -585,7 +622,7 @@ function closeBalanceModal() {
     modal.classList.remove('flex');
 }
 
-// Mark settlement as paid - batch mark multiple splits as paid
+// Mark settlement as paid - open modal with payment form
 function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
     // Ensure splitIds is an array
     let idsArray = splitIds;
@@ -604,54 +641,45 @@ function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
         return;
     }
 
-    // Show confirmation
-    if (!confirm(`Mark ${amount} payment to ${personName} as paid?`)) {
-        return;
-    }
+    // Open payment modal
+    openPaymentModalFromBalance(idsArray, personName, amount);
 
-    // Show loading state
-    button.disabled = true;
-    button.innerHTML = '⏳ Processing...';
+    // Close the balance details modal
+    closeBalanceModal();
+}
 
-    // Submit batch payment
-    fetch(`/payments/${idsArray[0]}/mark-paid-batch`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({
-            split_ids: idsArray
-        })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Network response was not ok');
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            alert('✓ Payment marked as paid successfully!');
+// Open payment modal from balance details
+function openPaymentModalFromBalance(splitIds, payeeName, amount) {
+    const modal = document.getElementById('paymentModalFromBalance');
+    const form = document.getElementById('paymentFormFromBalance');
 
-            // Close modal
-            closeBalanceModal();
+    // Set display info
+    document.getElementById('payeeNameFromBalance').textContent = payeeName;
+    document.getElementById('paymentAmountFromBalance').textContent = '$' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-            // Reload the page to show updated balances
-            setTimeout(() => {
-                location.reload();
-            }, 500);
-        } else {
-            alert('Error: ' + (data.message || 'Failed to mark payment'));
-            button.disabled = false;
-            button.innerHTML = '✓ Mark as Paid';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error marking payment: ' + error.message);
-        button.disabled = false;
-        button.innerHTML = '✓ Mark as Paid';
+    // Remove any existing split_ids inputs
+    form.querySelectorAll('input[name="split_ids[]"]').forEach(input => input.remove());
+
+    // Add hidden inputs for all split IDs
+    splitIds.forEach(splitId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'split_ids[]';
+        input.value = splitId;
+        form.appendChild(input);
     });
+
+    // Set form action to batch payment endpoint
+    form.action = '/payments/mark-paid-batch';
+
+    modal.classList.remove('hidden');
+}
+
+function closePaymentModalFromBalance(event) {
+    if (!event || event.target.id === 'paymentModalFromBalance') {
+        const modal = document.getElementById('paymentModalFromBalance');
+        modal.classList.add('hidden');
+    }
 }
 
 // Settlement payment modal buttons (from balance details modal)
@@ -692,6 +720,18 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModal.addEventListener('click', function(e) {
             if (e.target.id === 'paymentModal') {
                 closePaymentModal(e);
+            } else {
+                e.stopPropagation();
+            }
+        });
+    }
+
+    // Close payment modal from balance when clicking backdrop
+    const paymentModalFromBalance = document.getElementById('paymentModalFromBalance');
+    if (paymentModalFromBalance) {
+        paymentModalFromBalance.addEventListener('click', function(e) {
+            if (e.target.id === 'paymentModalFromBalance') {
+                closePaymentModalFromBalance(e);
             } else {
                 e.stopPropagation();
             }
