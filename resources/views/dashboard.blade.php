@@ -545,7 +545,7 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                 </div>
 
                 <!-- Expandable Expense Breakdown -->
-                <details class="text-sm">
+                <details class="text-sm mb-3">
                     <summary class="text-xs text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors">
                         📋 View details
                     </summary>
@@ -558,6 +558,14 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                         `).join('')}
                     </div>
                 </details>
+
+                <!-- Mark as Paid Button -->
+                ${type === 'you_owe' ? `
+                    <button onclick="markSettlementAsPaid(${item.group_id}, ${JSON.stringify(item.split_ids).replace(/"/g, '&quot;')}, '${item.person.name}', '${currencySymbol}${parseFloat(item.amount).toFixed(2)}')"
+                            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm">
+                        ✓ Mark as Paid
+                    </button>
+                ` : ''}
             </div>
         `).join('');
     }
@@ -571,6 +579,67 @@ function closeBalanceModal() {
     const modal = document.getElementById('balanceModal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
+}
+
+// Mark settlement as paid - batch mark multiple splits as paid
+function markSettlementAsPaid(groupId, splitIds, personName, amount) {
+    if (!Array.isArray(splitIds) || splitIds.length === 0) {
+        alert('No payments to mark');
+        return;
+    }
+
+    // Show confirmation
+    if (!confirm(`Mark ${amount} payment to ${personName} as paid?`)) {
+        return;
+    }
+
+    // Get the first split ID to use the existing endpoint
+    // We'll need to create a batch endpoint to handle this properly
+    const firstSplitId = splitIds[0];
+
+    // Show loading state
+    event.target.disabled = true;
+    event.target.innerHTML = '⏳ Processing...';
+
+    // Submit form to mark first payment
+    fetch(`/payments/${firstSplitId}/mark-paid-batch`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            split_ids: splitIds
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            alert('✓ Payment marked as paid successfully!');
+
+            // Close modal
+            closeBalanceModal();
+
+            // Reload the page to show updated balances
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        } else {
+            alert('Error: ' + (data.message || 'Failed to mark payment'));
+            event.target.disabled = false;
+            event.target.innerHTML = '✓ Mark as Paid';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error marking payment: ' + error.message);
+        event.target.disabled = false;
+        event.target.innerHTML = '✓ Mark as Paid';
+    });
 }
 
 // Event listeners for payment modal

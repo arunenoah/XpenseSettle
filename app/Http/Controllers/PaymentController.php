@@ -1009,6 +1009,75 @@ class PaymentController extends Controller
     }
 
     /**
+     * Mark multiple splits as paid - JSON API endpoint for dashboard modal.
+     * This is used by the balance details modal to mark payments without page redirect.
+     */
+    public function markPaidBatchJson(Request $request, $splitId)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'split_ids' => 'required|array',
+            'split_ids.*' => 'exists:expense_splits,id',
+        ]);
+
+        $successCount = 0;
+        $failedCount = 0;
+        $totalAmount = 0;
+
+        foreach ($validated['split_ids'] as $id) {
+            $split = ExpenseSplit::find($id);
+
+            // Check authorization - only the person who owes can mark as paid
+            if ($split->user_id !== $user->id) {
+                $failedCount++;
+                continue;
+            }
+
+            try {
+                // Create or update payment
+                $payment = $this->paymentService->markAsPaid($split, $user, []);
+
+                // Track total amount
+                $totalAmount += $split->share_amount;
+
+                // Notify the payer
+                $this->notificationService->notifyPaymentMarked($payment, $user);
+
+                // Check if expense is fully paid
+                app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+
+                $successCount++;
+            } catch (\Exception $e) {
+                $failedCount++;
+                \Log::error("Failed to mark split {$id} as paid: " . $e->getMessage());
+            }
+        }
+
+        // Log batch payment
+        if ($successCount > 0) {
+            $this->auditService->logSuccess(
+                'mark_paid_batch_json',
+                'Payment',
+                "Batch payment of \${$totalAmount} marked as paid from dashboard ({$successCount} splits)",
+                null,
+                null
+            );
+        }
+
+        // Return JSON response
+        return response()->json([
+            'success' => $successCount > 0,
+            'successCount' => $successCount,
+            'failedCount' => $failedCount,
+            'totalAmount' => $totalAmount,
+            'message' => $successCount > 0
+                ? "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}"
+                : 'Failed to mark payments as paid'
+        ]);
+    }
+
+    /**
      * Manual settlement for balances without specific split_ids (e.g., rounding differences, adjustments).
      */
     public function manualSettle(Request $request, Group $group)

@@ -98,6 +98,7 @@ class DashboardController extends Controller
                     'group_id' => $group->id,
                     'expense_count' => count($item['expenses'] ?? []),
                     'expenses' => $item['expenses'] ?? [],
+                    'split_ids' => $item['split_ids'] ?? [],  // IDs for marking as paid
                 ];
 
                 if ($item['net_amount'] > 0) {

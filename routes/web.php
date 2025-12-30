@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/payments/{payment}/mark-paid', [PaymentController::class, 'markPayment'])->name('payments.mark-paid');
     Route::put('/payments/{payment}/mark-paid', [PaymentController::class, 'markPayment'])->name('payments.mark-paid.update');
     Route::post('/payments/mark-paid-batch', [PaymentController::class, 'markPaidBatch'])->name('payments.mark-paid-batch');
+    Route::post('/payments/{split}/mark-paid-batch', [PaymentController::class, 'markPaidBatchJson'])->name('payments.mark-paid-batch-json');
     Route::post('/splits/{split}/mark-paid', [PaymentController::class, 'markPaid'])->name('splits.mark-paid');
     Route::put('/splits/{split}/mark-paid', [PaymentController::class, 'markPaid'])->name('splits.mark-paid.update');
     // Payment routes - more specific routes first
