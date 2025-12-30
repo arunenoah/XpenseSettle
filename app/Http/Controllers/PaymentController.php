@@ -440,25 +440,31 @@ class PaymentController extends Controller
 
         foreach ($receivedPayments as $receivedPayment) {
             $fromUserId = $receivedPayment->from_user_id;
+            $amount = $receivedPayment->amount;
 
-            // If this person is in the settlement, reduce what they owe
-            if (isset($netBalances[$fromUserId])) {
-                // Use the received payment amount as-is (it's actual cash received)
-                $amount = $receivedPayment->amount;
-
-                // Payment received FROM someone settles part of the debt
-                // Semantics: positive net_amount = user owes them, negative = they owe user
-                // Payment received means they paid you, so ADD to settle
-                // Example: -284.52 (they owe user) + 334.64 (payment) = +50.12
-                $netBalances[$fromUserId]['net_amount'] += $amount;
-                
-                // Add to expenses array so it shows in breakdown
-                $netBalances[$fromUserId]['expenses'][] = [
-                    'title' => 'Payment received',
-                    'amount' => $amount,
-                    'type' => 'payment_received',
+            // Initialize if not in settlement yet
+            if (!isset($netBalances[$fromUserId])) {
+                $netBalances[$fromUserId] = [
+                    'user' => $receivedPayment->fromUser,
+                    'net_amount' => 0,
+                    'status' => 'pending',
+                    'expenses' => [],
+                    'split_ids' => [],
                 ];
             }
+
+            // Payment received FROM someone settles part of the debt
+            // Semantics: positive net_amount = user owes them, negative = they owe user
+            // Payment received means they paid you, so ADD to settle
+            // Example: -284.52 (they owe user) + 334.64 (payment) = +50.12
+            $netBalances[$fromUserId]['net_amount'] += $amount;
+
+            // Add to expenses array so it shows in breakdown
+            $netBalances[$fromUserId]['expenses'][] = [
+                'title' => 'Payment received',
+                'amount' => $amount,
+                'type' => 'payment_received',
+            ];
         }
 
         // Account for payments sent by user to others
@@ -470,24 +476,30 @@ class PaymentController extends Controller
 
         foreach ($sentPayments as $sentPayment) {
             $toUserId = $sentPayment->to_user_id;
+            $amount = $sentPayment->amount;
 
-            // If this person is in the settlement, this payment settles part of the debt
-            if (isset($netBalances[$toUserId])) {
-                // Use the sent payment amount as-is (it's actual cash sent)
-                $amount = $sentPayment->amount;
-
-                // Payment sent TO someone settles the debt
-                // SUBTRACT to reduce what user owes them
-                // Example: +284.52 (user owes them) - 334.64 (payment sent) = -50.12
-                $netBalances[$toUserId]['net_amount'] -= $amount;
-                
-                // Add to expenses array so it shows in breakdown
-                $netBalances[$toUserId]['expenses'][] = [
-                    'title' => 'Payment sent',
-                    'amount' => $amount,
-                    'type' => 'payment_sent',
+            // Initialize if not in settlement yet
+            if (!isset($netBalances[$toUserId])) {
+                $netBalances[$toUserId] = [
+                    'user' => $sentPayment->toUser,
+                    'net_amount' => 0,
+                    'status' => 'pending',
+                    'expenses' => [],
+                    'split_ids' => [],
                 ];
             }
+
+            // Payment sent TO someone settles the debt
+            // SUBTRACT to reduce what user owes them
+            // Example: +284.52 (user owes them) - 334.64 (payment sent) = -50.12
+            $netBalances[$toUserId]['net_amount'] -= $amount;
+
+            // Add to expenses array so it shows in breakdown
+            $netBalances[$toUserId]['expenses'][] = [
+                'title' => 'Payment sent',
+                'amount' => $amount,
+                'type' => 'payment_sent',
+            ];
         }
 
         // Convert to settlement array
