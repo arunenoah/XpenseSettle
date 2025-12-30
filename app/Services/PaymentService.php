@@ -25,6 +25,13 @@ class PaymentService
         $payment = $split->payment ?? new Payment();
         $isNewPayment = !$payment->id; // Track if this is a new payment
 
+        \Log::info('markAsPaid called', [
+            'split_id' => $split->id,
+            'paid_by_id' => $paidBy->id,
+            'isNewPayment' => $isNewPayment,
+            'existing_payment_id' => $payment->id,
+        ]);
+
         $payment->expense_split_id = $split->id;
         $payment->paid_by = $paidBy->id;
         $payment->status = 'paid';
@@ -38,9 +45,16 @@ class PaymentService
             $expense = $split->expense;
             $payer = $expense->payer;
 
+            \Log::info('Creating ReceivedPayment', [
+                'group_id' => $expense->group_id,
+                'from_user_id' => $paidBy->id,
+                'to_user_id' => $payer->id,
+                'amount' => $split->share_amount,
+            ]);
+
             // Create ReceivedPayment: paidBy is sending money to payer
             // This automatically reduces the settlement balance
-            ReceivedPayment::create([
+            $created = ReceivedPayment::create([
                 'group_id' => $expense->group_id,
                 'from_user_id' => $paidBy->id,          // Person who owes (sending payment)
                 'to_user_id' => $payer->id,              // Payer (receiving payment)
@@ -48,6 +62,15 @@ class PaymentService
                 'received_date' => $data['paid_date'] ?? now()->toDateString(),
                 'description' => $data['notes'] ?? "Payment for: {$expense->title}",
                 'status' => 'completed',
+            ]);
+
+            \Log::info('ReceivedPayment created', [
+                'received_payment_id' => $created->id,
+            ]);
+        } else {
+            \Log::info('Skipping ReceivedPayment creation - payment already exists', [
+                'payment_id' => $payment->id,
+                'split_id' => $split->id,
             ]);
         }
 
