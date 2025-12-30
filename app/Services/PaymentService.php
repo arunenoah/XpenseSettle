@@ -23,13 +23,13 @@ class PaymentService
     public function markAsPaid(ExpenseSplit $split, User $paidBy, array $data = []): Payment
     {
         $payment = $split->payment ?? new Payment();
-        $isNewPayment = !$payment->id; // Track if this is a new payment
+        $wasAlreadyPaid = $payment->id && $payment->status === 'paid';
 
         \Log::info('markAsPaid called', [
             'split_id' => $split->id,
             'paid_by_id' => $paidBy->id,
-            'isNewPayment' => $isNewPayment,
-            'existing_payment_id' => $payment->id,
+            'payment_id' => $payment->id,
+            'was_already_paid' => $wasAlreadyPaid,
         ]);
 
         $payment->expense_split_id = $split->id;
@@ -39,12 +39,19 @@ class PaymentService
         $payment->notes = $data['notes'] ?? null;
         $payment->save();
 
-        // Only create ReceivedPayment on first marking as paid
-        // This prevents duplicate records if markAsPaid is called multiple times
-        if ($isNewPayment) {
-            $expense = $split->expense;
-            $payer = $expense->payer;
+        // Create or update ReceivedPayment whenever payment is marked as paid
+        // (not just on new payments, but whenever the status changes to paid)
+        // This ensures the settlement balance is updated
+        $expense = $split->expense;
+        $payer = $expense->payer;
 
+        // Check if ReceivedPayment already exists for this exact combination
+        $existingReceivedPayment = ReceivedPayment::where('group_id', $expense->group_id)
+            ->where('from_user_id', $paidBy->id)
+            ->where('to_user_id', $payer->id)
+            ->first();
+
+        if (!$existingReceivedPayment) {
             \Log::info('Creating ReceivedPayment', [
                 'group_id' => $expense->group_id,
                 'from_user_id' => $paidBy->id,
@@ -68,9 +75,20 @@ class PaymentService
                 'received_payment_id' => $created->id,
             ]);
         } else {
-            \Log::info('Skipping ReceivedPayment creation - payment already exists', [
-                'payment_id' => $payment->id,
-                'split_id' => $split->id,
+            // If ReceivedPayment exists, we need to add to its amount if this is a separate split
+            \Log::info('ReceivedPayment already exists, updating amount', [
+                'received_payment_id' => $existingReceivedPayment->id,
+                'old_amount' => $existingReceivedPayment->amount,
+                'new_split_amount' => $split->share_amount,
+            ]);
+
+            // Add to existing ReceivedPayment amount (handles multiple splits to same person)
+            $existingReceivedPayment->amount += $split->share_amount;
+            $existingReceivedPayment->save();
+
+            \Log::info('ReceivedPayment updated', [
+                'received_payment_id' => $existingReceivedPayment->id,
+                'updated_amount' => $existingReceivedPayment->amount,
             ]);
         }
 
