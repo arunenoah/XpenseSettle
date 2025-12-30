@@ -138,36 +138,6 @@
             </div>
             @endif
 
-            <!-- Already Paid Breakdown -->
-            @if(count($paidPayments) > 0)
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Settled</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach($paidPayments as $payment)
-                    <div class="bg-white rounded-lg shadow-sm border border-green-200 p-5 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                    <span class="text-sm font-bold text-green-700">{{ strtoupper(substr($payment->split->expense->payer->name, 0, 1)) }}</span>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900">{{ $payment->split->expense->payer->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $payment->split->expense->group->name }}</p>
-                                </div>
-                            </div>
-                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Paid</span>
-                        </div>
-                        <div class="mb-4">
-                            <p class="text-xs text-gray-600 mb-1">{{ $payment->split->expense->title }}</p>
-                            <p class="text-2xl font-bold text-green-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
-                        </div>
-                        <p class="text-xs text-gray-500">{{ $payment->paid_date ? \Carbon\Carbon::parse($payment->paid_date)->format('M d, Y') : $payment->created_at->format('M d, Y') }}</p>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
             <!-- Friends Owe Me Breakdown -->
             @if(count($peopleOweMe) > 0)
             <div>
@@ -367,6 +337,36 @@
                 <div class="text-5xl mb-3">👥</div>
                 <p class="text-gray-900 font-bold mb-1">No groups yet</p>
                 <p class="text-sm text-gray-600">Create a group to start tracking expenses with friends</p>
+            </div>
+            @endif
+
+            <!-- Already Paid Breakdown -->
+            @if(count($paidPayments) > 0)
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Settled</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach($paidPayments as $payment)
+                    <div class="bg-white rounded-lg shadow-sm border border-green-200 p-5 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-sm font-bold text-green-700">{{ strtoupper(substr($payment->split->expense->payer->name, 0, 1)) }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">{{ $payment->split->expense->payer->name }}</p>
+                                    <p class="text-xs text-gray-500">{{ $payment->split->expense->group->name }}</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Paid</span>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-xs text-gray-600 mb-1">{{ $payment->split->expense->title }}</p>
+                            <p class="text-2xl font-bold text-green-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
+                        </div>
+                        <p class="text-xs text-gray-500">{{ $payment->paid_date ? \Carbon\Carbon::parse($payment->paid_date)->format('M d, Y') : $payment->created_at->format('M d, Y') }}</p>
+                    </div>
+                    @endforeach
+                </div>
             </div>
             @endif
 
