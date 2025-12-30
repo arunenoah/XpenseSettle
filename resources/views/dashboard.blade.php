@@ -698,6 +698,17 @@ document.addEventListener('click', function(e) {
 
 // Event listeners for payment modal
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle form submission for payment from balance - reload page on success
+    const paymentFormFromBalance = document.getElementById('paymentFormFromBalance');
+    if (paymentFormFromBalance) {
+        paymentFormFromBalance.addEventListener('submit', function(e) {
+            // Submit form normally, then reload page after response
+            setTimeout(function() {
+                location.reload();
+            }, 500);
+        });
+    }
+
     // Open modal buttons
     document.querySelectorAll('.open-payment-modal').forEach(btn => {
         btn.addEventListener('click', function() {
