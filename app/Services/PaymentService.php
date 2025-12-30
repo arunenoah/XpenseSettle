@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ExpenseSplit;
 use App\Models\Payment;
+use App\Models\ReceivedPayment;
 use App\Models\User;
 
 class PaymentService
@@ -11,14 +12,18 @@ class PaymentService
     /**
      * Mark a payment as paid.
      *
+     * This creates a Payment record AND automatically creates a ReceivedPayment
+     * record to actually settle the balance between the payer and the person who owes.
+     *
      * @param ExpenseSplit $split
-     * @param User $paidBy
+     * @param User $paidBy (the person who owes, marking they've paid)
      * @param array $data
      * @return Payment
      */
     public function markAsPaid(ExpenseSplit $split, User $paidBy, array $data = []): Payment
     {
         $payment = $split->payment ?? new Payment();
+        $isNewPayment = !$payment->id; // Track if this is a new payment
 
         $payment->expense_split_id = $split->id;
         $payment->paid_by = $paidBy->id;
@@ -26,6 +31,25 @@ class PaymentService
         $payment->paid_date = $data['paid_date'] ?? now()->toDateString();
         $payment->notes = $data['notes'] ?? null;
         $payment->save();
+
+        // Only create ReceivedPayment on first marking as paid
+        // This prevents duplicate records if markAsPaid is called multiple times
+        if ($isNewPayment) {
+            $expense = $split->expense;
+            $payer = $expense->payer;
+
+            // Create ReceivedPayment: paidBy is sending money to payer
+            // This automatically reduces the settlement balance
+            ReceivedPayment::create([
+                'group_id' => $expense->group_id,
+                'from_user_id' => $paidBy->id,          // Person who owes (sending payment)
+                'to_user_id' => $payer->id,              // Payer (receiving payment)
+                'amount' => $split->share_amount,
+                'received_date' => $data['paid_date'] ?? now()->toDateString(),
+                'description' => $data['notes'] ?? "Payment for: {$expense->title}",
+                'status' => 'completed',
+            ]);
+        }
 
         return $payment;
     }
