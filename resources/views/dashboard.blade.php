@@ -561,8 +561,12 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
 
                 <!-- Mark as Paid Button -->
                 ${type === 'you_owe' ? `
-                    <button onclick="markSettlementAsPaid(${item.group_id}, ${JSON.stringify(item.split_ids).replace(/"/g, '&quot;')}, '${item.person.name}', '${currencySymbol}${parseFloat(item.amount).toFixed(2)}')"
-                            class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm">
+                    <button class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm open-settlement-payment-modal"
+                            data-group-id="${item.group_id}"
+                            data-split-ids='${JSON.stringify(item.split_ids)}'
+                            data-person-name="${item.person.name}"
+                            data-amount="${item.amount}"
+                            data-currency="${currencySymbol}">
                         ✓ Mark as Paid
                     </button>
                 ` : ''}
@@ -582,9 +586,21 @@ function closeBalanceModal() {
 }
 
 // Mark settlement as paid - batch mark multiple splits as paid
-function markSettlementAsPaid(groupId, splitIds, personName, amount) {
-    if (!Array.isArray(splitIds) || splitIds.length === 0) {
-        alert('No payments to mark');
+function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
+    // Ensure splitIds is an array
+    let idsArray = splitIds;
+    if (typeof splitIds === 'string') {
+        try {
+            idsArray = JSON.parse(splitIds);
+        } catch (e) {
+            console.error('Failed to parse split_ids:', splitIds, e);
+            idsArray = [];
+        }
+    }
+
+    if (!Array.isArray(idsArray) || idsArray.length === 0) {
+        // Fallback: show alert and close modal
+        alert('Unable to process payment. Please try using the "Settle" button in the "You Owe" section instead.');
         return;
     }
 
@@ -593,23 +609,19 @@ function markSettlementAsPaid(groupId, splitIds, personName, amount) {
         return;
     }
 
-    // Get the first split ID to use the existing endpoint
-    // We'll need to create a batch endpoint to handle this properly
-    const firstSplitId = splitIds[0];
-
     // Show loading state
-    event.target.disabled = true;
-    event.target.innerHTML = '⏳ Processing...';
+    button.disabled = true;
+    button.innerHTML = '⏳ Processing...';
 
-    // Submit form to mark first payment
-    fetch(`/payments/${firstSplitId}/mark-paid-batch`, {
+    // Submit batch payment
+    fetch(`/payments/${idsArray[0]}/mark-paid-batch`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
         },
         body: JSON.stringify({
-            split_ids: splitIds
+            split_ids: idsArray
         })
     })
     .then(response => {
@@ -630,15 +642,15 @@ function markSettlementAsPaid(groupId, splitIds, personName, amount) {
             }, 500);
         } else {
             alert('Error: ' + (data.message || 'Failed to mark payment'));
-            event.target.disabled = false;
-            event.target.innerHTML = '✓ Mark as Paid';
+            button.disabled = false;
+            button.innerHTML = '✓ Mark as Paid';
         }
     })
     .catch(error => {
         console.error('Error:', error);
         alert('Error marking payment: ' + error.message);
-        event.target.disabled = false;
-        event.target.innerHTML = '✓ Mark as Paid';
+        button.disabled = false;
+        button.innerHTML = '✓ Mark as Paid';
     });
 }
 
@@ -652,6 +664,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const amount = this.dataset.amount;
             const title = this.dataset.title;
             openPaymentModal(paymentId, payerName, amount, title);
+        });
+    });
+
+    // Settlement payment modal buttons (from balance details modal)
+    document.querySelectorAll('.open-settlement-payment-modal').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const groupId = this.dataset.groupId;
+            const splitIds = this.dataset.splitIds;
+            const personName = this.dataset.personName;
+            const amount = this.dataset.amount;
+            markSettlementAsPaid(groupId, splitIds, personName, amount, this);
         });
     });
 
