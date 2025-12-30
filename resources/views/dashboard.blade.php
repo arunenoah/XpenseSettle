@@ -47,7 +47,7 @@
                         <h3 class="text-lg font-bold text-gray-700 mb-3">{{ $currency }} Balances</h3>
                         <div class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
                             <!-- You Owe -->
-                            <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                            <button onclick="openBalanceModal('you_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-red-400 transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
                                     <span class="text-lg sm:text-2xl">📤</span>
@@ -56,12 +56,12 @@
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['you_owe']) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                                    Amount owed in {{ $currency }}
+                                    Click to see details
                                 </p>
-                            </div>
+                            </button>
 
                             <!-- They Owe You -->
-                            <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                            <button onclick="openBalanceModal('they_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-green-400 transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
                                     <span class="text-lg sm:text-2xl">📥</span>
@@ -70,12 +70,12 @@
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['they_owe']) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                                    Amount owed to you
+                                    Click to see details
                                 </p>
-                            </div>
+                            </button>
 
                             <!-- Net Balance -->
-                            <div class="bg-white rounded-lg shadow-sm border {{ $balances['net'] >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
+                            <button onclick="openBalanceModal('{{ $balances['net'] >= 0 ? 'they_owe' : 'you_owe' }}', '{{ $currency }}', {{ json_encode($balances['net'] >= 0 ? ($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) : ($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? [])) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border {{ $balances['net'] >= 0 ? 'border-green-200 hover:border-green-400' : 'border-red-200 hover:border-red-400' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
                                     <span class="text-lg sm:text-2xl">{{ $balances['net'] >= 0 ? '✅' : '⚠️' }}</span>
@@ -84,9 +84,9 @@
                                     {{ $balances['net'] >= 0 ? '+' : '' }}{{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency(abs($balances['net'])) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                                    {{ $balances['net'] >= 0 ? 'You are owed' : 'You owe' }}
+                                    Click to see details
                                 </p>
-                            </div>
+                            </button>
                         </div>
                     </div>
                 @endif
@@ -444,6 +444,34 @@
     </div>
 </div>
 
+<!-- Balance Details Modal -->
+<div id="balanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
+    <div class="bg-white rounded-lg max-w-2xl w-full mx-4 shadow-lg my-8" data-stop-propagation="true">
+        <!-- Modal Header -->
+        <div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-lg">
+            <div>
+                <h2 id="modalTitle" class="text-2xl font-bold text-gray-900"></h2>
+                <p id="modalSubtitle" class="text-sm text-gray-600 mt-1"></p>
+            </div>
+            <button onclick="closeBalanceModal()" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
+                ✕
+            </button>
+        </div>
+
+        <!-- Modal Content -->
+        <div id="modalContent" class="p-6 space-y-4 max-h-96 overflow-y-auto">
+            <!-- Will be populated by JavaScript -->
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 border-t border-gray-200 p-4 rounded-b-lg flex gap-3">
+            <button onclick="closeBalanceModal()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 <script nonce="{{ request()->attributes->get('nonce', '') }}">
 function toggleSection(sectionId) {
     const content = document.getElementById(sectionId + '-content');
@@ -474,6 +502,77 @@ function closePaymentModal(event) {
     }
 }
 
+// Balance Modal Functions
+function openBalanceModal(type, currency, breakdown, currencySymbol) {
+    const modal = document.getElementById('balanceModal');
+    const title = document.getElementById('modalTitle');
+    const subtitle = document.getElementById('modalSubtitle');
+    const content = document.getElementById('modalContent');
+
+    // Set title and subtitle based on type
+    if (type === 'you_owe') {
+        title.textContent = 'Amount You Owe';
+        subtitle.textContent = `Details of payments owed in ${currency}`;
+    } else {
+        title.textContent = 'Amount Owed to You';
+        subtitle.textContent = `Details of payments owed to you in ${currency}`;
+    }
+
+    // Generate breakdown HTML
+    if (breakdown.length === 0) {
+        content.innerHTML = '<div class="text-center py-8 text-gray-500">No balances found</div>';
+    } else {
+        content.innerHTML = breakdown.map(item => `
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3 flex-1">
+                        <div class="w-10 h-10 rounded-full ${type === 'you_owe' ? 'bg-red-100' : 'bg-green-100'} flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-bold ${type === 'you_owe' ? 'text-red-700' : 'text-green-700'}">
+                                ${item.person.name.charAt(0).toUpperCase()}
+                            </span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-semibold text-gray-900 truncate">${item.person.name}</p>
+                            <p class="text-xs text-gray-500">${item.group_name}</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-lg font-bold ${type === 'you_owe' ? 'text-red-600' : 'text-green-600'}">
+                            ${currencySymbol}${parseFloat(item.amount).toFixed(2)}
+                        </p>
+                        <p class="text-xs text-gray-500">${item.expense_count} transaction${item.expense_count > 1 ? 's' : ''}</p>
+                    </div>
+                </div>
+
+                <!-- Expandable Expense Breakdown -->
+                <details class="text-sm">
+                    <summary class="text-xs text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors">
+                        📋 View details
+                    </summary>
+                    <div class="mt-3 pl-4 border-l-2 border-gray-300 space-y-2">
+                        ${(item.expenses || []).map(exp => `
+                            <div class="flex justify-between items-center text-xs text-gray-600">
+                                <span class="truncate flex-1">${exp.title}</span>
+                                <span class="text-gray-900 font-semibold flex-shrink-0 ml-2">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </details>
+            </div>
+        `).join('');
+    }
+
+    // Show modal
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeBalanceModal() {
+    const modal = document.getElementById('balanceModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
 // Event listeners for payment modal
 document.addEventListener('DOMContentLoaded', function() {
     // Open modal buttons
@@ -498,6 +597,20 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModal.addEventListener('click', function(e) {
             if (e.target.id === 'paymentModal') {
                 closePaymentModal(e);
+            } else {
+                e.stopPropagation();
+            }
+        });
+    }
+
+    // Close balance modal when clicking backdrop
+    const balanceModal = document.getElementById('balanceModal');
+    if (balanceModal) {
+        balanceModal.addEventListener('click', function(e) {
+            if (e.target.id === 'balanceModal') {
+                closeBalanceModal();
+            } else if (e.target.getAttribute('data-stop-propagation') !== 'true') {
+                // Allow clicks inside modal to propagate to details/summary elements
             } else {
                 e.stopPropagation();
             }
