@@ -256,10 +256,9 @@ class PaymentController extends Controller
                         // between the two people (settlements/advances do)
                         $netBalances[$payerId]['net_amount'] += $split->share_amount;
 
-                        // Only track split IDs for unpaid items (for marking as paid)
-                        if (!$payment || $payment->status !== 'paid') {
-                            $netBalances[$payerId]['split_ids'][] = $split->id;
-                        }
+                        // Track all split IDs for marking as paid (including already paid ones)
+                        // This allows users to re-mark payments or consolidate multiple splits
+                        $netBalances[$payerId]['split_ids'][] = $split->id;
                     }
                 } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
                     // User is the payer, someone else (a user, not contact) is a participant
