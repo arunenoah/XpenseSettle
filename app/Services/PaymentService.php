@@ -23,14 +23,6 @@ class PaymentService
     public function markAsPaid(ExpenseSplit $split, User $paidBy, array $data = []): Payment
     {
         $payment = $split->payment ?? new Payment();
-        $wasAlreadyPaid = $payment->id && $payment->status === 'paid';
-
-        \Log::info('markAsPaid called', [
-            'split_id' => $split->id,
-            'paid_by_id' => $paidBy->id,
-            'payment_id' => $payment->id,
-            'was_already_paid' => $wasAlreadyPaid,
-        ]);
 
         $payment->expense_split_id = $split->id;
         $payment->paid_by = $paidBy->id;
@@ -40,28 +32,20 @@ class PaymentService
         $payment->save();
 
         // Create or update ReceivedPayment whenever payment is marked as paid
-        // (not just on new payments, but whenever the status changes to paid)
-        // This ensures the settlement balance is updated
+        // This ensures the settlement balance is updated regardless of whether
+        // the Payment record is new or was already created
         $expense = $split->expense;
         $payer = $expense->payer;
 
-        // Check if ReceivedPayment already exists for this exact combination
+        // Check if ReceivedPayment already exists for this person pair
         $existingReceivedPayment = ReceivedPayment::where('group_id', $expense->group_id)
             ->where('from_user_id', $paidBy->id)
             ->where('to_user_id', $payer->id)
             ->first();
 
         if (!$existingReceivedPayment) {
-            \Log::info('Creating ReceivedPayment', [
-                'group_id' => $expense->group_id,
-                'from_user_id' => $paidBy->id,
-                'to_user_id' => $payer->id,
-                'amount' => $split->share_amount,
-            ]);
-
-            // Create ReceivedPayment: paidBy is sending money to payer
-            // This automatically reduces the settlement balance
-            $created = ReceivedPayment::create([
+            // Create new ReceivedPayment
+            ReceivedPayment::create([
                 'group_id' => $expense->group_id,
                 'from_user_id' => $paidBy->id,          // Person who owes (sending payment)
                 'to_user_id' => $payer->id,              // Payer (receiving payment)
@@ -70,26 +54,10 @@ class PaymentService
                 'description' => $data['notes'] ?? "Payment for: {$expense->title}",
                 'status' => 'completed',
             ]);
-
-            \Log::info('ReceivedPayment created', [
-                'received_payment_id' => $created->id,
-            ]);
         } else {
-            // If ReceivedPayment exists, we need to add to its amount if this is a separate split
-            \Log::info('ReceivedPayment already exists, updating amount', [
-                'received_payment_id' => $existingReceivedPayment->id,
-                'old_amount' => $existingReceivedPayment->amount,
-                'new_split_amount' => $split->share_amount,
-            ]);
-
             // Add to existing ReceivedPayment amount (handles multiple splits to same person)
             $existingReceivedPayment->amount += $split->share_amount;
             $existingReceivedPayment->save();
-
-            \Log::info('ReceivedPayment updated', [
-                'received_payment_id' => $existingReceivedPayment->id,
-                'updated_amount' => $existingReceivedPayment->amount,
-            ]);
         }
 
         return $payment;
