@@ -917,6 +917,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Handle form submission for group payment - reload page on success
+    const groupPaymentForm = document.getElementById('groupPaymentForm');
+    if (groupPaymentForm) {
+        groupPaymentForm.addEventListener('submit', function(e) {
+            // Submit form normally, then reload page after response
+            setTimeout(function() {
+                location.reload();
+            }, 500);
+        });
+    }
+
     // Close payment modal by clicking background
     const groupPaymentModal = document.getElementById('groupPaymentModal');
     if (groupPaymentModal) {
