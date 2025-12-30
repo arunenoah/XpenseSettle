@@ -441,9 +441,35 @@ class PaymentController extends Controller
             ->with(['toUser'])
             ->get();
 
+        \Log::info('ReceivedPayment query', [
+            'group_id' => $group->id,
+            'from_user_id' => $user->id,
+            'found_count' => $sentPaymentsToPayers->count(),
+            'payments' => $sentPaymentsToPayers->map(fn($p) => [
+                'id' => $p->id,
+                'from' => $p->from_user_id,
+                'to' => $p->to_user_id,
+                'amount' => $p->amount,
+            ])->toArray(),
+        ]);
+
+        \Log::info('NetBalances before ReceivedPayment deduction', [
+            'balances' => collect($netBalances)->map(fn($b) => [
+                'user_id' => $b['user']->id ?? null,
+                'user_name' => $b['user']->name ?? null,
+                'net_amount' => $b['net_amount'],
+            ])->toArray(),
+        ]);
+
         foreach ($sentPaymentsToPayers as $payment) {
             $toUserId = $payment->to_user_id;  // Person receiving the payment (payer of expense)
             $amount = $payment->amount;
+
+            \Log::info('Processing ReceivedPayment', [
+                'toUserId' => $toUserId,
+                'amount' => $amount,
+                'to_user_exists_in_netBalances' => isset($netBalances[$toUserId]),
+            ]);
 
             // Initialize if not in settlement yet
             if (!isset($netBalances[$toUserId])) {
@@ -462,6 +488,11 @@ class PaymentController extends Controller
             // Example: +284.52 (user owes) - 334.64 (payment sent) = -50.12
             $netBalances[$toUserId]['net_amount'] -= $amount;
 
+            \Log::info('Updated netBalance after payment', [
+                'toUserId' => $toUserId,
+                'new_net_amount' => $netBalances[$toUserId]['net_amount'],
+            ]);
+
             // Add to expenses array so it shows in breakdown
             $netBalances[$toUserId]['expenses'][] = [
                 'title' => 'Payment sent',
@@ -469,6 +500,14 @@ class PaymentController extends Controller
                 'type' => 'payment_sent',
             ];
         }
+
+        \Log::info('NetBalances after ReceivedPayment deduction', [
+            'balances' => collect($netBalances)->map(fn($b) => [
+                'user_id' => $b['user']->id ?? null,
+                'user_name' => $b['user']->name ?? null,
+                'net_amount' => $b['net_amount'],
+            ])->toArray(),
+        ]);
 
         // Convert to settlement array
         // Include all relationships: non-zero balances AND zero-balance settled relationships
