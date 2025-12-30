@@ -431,57 +431,24 @@ class PaymentController extends Controller
         }
 
         // Account for received payments
-        // These reduce what the user owes to others (payment received FROM them)
+        // These reduce what the user owes to others (payments user sent)
         // Received payments are actual cash amounts and should NOT be adjusted by family count
-        $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
-            ->where('to_user_id', $user->id)
-            ->with(['fromUser'])
-            ->get();
-
-        foreach ($receivedPayments as $receivedPayment) {
-            $fromUserId = $receivedPayment->from_user_id;
-            $amount = $receivedPayment->amount;
-
-            // Initialize if not in settlement yet
-            if (!isset($netBalances[$fromUserId])) {
-                $netBalances[$fromUserId] = [
-                    'user' => $receivedPayment->fromUser,
-                    'net_amount' => 0,
-                    'status' => 'pending',
-                    'expenses' => [],
-                    'split_ids' => [],
-                ];
-            }
-
-            // Payment received FROM someone settles part of the debt
-            // Semantics: positive net_amount = user owes them, negative = they owe user
-            // Payment received means they paid you, so ADD to settle
-            // Example: -284.52 (they owe user) + 334.64 (payment) = +50.12
-            $netBalances[$fromUserId]['net_amount'] += $amount;
-
-            // Add to expenses array so it shows in breakdown
-            $netBalances[$fromUserId]['expenses'][] = [
-                'title' => 'Payment received',
-                'amount' => $amount,
-                'type' => 'payment_received',
-            ];
-        }
-
-        // Account for payments sent by user to others
-        // These settle what user owes to others
-        $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+        // Note: In our system, when user marks payment as paid, we record it as:
+        // from_user_id = person who paid (user), to_user_id = person who received (payer of expense)
+        // So we query for payments FROM the current user
+        $sentPaymentsToPayers = \App\Models\ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $user->id)
             ->with(['toUser'])
             ->get();
 
-        foreach ($sentPayments as $sentPayment) {
-            $toUserId = $sentPayment->to_user_id;
-            $amount = $sentPayment->amount;
+        foreach ($sentPaymentsToPayers as $payment) {
+            $toUserId = $payment->to_user_id;  // Person receiving the payment (payer of expense)
+            $amount = $payment->amount;
 
             // Initialize if not in settlement yet
             if (!isset($netBalances[$toUserId])) {
                 $netBalances[$toUserId] = [
-                    'user' => $sentPayment->toUser,
+                    'user' => $payment->toUser,
                     'net_amount' => 0,
                     'status' => 'pending',
                     'expenses' => [],
@@ -490,8 +457,9 @@ class PaymentController extends Controller
             }
 
             // Payment sent TO someone settles the debt
-            // SUBTRACT to reduce what user owes them
-            // Example: +284.52 (user owes them) - 334.64 (payment sent) = -50.12
+            // Semantics: positive net_amount = user owes them, negative = they owe user
+            // Payment sent means you paid them, so SUBTRACT to reduce what you owe
+            // Example: +284.52 (user owes) - 334.64 (payment sent) = -50.12
             $netBalances[$toUserId]['net_amount'] -= $amount;
 
             // Add to expenses array so it shows in breakdown
