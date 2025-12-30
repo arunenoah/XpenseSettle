@@ -654,6 +654,20 @@ function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
     });
 }
 
+// Settlement payment modal buttons (from balance details modal)
+// Use event delegation since buttons are created dynamically
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('open-settlement-payment-modal')) {
+        e.preventDefault();
+        const btn = e.target;
+        const groupId = btn.dataset.groupId;
+        const splitIds = btn.dataset.splitIds;
+        const personName = btn.dataset.personName;
+        const amount = btn.dataset.amount;
+        markSettlementAsPaid(groupId, splitIds, personName, amount, btn);
+    }
+});
+
 // Event listeners for payment modal
 document.addEventListener('DOMContentLoaded', function() {
     // Open modal buttons
@@ -664,18 +678,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const amount = this.dataset.amount;
             const title = this.dataset.title;
             openPaymentModal(paymentId, payerName, amount, title);
-        });
-    });
-
-    // Settlement payment modal buttons (from balance details modal)
-    document.querySelectorAll('.open-settlement-payment-modal').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const groupId = this.dataset.groupId;
-            const splitIds = this.dataset.splitIds;
-            const personName = this.dataset.personName;
-            const amount = this.dataset.amount;
-            markSettlementAsPaid(groupId, splitIds, personName, amount, this);
         });
     });
 
