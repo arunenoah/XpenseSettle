@@ -405,7 +405,7 @@
                             @foreach($transactionHistory as $transaction)
                                 @php
                                     $isExpense = $transaction['type'] === 'expense';
-                                    $transactionId = $isExpense ? $transaction['expense']->id : ($transaction['payment']->id ?? null);
+                                    $transactionId = $isExpense ? $transaction['expense_id'] : $transaction['payment_id'];
                                     $transactionType = $isExpense ? 'expense' : 'payment';
                                 @endphp
                                 <tr class="hover:bg-blue-50 transition-colors cursor-pointer" onclick="openTransactionDetailsModal('{{ $transactionType }}', {{ $transactionId }})">
