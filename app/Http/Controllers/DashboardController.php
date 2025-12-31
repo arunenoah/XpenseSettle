@@ -63,14 +63,15 @@ class DashboardController extends Controller
 
         // Calculate totals across all groups - grouped by currency
         $balancesByCurrency = [];  // currency => ['you_owe' => amount, 'they_owe' => amount]
+        $settlementDetailsByCurrency = [];  // currency => detailed breakdown for modal
         $pendingCount = 0;
 
         // Use PaymentController for consistent calculations
         $paymentController = app(PaymentController::class);
-        
+
         foreach ($user->groups as $group) {
             $currency = $group->currency ?? 'INR';
-            
+
             // Initialize currency if not exists
             if (!isset($balancesByCurrency[$currency])) {
                 $balancesByCurrency[$currency] = [
@@ -78,22 +79,40 @@ class DashboardController extends Controller
                     'they_owe' => 0,
                     'net' => 0
                 ];
+                $settlementDetailsByCurrency[$currency] = [
+                    'you_owe_breakdown' => [],
+                    'they_owe_breakdown' => [],
+                ];
             }
-            
+
             // Get personal settlement for this group using PaymentController
             $settlement = $paymentController->calculateSettlement($group, $user);
 
-            // Calculate totals from settlement
+            // Calculate totals from settlement and build breakdown for modal
             foreach ($settlement as $item) {
+                $personData = [
+                    'person' => $item['user'],
+                    'amount' => $item['amount'],
+                    'net_amount' => $item['net_amount'],
+                    'group_name' => $group->name,
+                    'group_id' => $group->id,
+                    'expense_count' => count($item['expenses'] ?? []),
+                    'expenses' => $item['expenses'] ?? [],
+                    'split_ids' => $item['split_ids'] ?? [],  // IDs for marking as paid
+                ];
+
                 if ($item['net_amount'] > 0) {
                     // User owes this person
                     $balancesByCurrency[$currency]['you_owe'] += $item['net_amount'];
+                    $settlementDetailsByCurrency[$currency]['you_owe_breakdown'][] = $personData;
                 } else if ($item['net_amount'] < 0) {
                     // This person owes user
                     $balancesByCurrency[$currency]['they_owe'] += abs($item['net_amount']);
+                    $personData['amount'] = abs($item['net_amount']);  // Show as positive for they_owe
+                    $settlementDetailsByCurrency[$currency]['they_owe_breakdown'][] = $personData;
                 }
             }
-            
+
             // Calculate net for this currency
             $balancesByCurrency[$currency]['net'] = $balancesByCurrency[$currency]['they_owe'] - $balancesByCurrency[$currency]['you_owe'];
 
@@ -185,6 +204,7 @@ class DashboardController extends Controller
             'userExpenses' => $userExpenses,
             'balancesByCurrency' => $balancesByCurrency,
             'primaryCurrency' => $primaryCurrency,
+            'settlementDetailsByCurrency' => $settlementDetailsByCurrency,
         ]);
     }
 
