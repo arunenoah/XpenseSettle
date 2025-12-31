@@ -408,7 +408,7 @@
                                     $transactionId = $isExpense ? $transaction['expense_id'] : $transaction['payment_id'];
                                     $transactionType = $isExpense ? 'expense' : 'payment';
                                 @endphp
-                                <tr class="hover:bg-blue-50 transition-colors cursor-pointer" onclick="openTransactionDetailsModal('{{ $transactionType }}', {{ $transactionId }})">
+                                <tr class="hover:bg-blue-50 transition-colors cursor-pointer" onclick="handleTransactionRowClick('{{ $transactionType }}', {{ $transactionId }}, {{ $isExpense ? 'true' : 'false' }}, '{{ $isExpense ? route('groups.expenses.show', ['group' => $group, 'expense' => $transaction['expense_id']]) : '#' }}')">
                                     <!-- Date -->
                                     <td class="px-3 sm:px-4 py-3">
                                         <span class="text-xs text-gray-600 font-medium">
@@ -668,6 +668,17 @@ function openPaymentModal(splitId, userName, amount) {
     document.getElementById('paymentForm').action = '/splits/' + splitId + '/mark-paid';
     document.getElementById('paymentModal').classList.remove('hidden');
     document.getElementById('paymentModal').classList.add('flex');
+}
+
+// Handle transaction row click - navigate to expense or show payment details
+function handleTransactionRowClick(type, id, isExpense, expenseUrl) {
+    if (isExpense) {
+        // For expenses, navigate directly to the expense details page
+        window.location.href = expenseUrl;
+    } else {
+        // For payments, show the transaction details modal
+        openTransactionDetailsModal(type, id);
+    }
 }
 
 // Transaction Details Modal
