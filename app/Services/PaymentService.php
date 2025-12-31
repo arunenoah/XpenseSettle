@@ -23,6 +23,7 @@ class PaymentService
     public function markAsPaid(ExpenseSplit $split, User $paidBy, array $data = []): Payment
     {
         $payment = $split->payment ?? new Payment();
+        $isNewPayment = !$payment->id; // Track if this is a new payment
 
         $payment->expense_split_id = $split->id;
         $payment->paid_by = $paidBy->id;
@@ -31,20 +32,14 @@ class PaymentService
         $payment->notes = $data['notes'] ?? null;
         $payment->save();
 
-        // Create or update ReceivedPayment whenever payment is marked as paid
-        // This ensures the settlement balance is updated regardless of whether
-        // the Payment record is new or was already created
-        $expense = $split->expense;
-        $payer = $expense->payer;
+        // Only create ReceivedPayment on first marking as paid
+        // This prevents duplicate records if markAsPaid is called multiple times
+        if ($isNewPayment) {
+            $expense = $split->expense;
+            $payer = $expense->payer;
 
-        // Check if ReceivedPayment already exists for this person pair
-        $existingReceivedPayment = ReceivedPayment::where('group_id', $expense->group_id)
-            ->where('from_user_id', $paidBy->id)
-            ->where('to_user_id', $payer->id)
-            ->first();
-
-        if (!$existingReceivedPayment) {
-            // Create new ReceivedPayment
+            // Create ReceivedPayment: paidBy is sending money to payer
+            // This automatically reduces the settlement balance
             ReceivedPayment::create([
                 'group_id' => $expense->group_id,
                 'from_user_id' => $paidBy->id,          // Person who owes (sending payment)
@@ -54,10 +49,6 @@ class PaymentService
                 'description' => $data['notes'] ?? "Payment for: {$expense->title}",
                 'status' => 'completed',
             ]);
-        } else {
-            // Add to existing ReceivedPayment amount (handles multiple splits to same person)
-            $existingReceivedPayment->amount += $split->share_amount;
-            $existingReceivedPayment->save();
         }
 
         return $payment;
