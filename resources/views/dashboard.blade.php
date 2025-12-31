@@ -138,7 +138,8 @@
             </div>
             @endif
 
-            <!-- Already Paid Breakdown -->
+            <!-- Already Paid Breakdown - HIDDEN -->
+            <!--
             @if(count($paidPayments) > 0)
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Settled</h2>
@@ -167,6 +168,7 @@
                 </div>
             </div>
             @endif
+            -->
 
             <!-- Friends Owe Me Breakdown -->
             @if(count($peopleOweMe) > 0)
