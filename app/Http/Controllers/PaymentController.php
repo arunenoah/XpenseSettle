@@ -1587,4 +1587,81 @@ class PaymentController extends Controller
             'details' => $analysis
         ], 200, [], JSON_PRETTY_PRINT);
     }
+
+    /**
+     * Get transaction details for modal display
+     */
+    public function getTransactionDetails(Group $group, $type, $id)
+    {
+        if (!$group->hasMember(auth()->user())) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        try {
+            if ($type === 'expense') {
+                $expense = Expense::find($id);
+                if (!$expense || $expense->group_id !== $group->id) {
+                    return response()->json(['success' => false, 'message' => 'Expense not found'], 404);
+                }
+
+                $transaction = [
+                    'title' => $expense->title,
+                    'amount' => $expense->amount,
+                    'payer_name' => $expense->payer->name,
+                    'description' => $expense->notes,
+                    'date' => $expense->date->format('F j, Y'),
+                    'attachments' => $expense->attachments->map(function ($attachment) {
+                        return [
+                            'name' => $attachment->original_filename,
+                            'url' => route('attachments.download', $attachment),
+                            'size' => $this->formatFileSize($attachment->file_size),
+                        ];
+                    })->toArray(),
+                ];
+
+                return response()->json(['success' => true, 'transaction' => $transaction]);
+            } elseif ($type === 'payment') {
+                $payment = Payment::find($id);
+                if (!$payment || $payment->split->expense->group_id !== $group->id) {
+                    return response()->json(['success' => false, 'message' => 'Payment not found'], 404);
+                }
+
+                $transaction = [
+                    'payer_name' => $payment->paidBy->name,
+                    'recipient_name' => $payment->split->expense->payer->name,
+                    'amount' => $payment->split->share_amount,
+                    'notes' => $payment->notes,
+                    'date' => $payment->paid_date ? date('F j, Y', strtotime($payment->paid_date)) : $payment->created_at->format('F j, Y'),
+                    'receipt' => $payment->attachments->first() ? [
+                        'name' => $payment->attachments->first()->original_filename,
+                        'url' => route('attachments.download', $payment->attachments->first()),
+                        'size' => $this->formatFileSize($payment->attachments->first()->file_size),
+                    ] : null,
+                ];
+
+                return response()->json(['success' => true, 'transaction' => $transaction]);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Invalid transaction type'], 400);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error fetching transaction details: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error loading transaction details'], 500);
+        }
+    }
+
+    /**
+     * Format file size for display
+     */
+    private function formatFileSize($bytes)
+    {
+        if ($bytes >= 1073741824) {
+            return round($bytes / 1073741824, 2) . ' GB';
+        } elseif ($bytes >= 1048576) {
+            return round($bytes / 1048576, 2) . ' MB';
+        } elseif ($bytes >= 1024) {
+            return round($bytes / 1024, 2) . ' KB';
+        } else {
+            return $bytes . ' B';
+        }
+    }
 }

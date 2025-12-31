@@ -405,8 +405,10 @@
                             @foreach($transactionHistory as $transaction)
                                 @php
                                     $isExpense = $transaction['type'] === 'expense';
+                                    $transactionId = $isExpense ? $transaction['expense']->id : ($transaction['payment']->id ?? null);
+                                    $transactionType = $isExpense ? 'expense' : 'payment';
                                 @endphp
-                                <tr class="hover:bg-blue-50 transition-colors">
+                                <tr class="hover:bg-blue-50 transition-colors cursor-pointer" onclick="openTransactionDetailsModal('{{ $transactionType }}', {{ $transactionId }})">
                                     <!-- Date -->
                                     <td class="px-3 sm:px-4 py-3">
                                         <span class="text-xs text-gray-600 font-medium">
@@ -594,6 +596,37 @@
         </div>
     @endif
 
+    <!-- Transaction Details Modal -->
+    <div id="transactionDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" onclick="closeTransactionDetailsModal(event)">
+        <div class="bg-white rounded-2xl max-w-2xl w-full mx-4 shadow-2xl my-8" onclick="event.stopPropagation()">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                <h2 class="text-xl font-bold text-gray-900">Transaction Details</h2>
+                <button onclick="closeTransactionDetailsModal()" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal Loader -->
+            <div id="transactionLoader" class="px-6 py-8 flex items-center justify-center">
+                <div class="flex flex-col items-center gap-3">
+                    <div class="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <p class="text-gray-600">Loading transaction details...</p>
+                </div>
+            </div>
+
+            <!-- Modal Content -->
+            <div id="transactionDetailsContent" class="px-6 py-6"></div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 border-t border-gray-200 px-6 py-4 rounded-b-2xl flex justify-end">
+                <button onclick="closeTransactionDetailsModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all font-semibold">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Floating Back Button -->
     <div class="fixed bottom-6 right-6 sm:hidden z-40">
         <a href="{{ route('groups.dashboard', $group) }}" class="flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-all transform hover:scale-110 font-bold shadow-lg" title="Back to Group">
@@ -635,6 +668,130 @@ function openPaymentModal(splitId, userName, amount) {
     document.getElementById('paymentForm').action = '/splits/' + splitId + '/mark-paid';
     document.getElementById('paymentModal').classList.remove('hidden');
     document.getElementById('paymentModal').classList.add('flex');
+}
+
+// Transaction Details Modal
+function openTransactionDetailsModal(type, id) {
+    const modal = document.getElementById('transactionDetailsModal');
+    const loader = document.getElementById('transactionLoader');
+    const content = document.getElementById('transactionDetailsContent');
+
+    // Show loader
+    loader.classList.remove('hidden');
+    content.innerHTML = '';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // Fetch transaction details
+    fetch(`/groups/{{ $group->id }}/transaction-details/${type}/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            loader.classList.add('hidden');
+            if (data.success) {
+                renderTransactionDetails(data.transaction, type);
+            } else {
+                content.innerHTML = '<p class="text-red-600">Error loading transaction details</p>';
+            }
+        })
+        .catch(error => {
+            loader.classList.add('hidden');
+            content.innerHTML = '<p class="text-red-600">Error loading transaction details</p>';
+            console.error('Error:', error);
+        });
+}
+
+function renderTransactionDetails(transaction, type) {
+    const content = document.getElementById('transactionDetailsContent');
+
+    if (type === 'expense') {
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <h3 class="text-lg font-bold text-gray-900">${transaction.title}</h3>
+                    <p class="text-sm text-gray-600 mt-1">Added by ${transaction.payer_name}</p>
+                    <p class="text-2xl font-bold text-blue-600 mt-3">$${parseFloat(transaction.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                </div>
+
+                ${transaction.description ? `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">Description</p>
+                    <p class="text-gray-900">${transaction.description}</p>
+                </div>
+                ` : ''}
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">Date</p>
+                    <p class="text-gray-900">${transaction.date}</p>
+                </div>
+
+                ${transaction.attachments && transaction.attachments.length > 0 ? `
+                <div class="border-t pt-4 mt-4">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">Attachments (${transaction.attachments.length})</p>
+                    <div class="space-y-2">
+                        ${transaction.attachments.map(att => `
+                            <a href="${att.url}" target="_blank" class="block p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xl">📄</span>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="font-semibold text-blue-600 truncate">${att.name}</p>
+                                        <p class="text-xs text-gray-500">${att.size}</p>
+                                    </div>
+                                    <span class="text-xl">🔗</span>
+                                </div>
+                            </a>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : '<p class="text-sm text-gray-500 text-center py-4">No attachments</p>'}
+            </div>
+        `;
+    } else if (type === 'payment') {
+        content.innerHTML = `
+            <div class="space-y-4">
+                <div class="bg-green-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-600">Payment Details</p>
+                    <p class="text-lg font-bold text-gray-900 mt-1">${transaction.payer_name} → ${transaction.recipient_name}</p>
+                    <p class="text-2xl font-bold text-green-600 mt-3">$${parseFloat(transaction.amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                </div>
+
+                ${transaction.notes ? `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">Notes</p>
+                    <p class="text-gray-900">${transaction.notes}</p>
+                </div>
+                ` : ''}
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm font-semibold text-gray-700 mb-2">Date</p>
+                    <p class="text-gray-900">${transaction.date}</p>
+                </div>
+
+                ${transaction.receipt ? `
+                <div class="border-t pt-4 mt-4">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">Receipt</p>
+                    <a href="${transaction.receipt.url}" target="_blank" class="block p-3 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">📷</span>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-semibold text-blue-600 truncate">${transaction.receipt.name}</p>
+                                <p class="text-xs text-gray-500">${transaction.receipt.size}</p>
+                            </div>
+                            <span class="text-xl">🔗</span>
+                        </div>
+                    </a>
+                </div>
+                ` : '<p class="text-sm text-gray-500 text-center py-4">No receipt attached</p>'}
+            </div>
+        `;
+    }
+}
+
+function closeTransactionDetailsModal(event) {
+    if (!event || event.target.id === 'transactionDetailsModal') {
+        const modal = document.getElementById('transactionDetailsModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 }
 
 function closePaymentModal(event) {
