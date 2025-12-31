@@ -256,9 +256,10 @@ class PaymentController extends Controller
                         // between the two people (settlements/advances do)
                         $netBalances[$payerId]['net_amount'] += $split->share_amount;
 
-                        // Track all split IDs for marking as paid (including already paid ones)
-                        // This allows users to re-mark payments or consolidate multiple splits
-                        $netBalances[$payerId]['split_ids'][] = $split->id;
+                        // Only track split IDs for unpaid items (for marking as paid)
+                        if (!$payment || $payment->status !== 'paid') {
+                            $netBalances[$payerId]['split_ids'][] = $split->id;
+                        }
                     }
                 } elseif ($expense->payer_id === $user->id && $split->user_id && $split->user_id !== $user->id) {
                     // User is the payer, someone else (a user, not contact) is a participant
@@ -431,43 +432,63 @@ class PaymentController extends Controller
         }
 
         // Account for received payments
-        // These reduce what the user owes to others (payments user sent)
+        // These reduce what the user owes to others (payment received FROM them)
         // Received payments are actual cash amounts and should NOT be adjusted by family count
-        // Note: In our system, when user marks payment as paid, we record it as:
-        // from_user_id = person who paid (user), to_user_id = person who received (payer of expense)
-        // So we query for payments FROM the current user
-        $sentPaymentsToPayers = \App\Models\ReceivedPayment::where('group_id', $group->id)
+        $receivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->where('to_user_id', $user->id)
+            ->with(['fromUser'])
+            ->get();
+
+        foreach ($receivedPayments as $receivedPayment) {
+            $fromUserId = $receivedPayment->from_user_id;
+
+            // If this person is in the settlement, reduce what they owe
+            if (isset($netBalances[$fromUserId])) {
+                // Use the received payment amount as-is (it's actual cash received)
+                $amount = $receivedPayment->amount;
+
+                // Payment received FROM someone settles part of the debt
+                // Semantics: positive net_amount = user owes them, negative = they owe user
+                // Payment received means they paid you, so ADD to settle
+                // Example: -284.52 (they owe user) + 334.64 (payment) = +50.12
+                $netBalances[$fromUserId]['net_amount'] += $amount;
+                
+                // Add to expenses array so it shows in breakdown
+                $netBalances[$fromUserId]['expenses'][] = [
+                    'title' => 'Payment received',
+                    'amount' => $amount,
+                    'type' => 'payment_received',
+                ];
+            }
+        }
+
+        // Account for payments sent by user to others
+        // These settle what user owes to others
+        $sentPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
             ->where('from_user_id', $user->id)
             ->with(['toUser'])
             ->get();
 
-        foreach ($sentPaymentsToPayers as $payment) {
-            $toUserId = $payment->to_user_id;  // Person receiving the payment (payer of expense)
-            $amount = $payment->amount;
+        foreach ($sentPayments as $sentPayment) {
+            $toUserId = $sentPayment->to_user_id;
 
-            // Initialize if not in settlement yet
-            if (!isset($netBalances[$toUserId])) {
-                $netBalances[$toUserId] = [
-                    'user' => $payment->toUser,
-                    'net_amount' => 0,
-                    'status' => 'pending',
-                    'expenses' => [],
-                    'split_ids' => [],
+            // If this person is in the settlement, this payment settles part of the debt
+            if (isset($netBalances[$toUserId])) {
+                // Use the sent payment amount as-is (it's actual cash sent)
+                $amount = $sentPayment->amount;
+
+                // Payment sent TO someone settles the debt
+                // SUBTRACT to reduce what user owes them
+                // Example: +284.52 (user owes them) - 334.64 (payment sent) = -50.12
+                $netBalances[$toUserId]['net_amount'] -= $amount;
+                
+                // Add to expenses array so it shows in breakdown
+                $netBalances[$toUserId]['expenses'][] = [
+                    'title' => 'Payment sent',
+                    'amount' => $amount,
+                    'type' => 'payment_sent',
                 ];
             }
-
-            // Payment sent TO someone settles the debt
-            // Semantics: positive net_amount = user owes them, negative = they owe user
-            // Payment sent means you paid them, so SUBTRACT to reduce what you owe
-            // Example: +284.52 (user owes) - 334.64 (payment sent) = -50.12
-            $netBalances[$toUserId]['net_amount'] -= $amount;
-
-            // Add to expenses array so it shows in breakdown
-            $netBalances[$toUserId]['expenses'][] = [
-                'title' => 'Payment sent',
-                'amount' => $amount,
-                'type' => 'payment_sent',
-            ];
         }
 
         // Convert to settlement array
@@ -985,75 +1006,6 @@ class PaymentController extends Controller
         }
 
         return back()->with('success', "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}");
-    }
-
-    /**
-     * Mark multiple splits as paid - JSON API endpoint for dashboard modal.
-     * This is used by the balance details modal to mark payments without page redirect.
-     */
-    public function markPaidBatchJson(Request $request, $splitId)
-    {
-        $user = auth()->user();
-
-        $validated = $request->validate([
-            'split_ids' => 'required|array',
-            'split_ids.*' => 'exists:expense_splits,id',
-        ]);
-
-        $successCount = 0;
-        $failedCount = 0;
-        $totalAmount = 0;
-
-        foreach ($validated['split_ids'] as $id) {
-            $split = ExpenseSplit::find($id);
-
-            // Check authorization - only the person who owes can mark as paid
-            if ($split->user_id !== $user->id) {
-                $failedCount++;
-                continue;
-            }
-
-            try {
-                // Create or update payment
-                $payment = $this->paymentService->markAsPaid($split, $user, []);
-
-                // Track total amount
-                $totalAmount += $split->share_amount;
-
-                // Notify the payer
-                $this->notificationService->notifyPaymentMarked($payment, $user);
-
-                // Check if expense is fully paid
-                app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
-
-                $successCount++;
-            } catch (\Exception $e) {
-                $failedCount++;
-                \Log::error("Failed to mark split {$id} as paid: " . $e->getMessage());
-            }
-        }
-
-        // Log batch payment
-        if ($successCount > 0) {
-            $this->auditService->logSuccess(
-                'mark_paid_batch_json',
-                'Payment',
-                "Batch payment of \${$totalAmount} marked as paid from dashboard ({$successCount} splits)",
-                null,
-                null
-            );
-        }
-
-        // Return JSON response
-        return response()->json([
-            'success' => $successCount > 0,
-            'successCount' => $successCount,
-            'failedCount' => $failedCount,
-            'totalAmount' => $totalAmount,
-            'message' => $successCount > 0
-                ? "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}"
-                : 'Failed to mark payments as paid'
-        ]);
     }
 
     /**
@@ -1586,82 +1538,5 @@ class PaymentController extends Controller
             'expenses_analyzed' => count($analysis),
             'details' => $analysis
         ], 200, [], JSON_PRETTY_PRINT);
-    }
-
-    /**
-     * Get transaction details for modal display
-     */
-    public function getTransactionDetails(Group $group, $type, $id)
-    {
-        if (!$group->hasMember(auth()->user())) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-        }
-
-        try {
-            if ($type === 'expense') {
-                $expense = Expense::find($id);
-                if (!$expense || $expense->group_id !== $group->id) {
-                    return response()->json(['success' => false, 'message' => 'Expense not found'], 404);
-                }
-
-                $transaction = [
-                    'title' => $expense->title,
-                    'amount' => $expense->amount,
-                    'payer_name' => $expense->payer->name,
-                    'description' => $expense->notes,
-                    'date' => $expense->date->format('F j, Y'),
-                    'attachments' => $expense->attachments->map(function ($attachment) {
-                        return [
-                            'name' => $attachment->original_filename,
-                            'url' => route('attachments.download', $attachment),
-                            'size' => $this->formatFileSize($attachment->file_size),
-                        ];
-                    })->toArray(),
-                ];
-
-                return response()->json(['success' => true, 'transaction' => $transaction]);
-            } elseif ($type === 'payment') {
-                $payment = Payment::find($id);
-                if (!$payment || $payment->split->expense->group_id !== $group->id) {
-                    return response()->json(['success' => false, 'message' => 'Payment not found'], 404);
-                }
-
-                $transaction = [
-                    'payer_name' => $payment->paidBy->name,
-                    'recipient_name' => $payment->split->expense->payer->name,
-                    'amount' => $payment->split->share_amount,
-                    'notes' => $payment->notes,
-                    'date' => $payment->paid_date ? date('F j, Y', strtotime($payment->paid_date)) : $payment->created_at->format('F j, Y'),
-                    'receipt' => $payment->attachments->first() ? [
-                        'name' => $payment->attachments->first()->original_filename,
-                        'url' => route('attachments.download', $payment->attachments->first()),
-                        'size' => $this->formatFileSize($payment->attachments->first()->file_size),
-                    ] : null,
-                ];
-
-                return response()->json(['success' => true, 'transaction' => $transaction]);
-            } else {
-                return response()->json(['success' => false, 'message' => 'Invalid transaction type'], 400);
-            }
-        } catch (\Exception $e) {
-            \Log::error('Error fetching transaction details: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error loading transaction details'], 500);
-        }
-    }
-
-    /**
-     * Format file size for display
-     */
-    private function formatFileSize($bytes)
-    {
-        if ($bytes >= 1073741824) {
-            return round($bytes / 1073741824, 2) . ' GB';
-        } elseif ($bytes >= 1048576) {
-            return round($bytes / 1048576, 2) . ' MB';
-        } elseif ($bytes >= 1024) {
-            return round($bytes / 1024, 2) . ' KB';
-        } else {
-            return $bytes . ' B';
-        }
     }
 }

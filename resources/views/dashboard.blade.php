@@ -47,7 +47,7 @@
                         <h3 class="text-lg font-bold text-gray-700 mb-3">{{ $currency }} Balances</h3>
                         <div class="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
                             <!-- You Owe -->
-                            <button onclick="openBalanceModal('you_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-red-400 transition-all cursor-pointer text-left">
+                            <div class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
                                     <span class="text-lg sm:text-2xl">📤</span>
@@ -56,12 +56,12 @@
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['you_owe']) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                                    Click to see details
+                                    Amount owed in {{ $currency }}
                                 </p>
-                            </button>
+                            </div>
 
                             <!-- They Owe You -->
-                            <button onclick="openBalanceModal('they_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-green-400 transition-all cursor-pointer text-left">
+                            <div class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
                                     <span class="text-lg sm:text-2xl">📥</span>
@@ -70,12 +70,12 @@
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['they_owe']) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                                    Click to see details
+                                    Amount owed to you
                                 </p>
-                            </button>
+                            </div>
 
                             <!-- Net Balance -->
-                            <button onclick="openBalanceModal('{{ $balances['net'] >= 0 ? 'they_owe' : 'you_owe' }}', '{{ $currency }}', {{ json_encode($balances['net'] >= 0 ? ($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) : ($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? [])) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border {{ $balances['net'] >= 0 ? 'border-green-200 hover:border-green-400' : 'border-red-200 hover:border-red-400' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-all cursor-pointer text-left">
+                            <div class="bg-white rounded-lg shadow-sm border {{ $balances['net'] >= 0 ? 'border-green-200' : 'border-red-200' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-shadow">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
                                     <span class="text-lg sm:text-2xl">{{ $balances['net'] >= 0 ? '✅' : '⚠️' }}</span>
@@ -84,9 +84,9 @@
                                     {{ $balances['net'] >= 0 ? '+' : '' }}{{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency(abs($balances['net'])) }}
                                 </p>
                                 <p class="text-xs sm:text-sm text-gray-600 font-semibold hidden sm:block">
-                                    Click to see details
+                                    {{ $balances['net'] >= 0 ? 'You are owed' : 'You owe' }}
                                 </p>
-                            </button>
+                            </div>
                         </div>
                     </div>
                 @endif
@@ -133,6 +133,36 @@
                             </div>
                             <p class="text-xs text-gray-500 mt-3">{{ $payment->split->expense->date->diffForHumans() }}</p>
                         </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            <!-- Already Paid Breakdown -->
+            @if(count($paidPayments) > 0)
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Settled</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    @foreach($paidPayments as $payment)
+                    <div class="bg-white rounded-lg shadow-sm border border-green-200 p-5 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                                    <span class="text-sm font-bold text-green-700">{{ strtoupper(substr($payment->split->expense->payer->name, 0, 1)) }}</span>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">{{ $payment->split->expense->payer->name }}</p>
+                                    <p class="text-xs text-gray-500">{{ $payment->split->expense->group->name }}</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Paid</span>
+                        </div>
+                        <div class="mb-4">
+                            <p class="text-xs text-gray-600 mb-1">{{ $payment->split->expense->title }}</p>
+                            <p class="text-2xl font-bold text-green-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
+                        </div>
+                        <p class="text-xs text-gray-500">{{ $payment->paid_date ? \Carbon\Carbon::parse($payment->paid_date)->format('M d, Y') : $payment->created_at->format('M d, Y') }}</p>
+                    </div>
                     @endforeach
                 </div>
             </div>
@@ -340,36 +370,6 @@
             </div>
             @endif
 
-            <!-- Already Paid Breakdown -->
-            @if(count($paidPayments) > 0)
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-4">Settled</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach($paidPayments as $payment)
-                    <div class="bg-white rounded-lg shadow-sm border border-green-200 p-5 hover:shadow-md transition-shadow">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                                    <span class="text-sm font-bold text-green-700">{{ strtoupper(substr($payment->split->expense->payer->name, 0, 1)) }}</span>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-gray-900">{{ $payment->split->expense->payer->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $payment->split->expense->group->name }}</p>
-                                </div>
-                            </div>
-                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold">Paid</span>
-                        </div>
-                        <div class="mb-4">
-                            <p class="text-xs text-gray-600 mb-1">{{ $payment->split->expense->title }}</p>
-                            <p class="text-2xl font-bold text-green-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
-                        </div>
-                        <p class="text-xs text-gray-500">{{ $payment->paid_date ? \Carbon\Carbon::parse($payment->paid_date)->format('M d, Y') : $payment->created_at->format('M d, Y') }}</p>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-
             <!-- Recent Expenses -->
             @if(count($recentExpenses) > 0)
             <div>
@@ -444,71 +444,6 @@
     </div>
 </div>
 
-<!-- Payment Modal (for Mark as Paid from balance) -->
-<div id="paymentModalFromBalance" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-close-modal="true">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4" data-stop-propagation="true">
-        <h3 class="text-2xl font-black text-gray-900 mb-4">Mark Payment as Paid</h3>
-
-        <form id="paymentFormFromBalance" method="POST" enctype="multipart/form-data">
-            @csrf
-
-            <div class="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                <p class="text-sm text-gray-600">Paying to:</p>
-                <p class="text-lg font-black text-gray-900" id="payeeNameFromBalance"></p>
-                <p class="text-3xl font-black text-green-600 mt-2" id="paymentAmountFromBalance"></p>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-2">Payment Notes (Optional)</label>
-                <textarea name="notes" rows="2" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200" placeholder="e.g., Paid via UPI, Reference: TXN123"></textarea>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-2">Upload Receipt (Optional)</label>
-                <input type="file" name="receipt" accept="image/png,image/jpeg" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-purple-500">
-                <p class="text-xs text-gray-500 mt-1">📸 PNG or JPEG, max 5MB (auto-compressed to 50KB)</p>
-            </div>
-
-            <div class="flex gap-3">
-                <button type="button" onclick="closePaymentModalFromBalance()" class="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-bold">
-                    Cancel
-                </button>
-                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all font-bold">
-                    ✓ Mark as Paid
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Balance Details Modal -->
-<div id="balanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto">
-    <div class="bg-white rounded-lg max-w-2xl w-full mx-4 shadow-lg my-8" data-stop-propagation="true">
-        <!-- Modal Header -->
-        <div class="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-lg">
-            <div>
-                <h2 id="modalTitle" class="text-2xl font-bold text-gray-900"></h2>
-                <p id="modalSubtitle" class="text-sm text-gray-600 mt-1"></p>
-            </div>
-            <button onclick="closeBalanceModal()" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
-                ✕
-            </button>
-        </div>
-
-        <!-- Modal Content -->
-        <div id="modalContent" class="p-6 space-y-4 max-h-96 overflow-y-auto">
-            <!-- Will be populated by JavaScript -->
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="bg-gray-50 border-t border-gray-200 p-4 rounded-b-lg flex gap-3">
-            <button onclick="closeBalanceModal()" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-semibold">
-                Close
-            </button>
-        </div>
-    </div>
-</div>
-
 <script nonce="{{ request()->attributes->get('nonce', '') }}">
 function toggleSection(sectionId) {
     const content = document.getElementById(sectionId + '-content');
@@ -539,176 +474,8 @@ function closePaymentModal(event) {
     }
 }
 
-// Balance Modal Functions
-function openBalanceModal(type, currency, breakdown, currencySymbol) {
-    const modal = document.getElementById('balanceModal');
-    const title = document.getElementById('modalTitle');
-    const subtitle = document.getElementById('modalSubtitle');
-    const content = document.getElementById('modalContent');
-
-    // Set title and subtitle based on type
-    if (type === 'you_owe') {
-        title.textContent = 'Amount You Owe';
-        subtitle.textContent = `Details of payments owed in ${currency}`;
-    } else {
-        title.textContent = 'Amount Owed to You';
-        subtitle.textContent = `Details of payments owed to you in ${currency}`;
-    }
-
-    // Generate breakdown HTML
-    if (breakdown.length === 0) {
-        content.innerHTML = '<div class="text-center py-8 text-gray-500">No balances found</div>';
-    } else {
-        content.innerHTML = breakdown.map(item => `
-            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-3 flex-1">
-                        <div class="w-10 h-10 rounded-full ${type === 'you_owe' ? 'bg-red-100' : 'bg-green-100'} flex items-center justify-center flex-shrink-0">
-                            <span class="text-sm font-bold ${type === 'you_owe' ? 'text-red-700' : 'text-green-700'}">
-                                ${item.person.name.charAt(0).toUpperCase()}
-                            </span>
-                        </div>
-                        <div class="min-w-0">
-                            <p class="font-semibold text-gray-900 truncate">${item.person.name}</p>
-                            <p class="text-xs text-gray-500">${item.group_name}</p>
-                        </div>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                        <p class="text-lg font-bold ${type === 'you_owe' ? 'text-red-600' : 'text-green-600'}">
-                            ${currencySymbol}${parseFloat(item.amount).toFixed(2)}
-                        </p>
-                        <p class="text-xs text-gray-500">${item.expense_count} transaction${item.expense_count > 1 ? 's' : ''}</p>
-                    </div>
-                </div>
-
-                <!-- Expandable Expense Breakdown -->
-                <details class="text-sm mb-3">
-                    <summary class="text-xs text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors">
-                        📋 View details
-                    </summary>
-                    <div class="mt-3 pl-4 border-l-2 border-gray-300 space-y-2">
-                        ${(item.expenses || []).map(exp => `
-                            <div class="flex justify-between items-center text-xs text-gray-600">
-                                <span class="truncate flex-1">${exp.title}</span>
-                                <span class="text-gray-900 font-semibold flex-shrink-0 ml-2">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                </details>
-
-                <!-- Mark as Paid Button -->
-                ${type === 'you_owe' ? `
-                    <button class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm open-settlement-payment-modal"
-                            data-group-id="${item.group_id}"
-                            data-split-ids='${JSON.stringify(item.split_ids)}'
-                            data-person-name="${item.person.name}"
-                            data-amount="${item.amount}"
-                            data-currency="${currencySymbol}">
-                        ✓ Mark as Paid
-                    </button>
-                ` : ''}
-            </div>
-        `).join('');
-    }
-
-    // Show modal
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function closeBalanceModal() {
-    const modal = document.getElementById('balanceModal');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-}
-
-// Mark settlement as paid - open modal with payment form
-function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
-    // Ensure splitIds is an array
-    let idsArray = splitIds;
-    if (typeof splitIds === 'string') {
-        try {
-            idsArray = JSON.parse(splitIds);
-        } catch (e) {
-            console.error('Failed to parse split_ids:', splitIds, e);
-            idsArray = [];
-        }
-    }
-
-    if (!Array.isArray(idsArray) || idsArray.length === 0) {
-        // Fallback: show alert and close modal
-        alert('Unable to process payment. Please try using the "Settle" button in the "You Owe" section instead.');
-        return;
-    }
-
-    // Open payment modal
-    openPaymentModalFromBalance(idsArray, personName, amount);
-
-    // Close the balance details modal
-    closeBalanceModal();
-}
-
-// Open payment modal from balance details
-function openPaymentModalFromBalance(splitIds, payeeName, amount) {
-    const modal = document.getElementById('paymentModalFromBalance');
-    const form = document.getElementById('paymentFormFromBalance');
-
-    // Set display info
-    document.getElementById('payeeNameFromBalance').textContent = payeeName;
-    document.getElementById('paymentAmountFromBalance').textContent = '$' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-
-    // Remove any existing split_ids inputs
-    form.querySelectorAll('input[name="split_ids[]"]').forEach(input => input.remove());
-
-    // Add hidden inputs for all split IDs
-    splitIds.forEach(splitId => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'split_ids[]';
-        input.value = splitId;
-        form.appendChild(input);
-    });
-
-    // Set form action to batch payment endpoint
-    form.action = '/payments/mark-paid-batch';
-
-    modal.classList.remove('hidden');
-}
-
-function closePaymentModalFromBalance(event) {
-    if (!event || event.target.id === 'paymentModalFromBalance') {
-        const modal = document.getElementById('paymentModalFromBalance');
-        modal.classList.add('hidden');
-    }
-}
-
-// Settlement payment modal buttons (from balance details modal)
-// Use event delegation since buttons are created dynamically
-document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('open-settlement-payment-modal')) {
-        e.preventDefault();
-        const btn = e.target;
-        const groupId = btn.dataset.groupId;
-        const splitIds = btn.dataset.splitIds;
-        const personName = btn.dataset.personName;
-        const amount = btn.dataset.amount;
-        markSettlementAsPaid(groupId, splitIds, personName, amount, btn);
-    }
-});
-
 // Event listeners for payment modal
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle form submission for payment from balance - reload page on success
-    const paymentFormFromBalance = document.getElementById('paymentFormFromBalance');
-    if (paymentFormFromBalance) {
-        paymentFormFromBalance.addEventListener('submit', function(e) {
-            // Submit form normally, then reload page after response
-            setTimeout(function() {
-                location.reload();
-            }, 500);
-        });
-    }
-
     // Open modal buttons
     document.querySelectorAll('.open-payment-modal').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -731,32 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModal.addEventListener('click', function(e) {
             if (e.target.id === 'paymentModal') {
                 closePaymentModal(e);
-            } else {
-                e.stopPropagation();
-            }
-        });
-    }
-
-    // Close payment modal from balance when clicking backdrop
-    const paymentModalFromBalance = document.getElementById('paymentModalFromBalance');
-    if (paymentModalFromBalance) {
-        paymentModalFromBalance.addEventListener('click', function(e) {
-            if (e.target.id === 'paymentModalFromBalance') {
-                closePaymentModalFromBalance(e);
-            } else {
-                e.stopPropagation();
-            }
-        });
-    }
-
-    // Close balance modal when clicking backdrop
-    const balanceModal = document.getElementById('balanceModal');
-    if (balanceModal) {
-        balanceModal.addEventListener('click', function(e) {
-            if (e.target.id === 'balanceModal') {
-                closeBalanceModal();
-            } else if (e.target.getAttribute('data-stop-propagation') !== 'true') {
-                // Allow clicks inside modal to propagate to details/summary elements
             } else {
                 e.stopPropagation();
             }

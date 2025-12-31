@@ -549,16 +549,16 @@
                             @endif
                         </div>
                     @elseif($activity['type'] === 'received_payment')
-                        @php
+                        @php 
                             $receivedPayment = $activity['data'];
                             $isFromMe = $receivedPayment->from_user_id === auth()->id();
-                            $borderColor = $isFromMe ? 'border-green-200' : 'border-emerald-200';
-                            $hoverBorder = $isFromMe ? 'hover:border-green-400' : 'hover:border-emerald-400';
-                            $amountColor = $isFromMe ? 'text-green-600' : 'text-emerald-600';
-                            $badgeBg = $isFromMe ? 'bg-green-100' : 'bg-emerald-100';
-                            $badgeText = $isFromMe ? 'text-green-700' : 'text-emerald-700';
-                            $emoji = $isFromMe ? '✅' : '💵';
-                            $title = $isFromMe ? 'Amount Paid' : 'Amount Received';
+                            $borderColor = $isFromMe ? 'border-purple-200' : 'border-teal-200';
+                            $hoverBorder = $isFromMe ? 'hover:border-purple-400' : 'hover:border-teal-400';
+                            $amountColor = $isFromMe ? 'text-purple-600' : 'text-teal-600';
+                            $badgeBg = $isFromMe ? 'bg-purple-100' : 'bg-teal-100';
+                            $badgeText = $isFromMe ? 'text-purple-700' : 'text-teal-700';
+                            $emoji = $isFromMe ? '💸' : '💰';
+                            $title = $isFromMe ? 'Payment Sent' : 'Payment Received';
                         @endphp
                         <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
                             <div class="flex items-start justify-between gap-3 mb-2">
@@ -576,19 +576,19 @@
                                             {{ $receivedPayment->toUser->name }}
                                         </span>
                                     </div>
-                                    @if($receivedPayment->description)
+                                    @if($receivedPayment->notes)
                                         <p class="text-xs text-gray-600 mt-1">
-                                            💬 {{ $receivedPayment->description }}
+                                            💬 {{ $receivedPayment->notes }}
                                         </p>
                                     @endif
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
-                                        📅 {{ ($receivedPayment->received_date ?? $receivedPayment->created_at)->format('M d, Y') }}
+                                        📅 {{ ($receivedPayment->payment_date ?? $receivedPayment->created_at)->format('M d, Y') }}
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
                                     <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($receivedPayment->amount) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
-                                        {{ $isFromMe ? '✓ Paid' : '✓ Received' }}
+                                        ✓ {{ $isFromMe ? 'Sent' : 'Received' }}
                                     </span>
                                 </div>
                             </div>
@@ -917,17 +917,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Handle form submission for group payment - reload page on success
-    const groupPaymentForm = document.getElementById('groupPaymentForm');
-    if (groupPaymentForm) {
-        groupPaymentForm.addEventListener('submit', function(e) {
-            // Submit form normally, then reload page after response
-            setTimeout(function() {
-                location.reload();
-            }, 500);
-        });
-    }
-
     // Close payment modal by clicking background
     const groupPaymentModal = document.getElementById('groupPaymentModal');
     if (groupPaymentModal) {
