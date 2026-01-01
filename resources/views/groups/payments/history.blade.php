@@ -237,11 +237,14 @@
                                                 {{-- Fully settled - check if we have settled data --}}
                                                 @php
                                                     $settledData = null;
+                                                    $personName = '';
                                                     if (isset($fromData['settled'][$toMemberId])) {
                                                         $settledData = $fromData['settled'][$toMemberId];
+                                                        // The other person in this settlement is $toData
                                                         $personName = $toData['user']->name;
                                                     } elseif (isset($toData['settled'][$fromMemberId])) {
                                                         $settledData = $toData['settled'][$fromMemberId];
+                                                        // The other person in this settlement is $fromData
                                                         $personName = $fromData['user']->name;
                                                     }
                                                 @endphp
@@ -857,10 +860,13 @@ function openBreakdownModal(personName, itemData) {
     }
 
     // Always show expense details for transparency, whether settled or not
-    // Show expenses paid by them (personName) - these are expenses where they are the payer and you are a participant
+    // Get the correct other person's name
+    const otherPersonName = itemData.user && itemData.user.name ? itemData.user.name : personName;
+
+    // Show expenses paid by them (otherPersonName) - these are expenses where they are the payer and you are a participant
     if (theyPaidExpenses.length > 0) {
         html += `<div class="bg-red-50 p-3 rounded-lg border border-red-200">
-                    <p class="font-bold text-gray-900 mb-2">Expenses paid by ${personName} (you participated):</p>
+                    <p class="font-bold text-gray-900 mb-2">Expenses paid by ${otherPersonName} (you participated):</p>
                     <ul class="space-y-1 ml-2">`;
 
         theyPaidExpenses.forEach(exp => {
@@ -881,7 +887,7 @@ function openBreakdownModal(personName, itemData) {
     // Show expenses paid by me (currentUser) - these are expenses where you are the payer and they are a participant
     if (iPaidExpenses.length > 0) {
         html += `<div class="bg-green-50 p-3 rounded-lg border border-green-200">
-                    <p class="font-bold text-gray-900 mb-2">Expenses you paid for ${personName}:</p>
+                    <p class="font-bold text-gray-900 mb-2">Expenses you paid for ${otherPersonName}:</p>
                     <ul class="space-y-1 ml-2">`;
 
         iPaidExpenses.forEach(exp => {
@@ -937,7 +943,9 @@ function openBreakdownModal(personName, itemData) {
         // Show regular balance
         const netAmount = itemData.net_amount || 0;
         const finalColor = netAmount > 0 ? 'text-red-600' : 'text-green-600';
-        const finalText = netAmount > 0 ? `(${currentUserName} owes ${personName})` : `(${personName} owes ${currentUserName})`;
+        // Use the user from itemData if available, otherwise fall back to personName
+        const otherPersonName = itemData.user && itemData.user.name ? itemData.user.name : personName;
+        const finalText = netAmount > 0 ? `(${currentUserName} owes ${otherPersonName})` : `(${otherPersonName} owes ${currentUserName})`;
         
         html += `<div class="flex flex-col items-center pt-3 border-t-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
                     <span class="font-bold text-gray-700 mb-1 text-xs">${finalText}</span>
