@@ -32,24 +32,14 @@ class PaymentService
         $payment->notes = $data['notes'] ?? null;
         $payment->save();
 
-        // Only create ReceivedPayment on first marking as paid
-        // This prevents duplicate records if markAsPaid is called multiple times
-        if ($isNewPayment) {
-            $expense = $split->expense;
-            $payer = $expense->payer;
-
-            // Create ReceivedPayment: paidBy is sending money to payer
-            // This automatically reduces the settlement balance
-            ReceivedPayment::create([
-                'group_id' => $expense->group_id,
-                'from_user_id' => $paidBy->id,          // Person who owes (sending payment)
-                'to_user_id' => $payer->id,              // Payer (receiving payment)
-                'amount' => $split->share_amount,
-                'received_date' => $data['paid_date'] ?? now()->toDateString(),
-                'description' => $data['notes'] ?? "Payment for: {$expense->title}",
-                'status' => 'completed',
-            ]);
-        }
+        // NOTE: Do NOT create ReceivedPayment when marking as paid
+        // Marking an expense split as paid is just acknowledging payment status
+        // It does NOT represent an actual cash transaction between users
+        //
+        // ReceivedPayment records should only be created for:
+        // - Manual settlement/payment entries via the settlement interface
+        // - Cash transfers between users to settle their net balance
+        // - Not for marking individual expense splits as paid
 
         return $payment;
     }
