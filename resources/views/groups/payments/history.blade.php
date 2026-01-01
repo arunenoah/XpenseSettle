@@ -198,18 +198,20 @@
                                                 $personName = '';
 
                                                 if (isset($fromData['owes'][$toMemberId])) {
+                                                    // FROM person owes TO person (red cell - user owes)
                                                     $amount = $fromData['owes'][$toMemberId]['amount'];
                                                     $color = 'red';
                                                     $breakdown = $fromData['owes'][$toMemberId]['breakdown'] ?? '';
                                                     $itemData = $fromData['owes'][$toMemberId];
-                                                    $personName = $toData['user']->name;
+                                                    $personName = $toData['user']->name;  // The person being owed
                                                 }
                                                 elseif (isset($toData['owes'][$fromMemberId])) {
+                                                    // TO person owes FROM person (green cell - user is owed)
                                                     $amount = $toData['owes'][$fromMemberId]['amount'];
                                                     $color = 'green';
                                                     $breakdown = $toData['owes'][$fromMemberId]['breakdown'] ?? '';
                                                     $itemData = $toData['owes'][$fromMemberId];
-                                                    $personName = $fromData['user']->name;
+                                                    $personName = $toData['user']->name;  // The person who owes (the data is FROM their perspective)
                                                 }
                                             @endphp
 
