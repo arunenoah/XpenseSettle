@@ -497,6 +497,12 @@ class PaymentController extends Controller
         // Negative net_amount = this person owes user (we show as positive amount they owe)
         $settlements = [];
         foreach ($netBalances as $personId => $data) {
+            // Skip contact entries - they should not appear in user's settlement list
+            // The group settlement matrix handles contacts separately
+            if (!empty($data['is_contact']) && $data['is_contact'] === true) {
+                continue;
+            }
+
             // Always include settlements with non-zero balances
             // Also include zero-balance entries if they have payment history (meaning they've been settled)
             $hasPaymentHistory = !empty($data['expenses']);
