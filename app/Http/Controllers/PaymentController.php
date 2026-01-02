@@ -981,9 +981,11 @@ class PaymentController extends Controller
             $groupId = $validated['group_id'];
             $amount = $validated['payment_amount'];
 
+            \Log::info("Creating manual settlement: payee=$payeeId, group=$groupId, amount=$amount");
+
             try {
                 // Create ReceivedPayment for manual settlement
-                ReceivedPayment::create([
+                $payment = ReceivedPayment::create([
                     'group_id' => $groupId,
                     'from_user_id' => $user->id,
                     'to_user_id' => $payeeId,
@@ -991,6 +993,8 @@ class PaymentController extends Controller
                     'paid_date' => $validated['paid_date'] ?? now()->toDateString(),
                     'notes' => $validated['notes'] ?? null,
                 ]);
+
+                \Log::info("Manual settlement created: ID=" . $payment->id);
 
                 $this->auditService->logSuccess(
                     'manual_settlement',
@@ -1002,7 +1006,7 @@ class PaymentController extends Controller
 
                 return back()->with('success', "Settlement payment of \${$amount} recorded successfully!");
             } catch (\Exception $e) {
-                \Log::error("Failed to create manual settlement: " . $e->getMessage());
+                \Log::error("Failed to create manual settlement: " . $e->getMessage(), ['exception' => $e]);
                 return back()->with('error', 'Failed to record settlement payment: ' . $e->getMessage());
             }
         }
