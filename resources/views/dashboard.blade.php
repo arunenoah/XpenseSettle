@@ -600,7 +600,9 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                         </div>
                         <div class="min-w-0">
                             <p class="font-semibold text-gray-900">${personName}</p>
-                            <p class="text-xs text-gray-500">${data.groups.length} group${data.groups.length > 1 ? 's' : ''}</p>
+                            <p class="text-xs ${data.groups.length > 1 ? 'text-blue-600 font-semibold' : 'text-gray-500'}">
+                                ${data.groups.length} group${data.groups.length > 1 ? 's' : ''}
+                            </p>
                         </div>
                     </div>
                     <div class="text-right flex-shrink-0">
