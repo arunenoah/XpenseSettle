@@ -479,11 +479,20 @@ class PaymentController extends Controller
                 // Use the sent payment amount as-is (it's actual cash sent)
                 $amount = $sentPayment->amount;
 
-                // Payment sent TO someone settles the debt
-                // SUBTRACT to reduce what user owes them
-                // Example: +284.52 (user owes them) - 334.64 (payment sent) = -50.12
-                $netBalances[$toUserId]['net_amount'] -= $amount;
-                
+                // Payment sent TO someone settles the balance
+                // - If positive (user owes): subtract to reduce debt
+                // - If negative (they owe user): add to reduce their owed amount
+                // This always moves the balance towards zero
+                if ($netBalances[$toUserId]['net_amount'] >= 0) {
+                    // User owes them: subtract to reduce debt
+                    // Example: +284.52 (user owes) - 334.64 (payment sent) = -50.12
+                    $netBalances[$toUserId]['net_amount'] -= $amount;
+                } else {
+                    // They owe user (negative): add to reduce what they owe
+                    // Example: -284.52 (they owe user) + 100 (payment sent to settle) = -184.52
+                    $netBalances[$toUserId]['net_amount'] += $amount;
+                }
+
                 // Add to expenses array so it shows in breakdown
                 $netBalances[$toUserId]['expenses'][] = [
                     'title' => 'Payment sent',
@@ -996,10 +1005,12 @@ class PaymentController extends Controller
 
             try {
                 // Create ReceivedPayment for manual settlement
+                // Semantics: from_user_id = payer, to_user_id = receiver
+                // When Arun (user) pays Mohan (payee), we record: from=Arun, to=Mohan
                 $payment = ReceivedPayment::create([
                     'group_id' => $groupId,
-                    'from_user_id' => $user->id,
-                    'to_user_id' => $payeeId,
+                    'from_user_id' => $user->id,   // Person who sends payment (Arun)
+                    'to_user_id' => $payeeId,      // Person who receives payment (Mohan)
                     'amount' => $amount,
                     'received_date' => $validated['paid_date'] ?? now()->toDateString(),
                     'description' => $validated['notes'] ?? null,
