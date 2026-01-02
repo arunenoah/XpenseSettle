@@ -761,10 +761,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const paymentFormFromBalance = document.getElementById('paymentFormFromBalance');
     if (paymentFormFromBalance) {
         paymentFormFromBalance.addEventListener('submit', function(e) {
-            // Submit form normally, then reload page after response
-            setTimeout(function() {
+            e.preventDefault();
+
+            // Submit form and reload page when response completes
+            const formData = new FormData(this);
+            const action = this.action;
+
+            fetch(action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                // Page will redirect, so reload to show updated balance
                 location.reload();
-            }, 500);
+            })
+            .catch(error => {
+                console.error('Error submitting payment:', error);
+                alert('Failed to submit payment. Please try again.');
+            });
         });
     }
 
