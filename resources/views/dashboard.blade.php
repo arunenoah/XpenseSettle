@@ -589,9 +589,9 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
         } else {
 
         content.innerHTML = Object.entries(groupedByPerson).map(([personName, data]) => `
-            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow person-balance-card" data-person-name="${personName}" data-type="${type}" data-currency="${currency}" data-currency-symbol="${currencySymbol}" data-balance-data='${JSON.stringify(data)}'>
                 <!-- Person Header -->
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-4 cursor-pointer" onclick="togglePersonDetails(this)">
                     <div class="flex items-center gap-3 flex-1">
                         <div class="w-10 h-10 rounded-full ${type === 'you_owe' ? 'bg-red-100' : 'bg-green-100'} flex items-center justify-center flex-shrink-0">
                             <span class="text-sm font-bold ${type === 'you_owe' ? 'text-red-700' : 'text-green-700'}">
@@ -613,11 +613,11 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                     </div>
                 </div>
 
-                <!-- Groups Breakdown -->
-                <details class="text-sm">
-                    <summary class="text-xs text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors mb-3">
+                <!-- Groups Breakdown - Initially collapsed -->
+                <div class="text-sm details-content" style="display: none;">
+                    <div class="text-xs text-gray-600 font-semibold mb-3 flex items-center gap-2">
                         📋 View by group
-                    </summary>
+                    </div>
                     <div class="mt-3 space-y-3">
                         ${data.groups.map(item => `
                             <div class="bg-gray-50 rounded p-3 border border-gray-100">
@@ -652,7 +652,7 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                             </div>
                         `).join('')}
                     </div>
-                </details>
+                </div>
 
                 <!-- Mark as Paid Button - Only show if has split_ids -->
                 ${type === 'you_owe' && data.groups.some(g => g.split_ids && g.split_ids.length > 0) ? `
@@ -673,6 +673,18 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
     // Show modal
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+}
+
+function togglePersonDetails(headerElement) {
+    // Get the parent card
+    const card = headerElement.closest('.person-balance-card');
+    const detailsContent = card.querySelector('.details-content');
+
+    if (detailsContent.style.display === 'none') {
+        detailsContent.style.display = 'block';
+    } else {
+        detailsContent.style.display = 'none';
+    }
 }
 
 function closeBalanceModal() {
