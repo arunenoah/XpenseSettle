@@ -963,8 +963,9 @@ class PaymentController extends Controller
         $groupIds = [];
         $splits = [];
 
-        // Collect all splits first (if any)
-        foreach ($validated['split_ids'] as $splitId) {
+        // Collect all splits first (if any) - filter out null values
+        $splitIds = array_filter($validated['split_ids'] ?? [], function($id) { return $id !== null && $id !== ''; });
+        foreach ($splitIds as $splitId) {
             $split = ExpenseSplit::find($splitId);
             if (!$split) continue;
 
