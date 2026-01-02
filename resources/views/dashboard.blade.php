@@ -811,8 +811,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                // Page will redirect, so reload to show updated balance
-                location.reload();
+                if (response.ok) {
+                    // Payment successful, reload to show updated balance
+                    location.reload();
+                } else {
+                    // Server returned an error
+                    return response.text().then(text => {
+                        console.error('Payment error response:', text);
+                        alert('Failed to submit payment. Please try again.');
+                    });
+                }
             })
             .catch(error => {
                 console.error('Error submitting payment:', error);
