@@ -656,8 +656,8 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                     </div>
                 </div>
 
-                <!-- Mark as Paid Button - Only show if has split_ids -->
-                ${type === 'you_owe' && data.groups.some(g => g.split_ids && g.split_ids.length > 0) ? `
+                <!-- Mark as Paid Button -->
+                ${type === 'you_owe' ? `
                     <button class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm open-settlement-payment-modal mt-4"
                             data-group-id="${data.groups[0].group_id}"
                             data-split-ids='${JSON.stringify(data.groups.flatMap(g => g.split_ids || []))}'
