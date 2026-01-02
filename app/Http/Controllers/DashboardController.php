@@ -69,6 +69,9 @@ class DashboardController extends Controller
         // Use PaymentController for consistent calculations
         $paymentController = app(PaymentController::class);
 
+        // Track person balances across all groups per currency
+        $personBalancesByCurrency = [];  // currency => [personId => aggregated_data]
+
         foreach ($user->groups as $group) {
             $currency = $group->currency ?? 'INR';
 
@@ -83,44 +86,103 @@ class DashboardController extends Controller
                     'you_owe_breakdown' => [],
                     'they_owe_breakdown' => [],
                 ];
+                $personBalancesByCurrency[$currency] = [];
             }
 
             // Get personal settlement for this group using PaymentController
             $settlement = $paymentController->calculateSettlement($group, $user);
 
-            // Calculate totals from settlement and build breakdown for modal
+            // Aggregate by person across groups in this currency
             foreach ($settlement as $item) {
-                $personData = [
-                    'person' => $item['user'],
-                    'amount' => $item['amount'],
-                    'net_amount' => $item['net_amount'],
+                $personId = $item['user']->id;
+
+                if (!isset($personBalancesByCurrency[$currency][$personId])) {
+                    $personBalancesByCurrency[$currency][$personId] = [
+                        'person' => $item['user'],
+                        'net_amount' => 0,
+                        'groups' => [],  // Track which groups have balances with this person
+                        'all_expenses' => [],
+                        'all_split_ids' => [],
+                    ];
+                }
+
+                // Aggregate the net amount
+                $personBalancesByCurrency[$currency][$personId]['net_amount'] += $item['net_amount'];
+
+                // Track groups and expenses
+                $personBalancesByCurrency[$currency][$personId]['groups'][] = [
                     'group_name' => $group->name,
                     'group_id' => $group->id,
+                    'amount' => $item['net_amount'],
                     'expense_count' => count($item['expenses'] ?? []),
                     'expenses' => $item['expenses'] ?? [],
-                    'split_ids' => $item['split_ids'] ?? [],  // IDs for marking as paid
+                    'split_ids' => $item['split_ids'] ?? [],
                 ];
 
-                if ($item['net_amount'] > 0) {
-                    // User owes this person
-                    $balancesByCurrency[$currency]['you_owe'] += $item['net_amount'];
-                    $settlementDetailsByCurrency[$currency]['you_owe_breakdown'][] = $personData;
-                } else if ($item['net_amount'] < 0) {
-                    // This person owes user
-                    $balancesByCurrency[$currency]['they_owe'] += abs($item['net_amount']);
-                    $personData['amount'] = abs($item['net_amount']);  // Show as positive for they_owe
-                    $settlementDetailsByCurrency[$currency]['they_owe_breakdown'][] = $personData;
-                }
+                // Aggregate all expenses and split IDs
+                $personBalancesByCurrency[$currency][$personId]['all_expenses'] = array_merge(
+                    $personBalancesByCurrency[$currency][$personId]['all_expenses'],
+                    $item['expenses'] ?? []
+                );
+                $personBalancesByCurrency[$currency][$personId]['all_split_ids'] = array_merge(
+                    $personBalancesByCurrency[$currency][$personId]['all_split_ids'],
+                    $item['split_ids'] ?? []
+                );
             }
-
-            // Calculate net for this currency
-            $balancesByCurrency[$currency]['net'] = $balancesByCurrency[$currency]['they_owe'] - $balancesByCurrency[$currency]['you_owe'];
 
             $pendingCount += $pendingPayments
                 ->filter(function ($payment) use ($group) {
                     return $payment->split->expense->group_id === $group->id;
                 })
                 ->count();
+        }
+
+        // Now build the final breakdowns with NET balances per person
+        foreach ($personBalancesByCurrency as $currency => $persons) {
+            foreach ($persons as $personId => $data) {
+                $netAmount = $data['net_amount'];
+
+                if ($netAmount > 0) {
+                    // User owes this person
+                    $balancesByCurrency[$currency]['you_owe'] += $netAmount;
+
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
+                        $personData = [
+                            'person' => $data['person'],
+                            'amount' => $groupData['amount'],  // Per-group amount
+                            'net_amount' => $groupData['amount'],
+                            'group_name' => $groupData['group_name'],
+                            'group_id' => $groupData['group_id'],
+                            'expense_count' => $groupData['expense_count'],
+                            'expenses' => $groupData['expenses'],
+                            'split_ids' => $groupData['split_ids'],
+                        ];
+                        $settlementDetailsByCurrency[$currency]['you_owe_breakdown'][] = $personData;
+                    }
+                } elseif ($netAmount < 0) {
+                    // This person owes user
+                    $balancesByCurrency[$currency]['they_owe'] += abs($netAmount);
+
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
+                        $personData = [
+                            'person' => $data['person'],
+                            'amount' => abs($groupData['amount']),  // Per-group amount
+                            'net_amount' => $groupData['amount'],
+                            'group_name' => $groupData['group_name'],
+                            'group_id' => $groupData['group_id'],
+                            'expense_count' => $groupData['expense_count'],
+                            'expenses' => $groupData['expenses'],
+                            'split_ids' => $groupData['split_ids'],
+                        ];
+                        $settlementDetailsByCurrency[$currency]['they_owe_breakdown'][] = $personData;
+                    }
+                }
+            }
+
+            // Calculate net for this currency
+            $balancesByCurrency[$currency]['net'] = $balancesByCurrency[$currency]['they_owe'] - $balancesByCurrency[$currency]['you_owe'];
         }
 
         // For backward compatibility, use primary currency (INR or first available)
