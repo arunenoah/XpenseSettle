@@ -937,6 +937,14 @@ class PaymentController extends Controller
     {
         $user = auth()->user();
 
+        \Log::info("markPaidBatch called", [
+            'user_id' => $user->id,
+            'split_ids' => $request->input('split_ids'),
+            'payee_id' => $request->input('payee_id'),
+            'group_id' => $request->input('group_id'),
+            'payment_amount' => $request->input('payment_amount'),
+        ]);
+
         $validated = $request->validate([
             'split_ids' => 'array',
             'split_ids.*' => 'exists:expense_splits,id',
