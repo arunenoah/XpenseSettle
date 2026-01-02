@@ -938,7 +938,7 @@ class PaymentController extends Controller
         $user = auth()->user();
 
         $validated = $request->validate([
-            'split_ids' => 'required|array',
+            'split_ids' => 'array',
             'split_ids.*' => 'exists:expense_splits,id',
             'payee_id' => 'nullable|exists:users,id',
             'group_id' => 'nullable|exists:groups,id',

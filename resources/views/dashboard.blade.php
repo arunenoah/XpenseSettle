@@ -732,13 +732,22 @@ function openPaymentModalFromBalance(splitIds, payeeName, amount, groupId, payee
     form.querySelectorAll('input[name="payment_amount"]').forEach(input => input.remove());
 
     // Add hidden inputs for all split IDs
-    splitIds.forEach(splitId => {
+    if (splitIds && splitIds.length > 0) {
+        splitIds.forEach(splitId => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'split_ids[]';
+            input.value = splitId;
+            form.appendChild(input);
+        });
+    } else {
+        // Even if no split IDs, add an empty one to ensure the field exists
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'split_ids[]';
-        input.value = splitId;
+        input.value = '';
         form.appendChild(input);
-    });
+    }
 
     // If no split IDs, add payee and group info for manual settlement
     if (splitIds.length === 0 && payeeId) {
