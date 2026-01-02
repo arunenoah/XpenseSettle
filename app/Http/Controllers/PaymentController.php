@@ -1001,8 +1001,8 @@ class PaymentController extends Controller
                     'from_user_id' => $user->id,
                     'to_user_id' => $payeeId,
                     'amount' => $amount,
-                    'paid_date' => $validated['paid_date'] ?? now()->toDateString(),
-                    'notes' => $validated['notes'] ?? null,
+                    'received_date' => $validated['paid_date'] ?? now()->toDateString(),
+                    'description' => $validated['notes'] ?? null,
                 ]);
 
                 \Log::info("Manual settlement created: ID=" . $payment->id);
