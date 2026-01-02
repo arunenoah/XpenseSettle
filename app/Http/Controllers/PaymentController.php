@@ -493,8 +493,7 @@ class PaymentController extends Controller
                     $netBalances[$toUserId]['net_amount'] += $amount;
                 }
 
-            // Add to expenses array so it shows in breakdown
-            if (isset($netBalances[$toUserId])) {
+                // Add to expenses array so it shows in breakdown
                 $netBalances[$toUserId]['expenses'][] = [
                     'title' => 'Payment sent',
                     'amount' => $amount,
