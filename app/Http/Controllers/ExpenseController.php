@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Group;
+use App\Models\User;
 use App\Services\ActivityService;
 use App\Services\AuditService;
 use App\Services\ExpenseService;
@@ -66,12 +67,22 @@ class ExpenseController extends Controller
             'split_type' => 'required|in:equal,custom',
             'splits' => 'nullable|array',
             'splits.*' => 'nullable|numeric|min:0',
+            'payer_id' => 'required|exists:users,id',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|mimes:png,jpeg,jpg,pdf|max:5120',
             'items_json' => 'nullable|json',
         ]);
 
         try {
+            // Get the selected payer (default to logged-in user)
+            $payerId = $request->input('payer_id', auth()->id());
+            $payer = User::findOrFail($payerId);
+
+            // Verify payer is a member of the group
+            if (!$group->hasMember($payer)) {
+                abort(403, 'The selected payer is not a member of this group');
+            }
+
             // Get all members (users + contacts) for validation
             $allMembers = $group->allMembers()->get();
 
@@ -85,7 +96,7 @@ class ExpenseController extends Controller
 
             $expense = $this->expenseService->createExpense(
                 $group,
-                auth()->user(),
+                $payer,
                 $validated
             );
 

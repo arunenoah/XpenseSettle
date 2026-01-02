@@ -66,6 +66,34 @@
                 @enderror
             </div>
 
+            <!-- Who Paid? -->
+            <div>
+                <label for="payer_id" class="block text-sm font-semibold text-gray-700 mb-2">Who Paid?</label>
+                <select
+                    id="payer_id"
+                    name="payer_id"
+                    class="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent {{ $errors->has('payer_id') ? 'border-red-500' : '' }}"
+                    required
+                >
+                    <option value="">Select who paid for this expense</option>
+                    @foreach($members as $member)
+                        @if($member->isActiveUser())
+                            <option value="{{ $member->user_id }}"
+                                {{ old('payer_id') == $member->user_id || (empty(old('payer_id')) && $member->user_id == auth()->id()) ? 'selected' : '' }}>
+                                {{ $member->getMemberName() }}
+                                @if($member->user_id == auth()->id())
+                                    (You)
+                                @endif
+                            </option>
+                        @endif
+                    @endforeach
+                </select>
+                @error('payer_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                <p class="mt-1 text-xs text-gray-500">Defaults to you - change if someone else paid</p>
+            </div>
+
             <!-- Description -->
             <div>
                 <label for="description" class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
