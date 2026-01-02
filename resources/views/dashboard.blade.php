@@ -608,7 +608,7 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                             ${currencySymbol}${data.total.toFixed(2)}
                         </p>
                         <p class="text-xs font-semibold ${type === 'you_owe' ? 'text-red-600' : 'text-green-600'} mt-1">
-                            ${type === 'you_owe' ? '📤 You Paid' : '📥 Paid to You'}
+                            ${type === 'you_owe' ? '💳 You Need to Pay' : '💰 They Need to Pay'}
                         </p>
                     </div>
                 </div>
