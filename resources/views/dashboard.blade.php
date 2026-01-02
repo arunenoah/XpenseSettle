@@ -633,10 +633,10 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                                         ${item.expense_count} transaction${item.expense_count > 1 ? 's' : ''}
                                     </summary>
                                     <div class="mt-2 pl-3 border-l-2 border-gray-300 space-y-1">
-                                        ${(item.expenses || []).map(exp => `
-                                            <div class="flex justify-between items-center text-xs text-gray-600">
-                                                <span class="truncate flex-1">${exp.title}</span>
-                                                <span class="text-gray-900 font-semibold flex-shrink-0 ml-2">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
+                                        ${(item.expenses || []).filter(exp => Math.abs(parseFloat(exp.amount)) >= 0.01).map(exp => `
+                                            <div class="flex justify-between items-center text-xs">
+                                                <span class="truncate flex-1 text-gray-700">${exp.title}</span>
+                                                <span class="font-bold flex-shrink-0 ml-2 ${type === 'you_owe' ? 'text-green-600' : 'text-red-600'}">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
                                             </div>
                                         `).join('')}
                                     </div>
