@@ -821,6 +821,7 @@ function openBreakdownModal(personName, itemData) {
     const modal = document.getElementById('breakdownModal');
     const title = document.getElementById('breakdownTitle');
     const details = document.getElementById('breakdownDetails');
+    const currentUserName = '{{ auth()->user()->name ?? "You" }}';
 
     console.log('Opening breakdown for:', personName);
     console.log('Item data:', itemData);
@@ -945,8 +946,6 @@ function openBreakdownModal(personName, itemData) {
         // Show regular balance
         const netAmount = itemData.net_amount || 0;
         const finalColor = netAmount > 0 ? 'text-red-600' : 'text-green-600';
-        // Use the user from itemData if available, otherwise fall back to personName
-        const otherPersonName = itemData.user && itemData.user.name ? itemData.user.name : personName;
         const finalText = netAmount > 0 ? `(${currentUserName} owes ${otherPersonName})` : `(${otherPersonName} owes ${currentUserName})`;
         
         html += `<div class="flex flex-col items-center pt-3 border-t-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100 p-4 rounded-lg">
