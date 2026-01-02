@@ -940,6 +940,9 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'split_ids' => 'required|array',
             'split_ids.*' => 'exists:expense_splits,id',
+            'payee_id' => 'nullable|exists:users,id',
+            'group_id' => 'nullable|exists:groups,id',
+            'payment_amount' => 'nullable|numeric|min:0.01',
             'paid_date' => 'nullable|date',
             'notes' => 'nullable|string|max:500',
             'receipt' => 'nullable|file|mimes:jpg,jpeg,png|max:5120',
@@ -952,9 +955,10 @@ class PaymentController extends Controller
         $groupIds = [];
         $splits = [];
 
-        // Collect all splits first
+        // Collect all splits first (if any)
         foreach ($validated['split_ids'] as $splitId) {
             $split = ExpenseSplit::find($splitId);
+            if (!$split) continue;
 
             // Check authorization - only the person who owes can mark as paid
             if ($split->user_id !== $user->id) {
@@ -971,8 +975,41 @@ class PaymentController extends Controller
             }
         }
 
+        // Handle manual settlement if no splits but payee_id provided
+        if (empty($splits) && !empty($validated['payee_id']) && !empty($validated['group_id']) && !empty($validated['payment_amount'])) {
+            $payeeId = $validated['payee_id'];
+            $groupId = $validated['group_id'];
+            $amount = $validated['payment_amount'];
+
+            try {
+                // Create ReceivedPayment for manual settlement
+                ReceivedPayment::create([
+                    'group_id' => $groupId,
+                    'from_user_id' => $user->id,
+                    'to_user_id' => $payeeId,
+                    'amount' => $amount,
+                    'paid_date' => $validated['paid_date'] ?? now()->toDateString(),
+                    'notes' => $validated['notes'] ?? null,
+                ]);
+
+                $this->auditService->logSuccess(
+                    'manual_settlement',
+                    'Payment',
+                    "Manual settlement of \${$amount} to " . User::find($payeeId)->name,
+                    null,
+                    $groupId
+                );
+
+                return back()->with('success', "Settlement payment of \${$amount} recorded successfully!");
+            } catch (\Exception $e) {
+                \Log::error("Failed to create manual settlement: " . $e->getMessage());
+                return back()->with('error', 'Failed to record settlement payment: ' . $e->getMessage());
+            }
+        }
+
+        // If no splits and no manual settlement data
         if (empty($splits)) {
-            return back()->with('error', 'No valid splits to mark as paid.');
+            return back()->with('error', 'No payment information provided.');
         }
 
         // Determine if this is a multi-group settlement

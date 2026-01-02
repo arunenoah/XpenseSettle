@@ -660,6 +660,7 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                 ${type === 'you_owe' ? `
                     <button class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm open-settlement-payment-modal mt-4"
                             data-group-id="${data.groups[0].group_id}"
+                            data-payee-id="${data.person.id}"
                             data-split-ids='${JSON.stringify(data.groups.flatMap(g => g.split_ids || []))}'
                             data-person-name="${personName}"
                             data-amount="${data.total.toFixed(2)}"
@@ -696,7 +697,7 @@ function closeBalanceModal() {
 }
 
 // Mark settlement as paid - open modal with payment form
-function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
+function markSettlementAsPaid(groupId, splitIds, personName, amount, button, payeeId) {
     // Ensure splitIds is an array
     let idsArray = splitIds;
     if (typeof splitIds === 'string') {
@@ -708,21 +709,15 @@ function markSettlementAsPaid(groupId, splitIds, personName, amount, button) {
         }
     }
 
-    if (!Array.isArray(idsArray) || idsArray.length === 0) {
-        // Fallback: show alert and close modal
-        alert('Unable to process payment. Please try using the "Settle" button in the "You Owe" section instead.');
-        return;
-    }
-
-    // Open payment modal
-    openPaymentModalFromBalance(idsArray, personName, amount);
+    // Open payment modal even if split_ids is empty (for manual settlements)
+    openPaymentModalFromBalance(idsArray, personName, amount, groupId, payeeId);
 
     // Close the balance details modal
     closeBalanceModal();
 }
 
 // Open payment modal from balance details
-function openPaymentModalFromBalance(splitIds, payeeName, amount) {
+function openPaymentModalFromBalance(splitIds, payeeName, amount, groupId, payeeId) {
     const modal = document.getElementById('paymentModalFromBalance');
     const form = document.getElementById('paymentFormFromBalance');
 
@@ -730,8 +725,11 @@ function openPaymentModalFromBalance(splitIds, payeeName, amount) {
     document.getElementById('payeeNameFromBalance').textContent = payeeName;
     document.getElementById('paymentAmountFromBalance').textContent = '$' + parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-    // Remove any existing split_ids inputs
+    // Remove any existing split_ids, payee_id, group_id inputs
     form.querySelectorAll('input[name="split_ids[]"]').forEach(input => input.remove());
+    form.querySelectorAll('input[name="payee_id"]').forEach(input => input.remove());
+    form.querySelectorAll('input[name="group_id"]').forEach(input => input.remove());
+    form.querySelectorAll('input[name="payment_amount"]').forEach(input => input.remove());
 
     // Add hidden inputs for all split IDs
     splitIds.forEach(splitId => {
@@ -741,6 +739,27 @@ function openPaymentModalFromBalance(splitIds, payeeName, amount) {
         input.value = splitId;
         form.appendChild(input);
     });
+
+    // If no split IDs, add payee and group info for manual settlement
+    if (splitIds.length === 0 && payeeId) {
+        const payeeInput = document.createElement('input');
+        payeeInput.type = 'hidden';
+        payeeInput.name = 'payee_id';
+        payeeInput.value = payeeId;
+        form.appendChild(payeeInput);
+
+        const groupInput = document.createElement('input');
+        groupInput.type = 'hidden';
+        groupInput.name = 'group_id';
+        groupInput.value = groupId;
+        form.appendChild(groupInput);
+
+        const amountInput = document.createElement('input');
+        amountInput.type = 'hidden';
+        amountInput.name = 'payment_amount';
+        amountInput.value = parseFloat(amount);
+        form.appendChild(amountInput);
+    }
 
     // Set form action to batch payment endpoint
     form.action = '/payments/mark-paid-batch';
@@ -762,10 +781,11 @@ document.addEventListener('click', function(e) {
         e.preventDefault();
         const btn = e.target;
         const groupId = btn.dataset.groupId;
+        const payeeId = btn.dataset.payeeId;
         const splitIds = btn.dataset.splitIds;
         const personName = btn.dataset.personName;
         const amount = btn.dataset.amount;
-        markSettlementAsPaid(groupId, splitIds, personName, amount, btn);
+        markSettlementAsPaid(groupId, splitIds, personName, amount, btn, payeeId);
     }
 });
 
