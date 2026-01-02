@@ -633,12 +633,20 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                                         ${item.expense_count} transaction${item.expense_count > 1 ? 's' : ''}
                                     </summary>
                                     <div class="mt-2 pl-3 border-l-2 border-gray-300 space-y-1">
-                                        ${(item.expenses || []).filter(exp => Math.abs(parseFloat(exp.amount)) >= 0.01).map(exp => `
+                                        ${(item.expenses || []).filter(exp => Math.abs(parseFloat(exp.amount)) >= 0.01).map(exp => {
+                                            // Determine color based on who paid
+                                            // In 'you_owe' section: type shows if other person paid (they_owe) or you paid (you_owe)
+                                            // In 'they_owe' section: opposite logic
+                                            const isPaidByOtherPerson = (type === 'you_owe' && exp.type === 'you_owe') || (type === 'they_owe' && exp.type === 'they_owe');
+                                            const color = isPaidByOtherPerson ? 'text-red-600' : 'text-green-600';
+
+                                            return `
                                             <div class="flex justify-between items-center text-xs">
                                                 <span class="truncate flex-1 text-gray-700">${exp.title}</span>
-                                                <span class="font-bold flex-shrink-0 ml-2 ${type === 'you_owe' ? 'text-green-600' : 'text-red-600'}">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
+                                                <span class="font-bold flex-shrink-0 ml-2 ${color}">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
                                             </div>
-                                        `).join('')}
+                                            `;
+                                        }).join('')}
                                     </div>
                                 </details>
                             </div>
