@@ -664,7 +664,7 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                             data-person-name="${personName}"
                             data-amount="${data.total.toFixed(2)}"
                             data-currency="${currencySymbol}">
-                        ✓ Mark as Paid
+                        ${data.groups.length > 1 ? '✓ Settle Payment (across ' + data.groups.length + ' groups)' : '✓ Mark as Paid'}
                     </button>
                 ` : ''}
             </div>

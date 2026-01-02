@@ -949,8 +949,10 @@ class PaymentController extends Controller
         $failedCount = 0;
         $totalAmount = 0;
         $payeeName = '';
-        $groupName = '';
+        $groupIds = [];
+        $splits = [];
 
+        // Collect all splits first
         foreach ($validated['split_ids'] as $splitId) {
             $split = ExpenseSplit::find($splitId);
 
@@ -960,58 +962,143 @@ class PaymentController extends Controller
                 continue;
             }
 
-            try {
-                // Create or update payment
-                $payment = $this->paymentService->markAsPaid($split, $user, $validated);
-                
-                // Track total amount and payer info
-                $totalAmount += $split->share_amount;
-                if (!$payeeName) {
-                    $payeeName = $split->expense->payer->name;
-                    $groupName = $split->expense->group->name;
-                }
+            $splits[] = $split;
+            $totalAmount += $split->share_amount;
+            $groupIds[] = $split->expense->group_id;
 
-                // Handle receipt attachment (only on first payment)
-                if ($successCount === 0 && $request->hasFile('receipt')) {
-                    $this->attachmentService->uploadAttachment(
-                        $request->file('receipt'),
-                        $payment,
-                        'payments'
-                    );
-                }
-
-                // Notify the payer
-                $this->notificationService->notifyPaymentMarked($payment, $user);
-
-                // Check if expense is fully paid
-                app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
-
-                $successCount++;
-            } catch (\Exception $e) {
-                $failedCount++;
-                \Log::error("Failed to mark split {$splitId} as paid: " . $e->getMessage());
+            if (!$payeeName) {
+                $payeeName = $split->expense->payer->name;
             }
         }
 
-        // Log batch payment
-        if ($successCount > 0) {
-            $this->auditService->logSuccess(
-                'mark_paid_batch',
-                'Payment',
-                "Batch payment of \${$totalAmount} marked as paid to {$payeeName} in group '{$groupName}' ({$successCount} splits)",
-                null,
-                null
-            );
-
-            // Notify the payer about the first payment (notifications will be sent for each split)
-            // The notifyPaymentMarked is already called for each payment in the loop above
+        if (empty($splits)) {
+            return back()->with('error', 'No valid splits to mark as paid.');
         }
 
-        if ($failedCount > 0) {
-            return back()->with('warning', "Marked {$successCount} payments as paid. {$failedCount} failed.");
-        }
+        // Determine if this is a multi-group settlement
+        $uniqueGroupIds = array_unique($groupIds);
+        $isMultiGroupSettlement = count($uniqueGroupIds) > 1;
 
-        return back()->with('success', "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}");
+        if ($isMultiGroupSettlement) {
+            // For multi-group settlements, create a ReceivedPayment to settle the net balance
+            $primaryGroupId = reset($uniqueGroupIds);
+            $primaryGroup = Group::find($primaryGroupId);
+            $payeeId = null;
+
+            // Get the payee (person who will receive the payment)
+            if (!empty($splits)) {
+                $payeeId = $splits[0]->expense->payer_id;
+            }
+
+            if ($primaryGroup && $payeeId) {
+                try {
+                    // Create ReceivedPayment record for settlement
+                    ReceivedPayment::create([
+                        'group_id' => $primaryGroupId,
+                        'from_user_id' => $user->id,
+                        'to_user_id' => $payeeId,
+                        'amount' => $totalAmount,
+                        'paid_date' => $validated['paid_date'] ?? now()->toDateString(),
+                        'notes' => $validated['notes'] ?? null,
+                    ]);
+
+                    // Also mark individual splits as paid
+                    foreach ($splits as $split) {
+                        try {
+                            $payment = $this->paymentService->markAsPaid($split, $user, $validated);
+
+                            // Handle receipt attachment (only on first payment)
+                            if ($successCount === 0 && $request->hasFile('receipt')) {
+                                $this->attachmentService->uploadAttachment(
+                                    $request->file('receipt'),
+                                    $payment,
+                                    'payments'
+                                );
+                            }
+
+                            // Notify the payer
+                            $this->notificationService->notifyPaymentMarked($payment, $user);
+
+                            // Check if expense is fully paid
+                            app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+
+                            $successCount++;
+                        } catch (\Exception $e) {
+                            $failedCount++;
+                            \Log::error("Failed to mark split {$split->id} as paid: " . $e->getMessage());
+                        }
+                    }
+
+                    // Log batch settlement payment
+                    $this->auditService->logSuccess(
+                        'mark_paid_batch_multi_group',
+                        'Payment',
+                        "Settlement payment of \${$totalAmount} from {$user->name} to {$payeeName} across " . count($uniqueGroupIds) . " groups ({$successCount} splits)",
+                        null,
+                        $primaryGroupId
+                    );
+
+                    if ($failedCount > 0) {
+                        return back()->with('warning', "Marked {$successCount} payments as paid across " . count($uniqueGroupIds) . " groups. {$failedCount} failed.");
+                    }
+
+                    return back()->with('success', "Successfully settled \${$totalAmount} with {$payeeName} across " . count($uniqueGroupIds) . " groups!");
+                } catch (\Exception $e) {
+                    \Log::error("Failed to create multi-group settlement: " . $e->getMessage());
+                    return back()->with('error', 'Failed to process multi-group settlement: ' . $e->getMessage());
+                }
+            }
+        } else {
+            // Single group settlement - mark splits as paid normally
+            foreach ($splits as $split) {
+                try {
+                    // Create or update payment
+                    $payment = $this->paymentService->markAsPaid($split, $user, $validated);
+
+                    // Track total amount and payer info
+                    if (!isset($groupName)) {
+                        $groupName = $split->expense->group->name;
+                    }
+
+                    // Handle receipt attachment (only on first payment)
+                    if ($successCount === 0 && $request->hasFile('receipt')) {
+                        $this->attachmentService->uploadAttachment(
+                            $request->file('receipt'),
+                            $payment,
+                            'payments'
+                        );
+                    }
+
+                    // Notify the payer
+                    $this->notificationService->notifyPaymentMarked($payment, $user);
+
+                    // Check if expense is fully paid
+                    app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    $failedCount++;
+                    \Log::error("Failed to mark split {$split->id} as paid: " . $e->getMessage());
+                }
+            }
+
+            // Log batch payment
+            if ($successCount > 0) {
+                $this->auditService->logSuccess(
+                    'mark_paid_batch',
+                    'Payment',
+                    "Batch payment of \${$totalAmount} marked as paid to {$payeeName} in group '{$groupName}' ({$successCount} splits)",
+                    null,
+                    null
+                );
+            }
+
+            if ($failedCount > 0) {
+                return back()->with('warning', "Marked {$successCount} payments as paid. {$failedCount} failed.");
+            }
+
+            return back()->with('success', "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}");
+        }
     }
 
     /**
