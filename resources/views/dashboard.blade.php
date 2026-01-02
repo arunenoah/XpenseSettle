@@ -565,6 +565,13 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
         const groupedByPerson = {};
         breakdown.forEach(item => {
             const personName = item.person.name;
+            const amount = parseFloat(item.amount);
+
+            // Skip zero amounts
+            if (Math.abs(amount) < 0.01) {
+                return;
+            }
+
             if (!groupedByPerson[personName]) {
                 groupedByPerson[personName] = {
                     person: item.person,
@@ -572,9 +579,14 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                     groups: []
                 };
             }
-            groupedByPerson[personName].total += parseFloat(item.amount);
+            groupedByPerson[personName].total += amount;
             groupedByPerson[personName].groups.push(item);
         });
+
+        // Check if there are any non-zero balances
+        if (Object.keys(groupedByPerson).length === 0) {
+            content.innerHTML = '<div class="text-center py-8 text-gray-500">No outstanding balances</div>';
+        } else {
 
         content.innerHTML = Object.entries(groupedByPerson).map(([personName, data]) => `
             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -644,6 +656,7 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
                 ` : ''}
             </div>
         `).join('');
+        }
     }
 
     // Show modal
