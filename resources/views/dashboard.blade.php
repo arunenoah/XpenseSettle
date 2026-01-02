@@ -561,50 +561,83 @@ function openBalanceModal(type, currency, breakdown, currencySymbol) {
     if (breakdown.length === 0) {
         content.innerHTML = '<div class="text-center py-8 text-gray-500">No balances found</div>';
     } else {
-        content.innerHTML = breakdown.map(item => `
+        // Group by person
+        const groupedByPerson = {};
+        breakdown.forEach(item => {
+            const personName = item.person.name;
+            if (!groupedByPerson[personName]) {
+                groupedByPerson[personName] = {
+                    person: item.person,
+                    total: 0,
+                    groups: []
+                };
+            }
+            groupedByPerson[personName].total += parseFloat(item.amount);
+            groupedByPerson[personName].groups.push(item);
+        });
+
+        content.innerHTML = Object.entries(groupedByPerson).map(([personName, data]) => `
             <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between mb-3">
+                <!-- Person Header -->
+                <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3 flex-1">
                         <div class="w-10 h-10 rounded-full ${type === 'you_owe' ? 'bg-red-100' : 'bg-green-100'} flex items-center justify-center flex-shrink-0">
                             <span class="text-sm font-bold ${type === 'you_owe' ? 'text-red-700' : 'text-green-700'}">
-                                ${item.person.name.charAt(0).toUpperCase()}
+                                ${personName.charAt(0).toUpperCase()}
                             </span>
                         </div>
                         <div class="min-w-0">
-                            <p class="font-semibold text-gray-900 truncate">${item.person.name}</p>
-                            <p class="text-xs text-gray-500">${item.group_name}</p>
+                            <p class="font-semibold text-gray-900">${personName}</p>
+                            <p class="text-xs text-gray-500">${data.groups.length} group${data.groups.length > 1 ? 's' : ''}</p>
                         </div>
                     </div>
                     <div class="text-right flex-shrink-0">
                         <p class="text-lg font-bold ${type === 'you_owe' ? 'text-red-600' : 'text-green-600'}">
-                            ${currencySymbol}${parseFloat(item.amount).toFixed(2)}
+                            ${currencySymbol}${data.total.toFixed(2)}
                         </p>
-                        <p class="text-xs text-gray-500">${item.expense_count} transaction${item.expense_count > 1 ? 's' : ''}</p>
                     </div>
                 </div>
 
-                <!-- Expandable Expense Breakdown -->
-                <details class="text-sm mb-3">
-                    <summary class="text-xs text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors">
-                        📋 View details
+                <!-- Groups Breakdown -->
+                <details class="text-sm">
+                    <summary class="text-xs text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors mb-3">
+                        📋 View by group
                     </summary>
-                    <div class="mt-3 pl-4 border-l-2 border-gray-300 space-y-2">
-                        ${(item.expenses || []).map(exp => `
-                            <div class="flex justify-between items-center text-xs text-gray-600">
-                                <span class="truncate flex-1">${exp.title}</span>
-                                <span class="text-gray-900 font-semibold flex-shrink-0 ml-2">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
+                    <div class="mt-3 space-y-3">
+                        ${data.groups.map(item => `
+                            <div class="bg-gray-50 rounded p-3 border border-gray-100">
+                                <!-- Group Header -->
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="text-xs font-semibold text-gray-700">${item.group_name}</p>
+                                    <p class="font-bold ${type === 'you_owe' ? 'text-red-600' : 'text-green-600'}">${currencySymbol}${parseFloat(item.amount).toFixed(2)}</p>
+                                </div>
+
+                                <!-- Expenses in this group -->
+                                <details class="text-xs">
+                                    <summary class="text-gray-600 font-semibold cursor-pointer hover:text-gray-900 transition-colors">
+                                        ${item.expense_count} transaction${item.expense_count > 1 ? 's' : ''}
+                                    </summary>
+                                    <div class="mt-2 pl-3 border-l-2 border-gray-300 space-y-1">
+                                        ${(item.expenses || []).map(exp => `
+                                            <div class="flex justify-between items-center text-xs text-gray-600">
+                                                <span class="truncate flex-1">${exp.title}</span>
+                                                <span class="text-gray-900 font-semibold flex-shrink-0 ml-2">${currencySymbol}${parseFloat(exp.amount).toFixed(2)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </details>
                             </div>
                         `).join('')}
                     </div>
                 </details>
 
-                <!-- Mark as Paid Button -->
-                ${type === 'you_owe' ? `
-                    <button class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm open-settlement-payment-modal"
-                            data-group-id="${item.group_id}"
-                            data-split-ids='${JSON.stringify(item.split_ids)}'
-                            data-person-name="${item.person.name}"
-                            data-amount="${item.amount}"
+                <!-- Mark as Paid Button - Only show if has split_ids -->
+                ${type === 'you_owe' && data.groups.some(g => g.split_ids && g.split_ids.length > 0) ? `
+                    <button class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-semibold text-sm open-settlement-payment-modal mt-4"
+                            data-group-id="${data.groups[0].group_id}"
+                            data-split-ids='${JSON.stringify(data.groups.flatMap(g => g.split_ids || []))}'
+                            data-person-name="${personName}"
+                            data-amount="${data.total.toFixed(2)}"
                             data-currency="${currencySymbol}">
                         ✓ Mark as Paid
                     </button>
