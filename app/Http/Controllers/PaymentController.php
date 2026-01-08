@@ -1033,16 +1033,29 @@ class PaymentController extends Controller
                 }
 
                 // Return appropriate response based on request type
+                \Log::info("Manual settlement success, returning response", [
+                    'amount' => $amount,
+                    'wantsJson' => $request->wantsJson(),
+                    'timestamp' => now()->toIso8601String(),
+                ]);
                 if ($request->wantsJson()) {
+                    \Log::info("Sending JSON response for manual settlement (success)");
                     return response()->json(['success' => true, 'message' => "Settlement payment of \${$amount} recorded successfully!"]);
                 }
+                \Log::info("Sending redirect response for manual settlement (success)");
                 return back()->with('success', "Settlement payment of \${$amount} recorded successfully!");
             } catch (\Exception $e) {
                 \Log::error("Failed to create manual settlement: " . $e->getMessage(), ['exception' => $e]);
                 $message = 'Failed to record settlement payment: ' . $e->getMessage();
+                \Log::info("Manual settlement failed, returning error response", [
+                    'wantsJson' => $request->wantsJson(),
+                    'timestamp' => now()->toIso8601String(),
+                ]);
                 if ($request->wantsJson()) {
+                    \Log::info("Sending JSON response for manual settlement (error)");
                     return response()->json(['success' => false, 'message' => $message], 422);
                 }
+                \Log::info("Sending redirect response for manual settlement (error)");
                 return back()->with('error', $message);
             }
         }
@@ -1211,16 +1224,32 @@ class PaymentController extends Controller
 
             if ($failedCount > 0) {
                 $msg = "Marked {$successCount} payments as paid. {$failedCount} failed.";
+                \Log::info("markPaidBatch returning warning response", [
+                    'wantsJson' => $request->wantsJson(),
+                    'message' => $msg,
+                    'timestamp' => now()->toIso8601String(),
+                ]);
                 if ($request->wantsJson()) {
+                    \Log::info("Sending JSON response (warning)");
                     return response()->json(['success' => false, 'message' => $msg], 200);
                 }
+                \Log::info("Sending redirect response (warning)");
                 return back()->with('warning', $msg);
             }
 
             $msg = "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}";
+            \Log::info("markPaidBatch returning success response", [
+                'wantsJson' => $request->wantsJson(),
+                'message' => $msg,
+                'successCount' => $successCount,
+                'totalAmount' => $totalAmount,
+                'timestamp' => now()->toIso8601String(),
+            ]);
             if ($request->wantsJson()) {
+                \Log::info("Sending JSON response (success)");
                 return response()->json(['success' => true, 'message' => $msg]);
             }
+            \Log::info("Sending redirect response (success)");
             return back()->with('success', $msg);
         }
     }

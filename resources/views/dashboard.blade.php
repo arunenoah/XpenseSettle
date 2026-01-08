@@ -804,9 +804,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const action = this.action;
             let requestStarted = true;
 
+            console.log('=== PAYMENT FORM SUBMISSION ===');
+            console.log('Form action:', action);
+            console.log('Form data entries:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}:`, value);
+            }
+
             // Close modal and show processing message
             closePaymentModalFromBalance();
+            console.log('Modal closed, preparing fetch request...');
 
+            console.log('Starting fetch request at:', new Date().toISOString());
             fetch(action, {
                 method: 'POST',
                 body: formData,
@@ -815,43 +824,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(async response => {
-                console.log('Payment submission response status:', response.status, 'redirected:', response.redirected);
+                const timestamp = new Date().toISOString();
+                console.log(`[${timestamp}] Response received`);
+                console.log('  Status:', response.status);
+                console.log('  OK:', response.ok);
+                console.log('  Redirected:', response.redirected);
+                console.log('  Status text:', response.statusText);
+                console.log('  Headers:', {
+                    'content-type': response.headers.get('content-type'),
+                    'content-length': response.headers.get('content-length')
+                });
 
                 if (response.ok) {
                     // Check if it's a JSON response
                     const contentType = response.headers.get('content-type');
+                    console.log('Content-Type check:', contentType);
+
                     if (contentType && contentType.includes('application/json')) {
+                        console.log('Parsing JSON response...');
                         const data = await response.json();
-                        console.log('JSON response:', data);
+                        console.log('JSON parsed successfully:', data);
+
                         if (data.success) {
+                            console.log('Success! Scheduling reload in 500ms...');
                             // Reload after a delay to ensure server completed
                             setTimeout(() => {
+                                console.log('Reloading page...');
                                 location.reload();
                             }, 500);
                             return; // Exit to prevent further execution
                         } else {
+                            console.error('JSON response indicates failure:', data.message);
                             alert(data.message || 'Failed to submit payment. Please try again.');
                         }
                     } else {
                         // HTML response (redirect) - reload page after delay
+                        console.log('HTML response, scheduling reload in 500ms...');
                         setTimeout(() => {
+                            console.log('Reloading page after HTML response...');
                             location.reload();
                         }, 500);
                     }
                 } else if (response.redirected) {
                     // Follow redirect by reloading after delay
+                    console.log('Response redirected, scheduling reload in 500ms...');
                     setTimeout(() => {
+                        console.log('Reloading page after redirect...');
                         location.reload();
                     }, 500);
                 } else {
                     // Server returned an error
+                    console.error('Server returned error status:', response.status);
                     const text = await response.text();
-                    console.error('Payment error response:', text);
+                    console.error('Error response body:', text);
                     alert('Failed to submit payment. Please try again.');
                 }
             })
             .catch(error => {
-                console.error('Error submitting payment:', error);
+                console.error('=== FETCH ERROR ===');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                console.error('Full error:', error);
                 // Only show alert if request actually started
                 if (requestStarted) {
                     alert('Failed to submit payment. Please try again.');
