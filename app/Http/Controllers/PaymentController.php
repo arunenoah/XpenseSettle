@@ -1033,12 +1033,17 @@ class PaymentController extends Controller
                 }
 
                 // Return appropriate response based on request type
+                // Check for AJAX request by looking for XMLHttpRequest header
+                $isAjax = $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson();
+
                 \Log::info("Manual settlement success, returning response", [
                     'amount' => $amount,
+                    'isAjax' => $isAjax,
                     'wantsJson' => $request->wantsJson(),
+                    'x-requested-with' => $request->header('X-Requested-With'),
                     'timestamp' => now()->toIso8601String(),
                 ]);
-                if ($request->wantsJson()) {
+                if ($isAjax) {
                     \Log::info("Sending JSON response for manual settlement (success)");
                     return response()->json(['success' => true, 'message' => "Settlement payment of \${$amount} recorded successfully!"]);
                 }
@@ -1047,11 +1052,16 @@ class PaymentController extends Controller
             } catch (\Exception $e) {
                 \Log::error("Failed to create manual settlement: " . $e->getMessage(), ['exception' => $e]);
                 $message = 'Failed to record settlement payment: ' . $e->getMessage();
+
+                $isAjax = $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson();
+
                 \Log::info("Manual settlement failed, returning error response", [
+                    'isAjax' => $isAjax,
                     'wantsJson' => $request->wantsJson(),
+                    'x-requested-with' => $request->header('X-Requested-With'),
                     'timestamp' => now()->toIso8601String(),
                 ]);
-                if ($request->wantsJson()) {
+                if ($isAjax) {
                     \Log::info("Sending JSON response for manual settlement (error)");
                     return response()->json(['success' => false, 'message' => $message], 422);
                 }
@@ -1222,14 +1232,20 @@ class PaymentController extends Controller
                 );
             }
 
+            // Check if this is an AJAX request by looking for XMLHttpRequest header
+            // (wantsJson() may not work reliably with multipart/form-data uploads)
+            $isAjax = $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson();
+
             if ($failedCount > 0) {
                 $msg = "Marked {$successCount} payments as paid. {$failedCount} failed.";
                 \Log::info("markPaidBatch returning warning response", [
+                    'isAjax' => $isAjax,
                     'wantsJson' => $request->wantsJson(),
+                    'x-requested-with' => $request->header('X-Requested-With'),
                     'message' => $msg,
                     'timestamp' => now()->toIso8601String(),
                 ]);
-                if ($request->wantsJson()) {
+                if ($isAjax) {
                     \Log::info("Sending JSON response (warning)");
                     return response()->json(['success' => false, 'message' => $msg], 200);
                 }
@@ -1239,13 +1255,15 @@ class PaymentController extends Controller
 
             $msg = "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}";
             \Log::info("markPaidBatch returning success response", [
+                'isAjax' => $isAjax,
                 'wantsJson' => $request->wantsJson(),
+                'x-requested-with' => $request->header('X-Requested-With'),
                 'message' => $msg,
                 'successCount' => $successCount,
                 'totalAmount' => $totalAmount,
                 'timestamp' => now()->toIso8601String(),
             ]);
-            if ($request->wantsJson()) {
+            if ($isAjax) {
                 \Log::info("Sending JSON response (success)");
                 return response()->json(['success' => true, 'message' => $msg]);
             }
