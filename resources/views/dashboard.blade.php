@@ -811,9 +811,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                if (response.ok || response.redirected) {
-                    // Payment successful, reload to show updated balance
-                    // Note: response.redirected is true when the fetch automatically followed a redirect
+                console.log('Payment submission response status:', response.status, 'redirected:', response.redirected);
+
+                if (response.ok) {
+                    // Check if it's a JSON response
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to submit payment. Please try again.');
+                            }
+                        });
+                    } else {
+                        // HTML response (redirect) - reload page
+                        location.reload();
+                    }
+                } else if (response.redirected) {
+                    // Follow redirect by reloading
                     location.reload();
                 } else {
                     // Server returned an error

@@ -1018,18 +1018,31 @@ class PaymentController extends Controller
 
                 \Log::info("Manual settlement created: ID=" . $payment->id);
 
-                $this->auditService->logSuccess(
-                    'manual_settlement',
-                    'Payment',
-                    "Manual settlement of \${$amount} to " . User::find($payeeId)->name,
-                    null,
-                    $groupId
-                );
+                try {
+                    $this->auditService->logSuccess(
+                        'manual_settlement',
+                        'Payment',
+                        "Manual settlement of \${$amount} to " . User::find($payeeId)->name,
+                        null,
+                        $groupId
+                    );
+                } catch (\Exception $auditError) {
+                    \Log::warning("Audit log failed but settlement was created: " . $auditError->getMessage());
+                    // Don't fail the whole operation if audit logging fails
+                }
 
+                // Return appropriate response based on request type
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => true, 'message' => "Settlement payment of \${$amount} recorded successfully!"]);
+                }
                 return back()->with('success', "Settlement payment of \${$amount} recorded successfully!");
             } catch (\Exception $e) {
                 \Log::error("Failed to create manual settlement: " . $e->getMessage(), ['exception' => $e]);
-                return back()->with('error', 'Failed to record settlement payment: ' . $e->getMessage());
+                $message = 'Failed to record settlement payment: ' . $e->getMessage();
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 422);
+                }
+                return back()->with('error', $message);
             }
         }
 
@@ -1102,13 +1115,25 @@ class PaymentController extends Controller
                     );
 
                     if ($failedCount > 0) {
-                        return back()->with('warning', "Marked {$successCount} payments as paid across " . count($uniqueGroupIds) . " groups. {$failedCount} failed.");
+                        $msg = "Marked {$successCount} payments as paid across " . count($uniqueGroupIds) . " groups. {$failedCount} failed.";
+                        if ($request->wantsJson()) {
+                            return response()->json(['success' => false, 'message' => $msg], 200);
+                        }
+                        return back()->with('warning', $msg);
                     }
 
-                    return back()->with('success', "Successfully settled \${$totalAmount} with {$payeeName} across " . count($uniqueGroupIds) . " groups!");
+                    $msg = "Successfully settled \${$totalAmount} with {$payeeName} across " . count($uniqueGroupIds) . " groups!";
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => true, 'message' => $msg]);
+                    }
+                    return back()->with('success', $msg);
                 } catch (\Exception $e) {
                     \Log::error("Failed to create multi-group settlement: " . $e->getMessage());
-                    return back()->with('error', 'Failed to process multi-group settlement: ' . $e->getMessage());
+                    $message = 'Failed to process multi-group settlement: ' . $e->getMessage();
+                    if ($request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => $message], 422);
+                    }
+                    return back()->with('error', $message);
                 }
             }
         } else {
@@ -1157,10 +1182,18 @@ class PaymentController extends Controller
             }
 
             if ($failedCount > 0) {
-                return back()->with('warning', "Marked {$successCount} payments as paid. {$failedCount} failed.");
+                $msg = "Marked {$successCount} payments as paid. {$failedCount} failed.";
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $msg], 200);
+                }
+                return back()->with('warning', $msg);
             }
 
-            return back()->with('success', "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}");
+            $msg = "Successfully marked {$successCount} payments as paid! Total: \${$totalAmount}";
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => $msg]);
+            }
+            return back()->with('success', $msg);
         }
     }
 
