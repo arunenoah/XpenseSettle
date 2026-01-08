@@ -1085,18 +1085,30 @@ class PaymentController extends Controller
 
                             // Handle receipt attachment (only on first payment)
                             if ($successCount === 0 && $request->hasFile('receipt')) {
-                                $this->attachmentService->uploadAttachment(
-                                    $request->file('receipt'),
-                                    $payment,
-                                    'payments'
-                                );
+                                try {
+                                    $this->attachmentService->uploadAttachment(
+                                        $request->file('receipt'),
+                                        $payment,
+                                        'payments'
+                                    );
+                                } catch (\Exception $attachmentError) {
+                                    \Log::warning("Failed to attach receipt: " . $attachmentError->getMessage());
+                                }
                             }
 
-                            // Notify the payer
-                            $this->notificationService->notifyPaymentMarked($payment, $user);
+                            // Notify the payer (wrap in try-catch to not interrupt payment processing)
+                            try {
+                                $this->notificationService->notifyPaymentMarked($payment, $user);
+                            } catch (\Exception $notifyError) {
+                                \Log::warning("Failed to notify payer: " . $notifyError->getMessage());
+                            }
 
                             // Check if expense is fully paid
-                            app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+                            try {
+                                app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+                            } catch (\Exception $expenseError) {
+                                \Log::warning("Failed to mark expense as paid: " . $expenseError->getMessage());
+                            }
 
                             $successCount++;
                         } catch (\Exception $e) {
@@ -1150,18 +1162,33 @@ class PaymentController extends Controller
 
                     // Handle receipt attachment (only on first payment)
                     if ($successCount === 0 && $request->hasFile('receipt')) {
-                        $this->attachmentService->uploadAttachment(
-                            $request->file('receipt'),
-                            $payment,
-                            'payments'
-                        );
+                        try {
+                            $this->attachmentService->uploadAttachment(
+                                $request->file('receipt'),
+                                $payment,
+                                'payments'
+                            );
+                        } catch (\Exception $attachmentError) {
+                            \Log::warning("Failed to attach receipt: " . $attachmentError->getMessage());
+                            // Don't fail the payment if attachment fails
+                        }
                     }
 
-                    // Notify the payer
-                    $this->notificationService->notifyPaymentMarked($payment, $user);
+                    // Notify the payer (wrap in try-catch to not interrupt payment processing)
+                    try {
+                        $this->notificationService->notifyPaymentMarked($payment, $user);
+                    } catch (\Exception $notifyError) {
+                        \Log::warning("Failed to notify payer: " . $notifyError->getMessage());
+                        // Don't fail the payment if notification fails
+                    }
 
                     // Check if expense is fully paid
-                    app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+                    try {
+                        app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+                    } catch (\Exception $expenseError) {
+                        \Log::warning("Failed to mark expense as paid: " . $expenseError->getMessage());
+                        // Don't fail the payment if expense marking fails
+                    }
 
                     $successCount++;
                 } catch (\Exception $e) {
