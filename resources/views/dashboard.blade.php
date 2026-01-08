@@ -802,6 +802,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Submit form and reload page when response completes
             const formData = new FormData(this);
             const action = this.action;
+            let requestStarted = true;
+
+            // Close modal and show processing message
+            closePaymentModalFromBalance();
 
             fetch(action, {
                 method: 'POST',
@@ -810,38 +814,48 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => {
+            .then(async response => {
                 console.log('Payment submission response status:', response.status, 'redirected:', response.redirected);
 
                 if (response.ok) {
                     // Check if it's a JSON response
                     const contentType = response.headers.get('content-type');
                     if (contentType && contentType.includes('application/json')) {
-                        return response.json().then(data => {
-                            if (data.success) {
+                        const data = await response.json();
+                        console.log('JSON response:', data);
+                        if (data.success) {
+                            // Reload after a delay to ensure server completed
+                            setTimeout(() => {
                                 location.reload();
-                            } else {
-                                alert(data.message || 'Failed to submit payment. Please try again.');
-                            }
-                        });
+                            }, 500);
+                            return; // Exit to prevent further execution
+                        } else {
+                            alert(data.message || 'Failed to submit payment. Please try again.');
+                        }
                     } else {
-                        // HTML response (redirect) - reload page
-                        location.reload();
+                        // HTML response (redirect) - reload page after delay
+                        setTimeout(() => {
+                            location.reload();
+                        }, 500);
                     }
                 } else if (response.redirected) {
-                    // Follow redirect by reloading
-                    location.reload();
+                    // Follow redirect by reloading after delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
                 } else {
                     // Server returned an error
-                    return response.text().then(text => {
-                        console.error('Payment error response:', text);
-                        alert('Failed to submit payment. Please try again.');
-                    });
+                    const text = await response.text();
+                    console.error('Payment error response:', text);
+                    alert('Failed to submit payment. Please try again.');
                 }
             })
             .catch(error => {
                 console.error('Error submitting payment:', error);
-                alert('Failed to submit payment. Please try again.');
+                // Only show alert if request actually started
+                if (requestStarted) {
+                    alert('Failed to submit payment. Please try again.');
+                }
             });
         });
     }
