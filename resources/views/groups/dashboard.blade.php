@@ -382,27 +382,28 @@
             <div class="space-y-3 overflow-y-auto max-h-screen pr-2" style="max-height: 600px;">
                 @foreach($allActivities as $activity)
                     @if($activity['type'] === 'expense')
-                        @php 
+                        @php
                             $expense = $activity['data'];
                             $isPayer = $expense->payer->id === auth()->id();
                             $userSplit = $expense->splits->first(function($split) {
-                                return ($split->user_id === auth()->id()) || 
+                                return ($split->user_id === auth()->id()) ||
                                        ($split->contact && $split->contact->user_id === auth()->id());
                             });
                             $userOwes = $userSplit ? $userSplit->share_amount : 0;
-                            
+
                             // Calculate how much others owe the payer
                             $othersOwe = $expense->splits->filter(function($split) use ($expense) {
                                 $splitUserId = $split->user_id ?? ($split->contact ? $split->contact->user_id : null);
                                 return $splitUserId !== $expense->payer->id;
                             })->sum('share_amount');
-                            
+
                             $borderColor = $isPayer ? 'border-green-200' : 'border-orange-200';
                             $hoverBorder = $isPayer ? 'hover:border-green-400' : 'hover:border-orange-400';
                             $amountColor = $isPayer ? 'text-green-600' : 'text-orange-600';
                             $emoji = $isPayer ? '💰' : '🛒';
                         @endphp
-                        <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
+                        <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102 cursor-pointer"
+                             onclick="openExpenseModal({{ $expense->id }}, '{{ addslashes($group->id) }}')">
                             <div class="flex items-start justify-between gap-3 mb-3">
                                 <div class="flex-1 min-w-0">
                                     <h3 class="font-black text-lg text-gray-900 truncate flex items-center gap-2">
@@ -623,6 +624,27 @@
     </div>
 </div>
 
+<!-- Expense Detail Modal -->
+<div id="expenseDetailModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" data-close-modal="true" data-modal-func="closeExpenseModal">
+    <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8 shadow-2xl" data-stop-propagation="true">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-black text-gray-900">📋 Expense Details</h3>
+            <button onclick="closeExpenseModal()" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">✕</button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="expenseModalLoading" class="text-center py-8">
+            <div class="inline-block">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+            <p class="mt-4 text-gray-600 font-semibold">Loading expense details...</p>
+        </div>
+
+        <!-- Content Loaded via AJAX -->
+        <div id="expenseModalContent" class="hidden space-y-4 max-h-96 overflow-y-auto"></div>
+    </div>
+</div>
+
 <!-- Expenses Modal -->
 <div id="expensesModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 overflow-y-auto" data-close-modal="true" data-modal-func="closeExpensesModal">
     <div class="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 my-8" data-stop-propagation="true">
@@ -634,7 +656,7 @@
         @if($expenses->count() > 0)
             <div class="space-y-3 max-h-96 overflow-y-auto">
                 @foreach($expenses as $expense)
-                    <a href="{{ route('groups.expenses.show', ['group' => $group, 'expense' => $expense]) }}" class="block p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all">
+                    <div onclick="openExpenseModal({{ $expense->id }}, '{{ addslashes($group->id) }}')" class="block p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer">
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 min-w-0">
                                 <h4 class="font-bold text-gray-900 truncate">{{ $expense->title }}</h4>
@@ -645,7 +667,7 @@
                                 {{ ucfirst(str_replace('_', ' ', $expense->status)) }}
                             </span>
                         </div>
-                    </a>
+                    </div>
                 @endforeach
             </div>
         @else
@@ -734,6 +756,59 @@
 </div>
 
 <script nonce="{{ request()->attributes->get('nonce', '') }}">
+// Open Expense Detail Modal
+function openExpenseModal(expenseId, groupId) {
+    const modal = document.getElementById('expenseDetailModal');
+    const loading = document.getElementById('expenseModalLoading');
+    const content = document.getElementById('expenseModalContent');
+
+    // Show modal with loading state
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+
+    // Fetch expense details via AJAX
+    fetch(`/groups/${groupId}/expenses/${expenseId}/modal`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to load expense');
+        return response.json();
+    })
+    .then(data => {
+        // Hide loading and show content
+        loading.classList.add('hidden');
+        content.classList.remove('hidden');
+        content.innerHTML = data.html;
+
+        // Re-attach event listeners if needed
+        const imageModals = content.querySelectorAll('[data-open-image-modal="true"]');
+        imageModals.forEach(el => {
+            el.addEventListener('click', function() {
+                openImageModal(this.dataset.imageUrl, this.dataset.imageName);
+            });
+        });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        loading.innerHTML = '<p class="text-red-600 font-bold">Error loading expense details. Please try again.</p>';
+    });
+}
+
+function closeExpenseModal(event) {
+    // Close if clicking on modal background or close button
+    if (!event || event.target.id === 'expenseDetailModal' || event.currentTarget.classList.contains('close-modal')) {
+        const modal = document.getElementById('expenseDetailModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
 // Toggle section collapse/expand
 function toggleSection(sectionId) {
     const section = document.getElementById(sectionId);
@@ -908,6 +983,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Close modal by clicking background
+    const expenseDetailModal = document.getElementById('expenseDetailModal');
+    if (expenseDetailModal) {
+        expenseDetailModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeExpenseModal(e);
+            }
+        });
+    }
+
+    // Close modal by clicking background
     const expensesModal = document.getElementById('expensesModal');
     if (expensesModal) {
         expensesModal.addEventListener('click', function(e) {
@@ -916,7 +1001,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Close payment modal by clicking background
     const groupPaymentModal = document.getElementById('groupPaymentModal');
     if (groupPaymentModal) {

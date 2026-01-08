@@ -811,8 +811,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                if (response.ok) {
+                if (response.ok || response.redirected) {
                     // Payment successful, reload to show updated balance
+                    // Note: response.redirected is true when the fetch automatically followed a redirect
                     location.reload();
                 } else {
                     // Server returned an error

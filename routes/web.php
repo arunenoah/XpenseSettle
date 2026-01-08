@@ -87,6 +87,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/groups/{group}/expenses/create', [ExpenseController::class, 'create'])->name('groups.expenses.create');
     Route::post('/groups/{group}/expenses', [ExpenseController::class, 'store'])->name('groups.expenses.store');
     Route::get('/groups/{group}/expenses/{expense}', [ExpenseController::class, 'show'])->name('groups.expenses.show');
+    Route::get('/groups/{group}/expenses/{expense}/modal', [ExpenseController::class, 'showModal'])->name('groups.expenses.modal');
     Route::get('/groups/{group}/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('groups.expenses.edit');
     Route::put('/groups/{group}/expenses/{expense}', [ExpenseController::class, 'update'])->name('groups.expenses.update');
     Route::delete('/groups/{group}/expenses/{expense}', [ExpenseController::class, 'destroy'])->name('groups.expenses.destroy');

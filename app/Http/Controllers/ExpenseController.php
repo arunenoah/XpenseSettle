@@ -180,6 +180,33 @@ class ExpenseController extends Controller
     }
 
     /**
+     * Return expense details as HTML for modal popup (AJAX)
+     */
+    public function showModal(Group $group, Expense $expense)
+    {
+        // Verify expense belongs to the group
+        if ($expense->group_id !== $group->id) {
+            abort(404);
+        }
+
+        // Check if user is a member of the group
+        if (!$group->hasMember(auth()->user())) {
+            abort(403, 'You are not a member of this group');
+        }
+
+        // Load relationships
+        $expense->load('payer', 'splits.user', 'splits.contact', 'comments.user', 'attachments', 'items.assignedTo');
+
+        // Calculate settlement
+        $settlement = $this->expenseService->getExpenseSettlement($expense);
+
+        // Render the modal content view
+        $html = view('expenses.modal', compact('expense', 'group', 'settlement'))->render();
+
+        return response()->json(['html' => $html]);
+    }
+
+    /**
      * Show form for editing an expense.
      */
     public function edit(Group $group, Expense $expense)
