@@ -274,6 +274,7 @@ class PaymentController extends Controller
                             'net_amount' => 0,
                             'status' => 'pending',
                             'expenses' => [],
+                            'split_ids' => [],
                         ];
                     }
 
