@@ -76,54 +76,8 @@
                 @endphp
 
                 <div class="relative flex-shrink-0"
-                     x-data="{
-                         open: false,
-                         filter: 'unread',
-                         activities: [],
-                         unreadCount: {{ $unreadCount }},
-                         loadNotifications() {
-                             fetch(`/notifications?filter=${this.filter}`)
-                                 .then(res => res.json())
-                                 .then(data => {
-                                     this.activities = data.activities;
-                                     this.unreadCount = data.unread_count;
-                                 })
-                                 .catch(err => console.error('Error loading notifications:', err));
-                         },
-                         markAsRead(id) {
-                             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                             fetch(`/notifications/${id}/read`, {
-                                 method: 'POST',
-                                 headers: {
-                                     'X-CSRF-TOKEN': csrfToken,
-                                     'Content-Type': 'application/json'
-                                 }
-                             }).then(() => this.loadNotifications());
-                         },
-                         markAllAsRead() {
-                             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-                             fetch('/notifications/mark-all-read', {
-                                 method: 'POST',
-                                 headers: {
-                                     'X-CSRF-TOKEN': csrfToken,
-                                     'Content-Type': 'application/json'
-                                 }
-                             }).then(() => this.loadNotifications());
-                         },
-                         formatTime(dateString) {
-                             const date = new Date(dateString);
-                             const now = new Date();
-                             const diffMs = now - date;
-                             const diffMins = Math.floor(diffMs / 60000);
-                             const diffHours = Math.floor(diffMs / 3600000);
-                             const diffDays = Math.floor(diffMs / 86400000);
-                             if (diffMins < 1) return 'Just now';
-                             if (diffMins < 60) return `${diffMins}m ago`;
-                             if (diffHours < 24) return `${diffHours}h ago`;
-                             if (diffDays < 7) return `${diffDays}d ago`;
-                             return date.toLocaleDateString();
-                         }
-                     }">
+                     @notificationData="$el.parentElement.__alpineNotifications = $event.detail"
+                     x-data="notificationComponent()">
                     <button @click="open = !open; if(open) { loadNotifications(); }"
                             class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2 cursor-pointer"
                             title="Notifications">
@@ -219,6 +173,65 @@
             </div>
         </div>
     </nav>
+
+    <!-- Notification Component Script -->
+    <script nonce="{{ request()->attributes->get('nonce', '') }}">
+    function notificationComponent() {
+        return {
+            open: false,
+            filter: 'unread',
+            activities: [],
+            unreadCount: {{ $unreadCount }},
+
+            loadNotifications() {
+                fetch(`/notifications?filter=${this.filter}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        this.activities = data.activities || [];
+                        this.unreadCount = data.unread_count || 0;
+                    })
+                    .catch(err => console.error('Error loading notifications:', err));
+            },
+
+            markAsRead(id) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                fetch(`/notifications/${id}/read`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(() => this.loadNotifications());
+            },
+
+            markAllAsRead() {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                fetch('/notifications/mark-all-read', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(() => this.loadNotifications());
+            },
+
+            formatTime(dateString) {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return date.toLocaleDateString();
+            }
+        }
+    }
+    </script>
 
     <!-- Main Content -->
     <main class="flex-1 py-6 sm:py-8 lg:py-10">
