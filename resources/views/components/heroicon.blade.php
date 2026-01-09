@@ -36,7 +36,7 @@
         $iconName = 'heroicon-' . $variantPrefix . '-' . $kebabName;
 
         $classes = $attributes->get('class', 'w-5 h-5');
-        $svgObject = svg($iconName, $classes, $attributes->except('class')->getAttributes());
+        $svgOutput = \BladeUI\Icons\Facades\Icon::render($iconName, $classes, $attributes->except('class')->getAttributes());
     @endphp
-    {!! $svgObject->toHtml() !!}
+    {!! $svgOutput !!}
 @endif
