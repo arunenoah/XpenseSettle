@@ -83,8 +83,8 @@
                             title="Notifications">
                         <span>🔔</span>
                         <span x-show="unreadCount > 0"
-                              x-text="unreadCount > 9 ? '9+' : unreadCount"
-                              class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                              x-text="unreadCount"
+                              class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 py-0.5 min-w-fit">
                         </span>
                     </button>
 
