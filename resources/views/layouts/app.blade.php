@@ -129,85 +129,81 @@
                             <template x-for="activity in activities" :key="activity.id">
                                 <div @click="markAsRead(activity.id)"
                                      :class="{
-                                         'border-l-4 border-blue-500 shadow-sm hover:shadow-md': activity.type === 'expense_created',
-                                         'border-l-4 border-green-500 shadow-sm hover:shadow-md': activity.type === 'payment_made',
-                                         'border-l-4 border-amber-500 shadow-sm hover:shadow-md': activity.type === 'advance_paid',
-                                         'border-l-4 border-purple-500 shadow-sm hover:shadow-md': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                         'border-l-4 border-blue-500': activity.type === 'expense_created',
+                                         'border-l-4 border-green-500': activity.type === 'payment_made',
+                                         'border-l-4 border-amber-500': activity.type === 'advance_paid',
+                                         'border-l-4 border-purple-500': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                      }"
-                                     class="mx-2 my-2 p-3 sm:p-4 bg-white rounded-lg transition-all cursor-pointer relative border-b-0 border-gray-200">
-                                    <div class="flex items-start gap-2 sm:gap-3">
+                                     class="mx-2 my-2.5 p-4 bg-white rounded-lg transition-all cursor-pointer hover:shadow-md">
+                                    <!-- Header: Icon + User/Group + Badge + Unread Dot -->
+                                    <div class="flex items-center gap-3 mb-3">
                                         <div :class="{
                                             'bg-blue-100 border-2 border-blue-300': activity.type === 'expense_created',
                                             'bg-green-100 border-2 border-green-300': activity.type === 'payment_made',
                                             'bg-amber-100 border-2 border-amber-300': activity.type === 'advance_paid',
                                             'bg-purple-100 border-2 border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                         }"
-                                        class="w-9 sm:w-11 h-9 sm:h-11 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <span x-text="activity.icon" class="text-lg sm:text-xl"></span>
+                                        class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span x-text="activity.icon" class="text-xl"></span>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <!-- Main Title with Type Badge -->
-                                            <div class="flex items-center gap-2 justify-between">
-                                                <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
-                                                <span :class="{
-                                                    'bg-blue-100 text-blue-700 border border-blue-300': activity.type === 'expense_created',
-                                                    'bg-green-100 text-green-700 border border-green-300': activity.type === 'payment_made',
-                                                    'bg-amber-100 text-amber-700 border border-amber-300': activity.type === 'advance_paid',
-                                                    'bg-purple-100 text-purple-700 border border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
-                                                }"
-                                                class="text-xs font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap flex-shrink-0"
-                                                x-text="{
-                                                    'expense_created': '📝 Expense',
-                                                    'payment_made': '✅ Paid',
-                                                    'advance_paid': '💰 Advance'
-                                                }[activity.type] || 'Activity'">
-                                                </span>
-                                            </div>
-
-                                            <!-- Activity Details Based on Type -->
-                                            <template x-if="activity.type === 'expense_created'">
-                                                <div class="mt-1 space-y-2">
-                                                    <p class="text-xs text-gray-700 line-clamp-2">
-                                                        <span x-text="`Added expense: ${activity.title}`"></span>
-                                                    </p>
-                                                    <div class="grid grid-cols-2 gap-2">
-                                                        <div>
-                                                            <p class="text-xs text-gray-500 mb-1">Total:</p>
-                                                            <p class="text-base sm:text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
-                                                        </div>
-                                                        <template x-if="activity.user_share !== null">
-                                                            <div class="bg-blue-50 p-2 rounded">
-                                                                <p class="text-xs text-gray-600 mb-1">You owe:</p>
-                                                                <p class="text-base sm:text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </div>
-                                            </template>
-
-                                            <template x-if="activity.type === 'payment_made'">
-                                                <div class="mt-1 space-y-1">
-                                                    <p class="text-xs text-gray-700">Marked payment as paid</p>
-                                                    <p class="text-base sm:text-lg font-bold text-green-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
-                                                </div>
-                                            </template>
-
-                                            <template x-if="activity.type === 'advance_paid'">
-                                                <div class="mt-1 space-y-1">
-                                                    <p class="text-xs text-gray-700">Paid advance</p>
-                                                    <p class="text-base sm:text-lg font-bold text-amber-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'} per person`"></p>
-                                                </div>
-                                            </template>
-
-                                            <template x-if="activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'">
-                                                <p class="text-xs text-gray-700 mt-1" x-text="activity.title"></p>
-                                            </template>
-
-                                            <!-- Timestamp -->
-                                            <p class="text-xs text-gray-500 mt-1 sm:mt-2" x-text="formatTime(activity.created_at)"></p>
+                                            <p class="text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
                                         </div>
-                                        <span x-show="!activity.is_read" class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-teal-500 rounded-full flex-shrink-0 mt-1 sm:mt-2"></span>
+                                        <span :class="{
+                                            'bg-blue-100 text-blue-700': activity.type === 'expense_created',
+                                            'bg-green-100 text-green-700': activity.type === 'payment_made',
+                                            'bg-amber-100 text-amber-700': activity.type === 'advance_paid',
+                                            'bg-purple-100 text-purple-700': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                        }"
+                                        class="text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap flex-shrink-0"
+                                        x-text="{
+                                            'expense_created': '📝',
+                                            'payment_made': '✅',
+                                            'advance_paid': '💰'
+                                        }[activity.type] || '📌'">
+                                        </span>
+                                        <span x-show="!activity.is_read" class="w-2.5 h-2.5 bg-blue-500 rounded-full flex-shrink-0"></span>
                                     </div>
+
+                                    <!-- Activity Details Based on Type -->
+                                    <template x-if="activity.type === 'expense_created'">
+                                        <div class="space-y-3">
+                                            <p class="text-sm text-gray-700 line-clamp-1" x-text="`${activity.title}`"></p>
+                                            <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+                                                <div>
+                                                    <p class="text-xs text-gray-500 mb-0.5">Total</p>
+                                                    <p class="text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                </div>
+                                                <template x-if="activity.user_share !== null">
+                                                    <div class="text-right">
+                                                        <p class="text-xs text-gray-500 mb-0.5">You owe</p>
+                                                        <p class="text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="activity.type === 'payment_made'">
+                                        <div class="space-y-2">
+                                            <p class="text-sm text-gray-600">Marked payment as complete</p>
+                                            <p class="text-lg font-bold text-green-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="activity.type === 'advance_paid'">
+                                        <div class="space-y-2">
+                                            <p class="text-sm text-gray-600">Paid advance</p>
+                                            <p class="text-lg font-bold text-amber-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'} per person`"></p>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'">
+                                        <p class="text-sm text-gray-700" x-text="activity.title"></p>
+                                    </template>
+
+                                    <!-- Timestamp -->
+                                    <p class="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-100" x-text="formatTime(activity.created_at)"></p>
                                 </div>
                             </template>
                         </div>
