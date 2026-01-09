@@ -31,39 +31,8 @@
                 </a>
             </div>
 
-            <!-- Top Menu - Centered -->
-            <div class="flex justify-center items-center py-2 gap-1 sm:gap-4 overflow-x-auto">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span>🏠</span>
-                    <span class="hidden xs:inline sm:inline">Home</span>
-                </a>
-                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span>👥</span>
-                    <span class="hidden xs:inline sm:inline">Groups</span>
-                </a>
-                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span>🔒</span>
-                    <span class="hidden xs:inline sm:inline">Pin</span>
-                </a>
-
-                @if(auth()->user()->email === 'arun@example.com')
-                    <a href="{{ route('admin.verify') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('admin.*') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-purple-100 text-purple-900 hover:bg-purple-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap border-2 border-purple-300">
-                        <span>🔧</span>
-                        <span class="hidden xs:inline sm:inline">Admin</span>
-                    </a>
-                @endif
-
-                <form action="{{ route('logout') }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                        <span>🚪</span>
-                        <span class="hidden xs:inline sm:inline">Exit</span>
-                    </button>
-                </form>
-            </div>
-
             <!-- User Info & Notifications Bar -->
-            <div class="flex justify-between items-center py-2 border-t border-gray-100">
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
                 <span class="text-sm text-gray-700 font-medium">{{ auth()->user()->name }}</span>
 
                 <!-- Activity Notification Bell -->
@@ -86,28 +55,28 @@
                     </button>
 
                     <!-- Notification Panel -->
-                    <div x-show="open" 
+                    <div x-show="open"
                          @click.away="open = false"
                          x-transition
                          class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50"
                          style="display: none;">
-                        
+
                         <!-- Header with Tabs -->
                         <div class="p-4 border-b border-gray-200">
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex gap-4">
-                                    <button @click="filter = 'unread'; loadNotifications()" 
+                                    <button @click="filter = 'unread'; loadNotifications()"
                                             :class="filter === 'unread' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
                                             class="pb-1 transition-colors">
                                         Unread <span x-text="unreadCount"></span>
                                     </button>
-                                    <button @click="filter = 'all'; loadNotifications()" 
+                                    <button @click="filter = 'all'; loadNotifications()"
                                             :class="filter === 'all' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
                                             class="pb-1 transition-colors">
                                         All
                                     </button>
                                 </div>
-                                <button @click="markAllAsRead()" 
+                                <button @click="markAllAsRead()"
                                         x-show="unreadCount > 0"
                                         class="text-sm text-teal-600 hover:text-teal-700 font-semibold">
                                     Mark all as read
@@ -123,9 +92,9 @@
                                     <p class="text-sm">No notifications</p>
                                 </div>
                             </template>
-                            
+
                             <template x-for="activity in activities" :key="activity.id">
-                                <div @click="markAsRead(activity.id)" 
+                                <div @click="markAsRead(activity.id)"
                                      class="p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer relative">
                                     <div class="flex items-start gap-3">
                                         <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -195,6 +164,37 @@
                     return date.toLocaleDateString();
                 }
                 </script>
+            </div>
+
+            <!-- Top Menu - Centered -->
+            <div class="flex justify-center items-center py-2 gap-1 sm:gap-4 overflow-x-auto">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span>🏠</span>
+                    <span class="hidden xs:inline sm:inline">Home</span>
+                </a>
+                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span>👥</span>
+                    <span class="hidden xs:inline sm:inline">Groups</span>
+                </a>
+                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span>🔒</span>
+                    <span class="hidden xs:inline sm:inline">Pin</span>
+                </a>
+
+                @if(auth()->user()->email === 'arun@example.com')
+                    <a href="{{ route('admin.verify') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('admin.*') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-purple-100 text-purple-900 hover:bg-purple-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap border-2 border-purple-300">
+                        <span>🔧</span>
+                        <span class="hidden xs:inline sm:inline">Admin</span>
+                    </a>
+                @endif
+
+                <form action="{{ route('logout') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                        <span>🚪</span>
+                        <span class="hidden xs:inline sm:inline">Exit</span>
+                    </button>
+                </form>
             </div>
         </div>
     </nav>
