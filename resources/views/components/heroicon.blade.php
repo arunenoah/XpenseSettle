@@ -36,7 +36,9 @@
         $iconName = 'heroicon-' . $variantPrefix . '-' . $kebabName;
 
         $classes = $attributes->get('class', 'w-5 h-5');
-        $svgOutput = \BladeUI\Icons\Facades\Icon::render($iconName, $classes, $attributes->except('class')->getAttributes());
+        $iconAttributes = array_merge(['class' => $classes], $attributes->except('class')->getAttributes());
     @endphp
-    {!! $svgOutput !!}
+
+    {{-- Dynamically render the icon component from blade-icons --}}
+    <x-dynamic-component :component="'icon'" :name="$iconName" :attributes="$iconAttributes" />
 @endif
