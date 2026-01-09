@@ -95,7 +95,7 @@
                          class="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
 
                         <!-- Header with Tabs -->
-                        <div class="p-2 sm:p-4 border-b border-gray-200">
+                        <div class="p-3 sm:p-4 border-b border-gray-200 bg-white">
                             <div class="flex items-center justify-between mb-2 sm:mb-3 gap-2">
                                 <div class="flex gap-2 sm:gap-4">
                                     <button @click="filter = 'unread'; loadNotifications()"
@@ -118,7 +118,7 @@
                         </div>
 
                         <!-- Notifications List -->
-                        <div class="max-h-96 overflow-y-auto">
+                        <div class="max-h-96 overflow-y-auto bg-gray-50 p-2">
                             <template x-if="activities.length === 0">
                                 <div class="p-4 sm:p-8 text-center text-gray-500">
                                     <span class="text-2xl">🔔</span>
@@ -129,33 +129,33 @@
                             <template x-for="activity in activities" :key="activity.id">
                                 <div @click="markAsRead(activity.id)"
                                      :class="{
-                                         'border-l-4 border-blue-500 bg-blue-50 hover:bg-blue-100': activity.type === 'expense_created',
-                                         'border-l-4 border-green-500 bg-green-50 hover:bg-green-100': activity.type === 'payment_made',
-                                         'border-l-4 border-amber-500 bg-amber-50 hover:bg-amber-100': activity.type === 'advance_paid',
-                                         'border-l-4 border-purple-500 bg-purple-50 hover:bg-purple-100': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                         'border-l-4 border-blue-500 shadow-sm hover:shadow-md': activity.type === 'expense_created',
+                                         'border-l-4 border-green-500 shadow-sm hover:shadow-md': activity.type === 'payment_made',
+                                         'border-l-4 border-amber-500 shadow-sm hover:shadow-md': activity.type === 'advance_paid',
+                                         'border-l-4 border-purple-500 shadow-sm hover:shadow-md': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                      }"
-                                     class="p-2 sm:p-3 border-b border-gray-100 transition-colors cursor-pointer relative">
+                                     class="mx-2 my-2 p-3 sm:p-4 bg-white rounded-lg transition-all cursor-pointer relative border-b-0 border-gray-200">
                                     <div class="flex items-start gap-2 sm:gap-3">
                                         <div :class="{
-                                            'bg-blue-200': activity.type === 'expense_created',
-                                            'bg-green-200': activity.type === 'payment_made',
-                                            'bg-amber-200': activity.type === 'advance_paid',
-                                            'bg-purple-200': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                            'bg-blue-100 border-2 border-blue-300': activity.type === 'expense_created',
+                                            'bg-green-100 border-2 border-green-300': activity.type === 'payment_made',
+                                            'bg-amber-100 border-2 border-amber-300': activity.type === 'advance_paid',
+                                            'bg-purple-100 border-2 border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                         }"
-                                        class="w-8 sm:w-10 h-8 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <span x-text="activity.icon" class="text-base sm:text-lg"></span>
+                                        class="w-9 sm:w-11 h-9 sm:h-11 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span x-text="activity.icon" class="text-lg sm:text-xl"></span>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <!-- Main Title with Type Badge -->
                                             <div class="flex items-center gap-2 justify-between">
                                                 <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
                                                 <span :class="{
-                                                    'bg-blue-200 text-blue-800': activity.type === 'expense_created',
-                                                    'bg-green-200 text-green-800': activity.type === 'payment_made',
-                                                    'bg-amber-200 text-amber-800': activity.type === 'advance_paid',
-                                                    'bg-purple-200 text-purple-800': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                                    'bg-blue-100 text-blue-700 border border-blue-300': activity.type === 'expense_created',
+                                                    'bg-green-100 text-green-700 border border-green-300': activity.type === 'payment_made',
+                                                    'bg-amber-100 text-amber-700 border border-amber-300': activity.type === 'advance_paid',
+                                                    'bg-purple-100 text-purple-700 border border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                                 }"
-                                                class="text-xs font-semibold px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0"
+                                                class="text-xs font-semibold px-2 py-0.5 rounded-lg whitespace-nowrap flex-shrink-0"
                                                 x-text="{
                                                     'expense_created': '📝 Expense',
                                                     'payment_made': '✅ Paid',
