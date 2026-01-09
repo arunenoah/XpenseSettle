@@ -143,7 +143,16 @@
                                                     <p class="text-xs text-gray-700">
                                                         <span x-text="`Added expense: ${activity.title}`"></span>
                                                     </p>
-                                                    <p class="text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                    <div class="flex items-baseline gap-2">
+                                                        <span class="text-xs text-gray-500">Total:</span>
+                                                        <p class="text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                    </div>
+                                                    <template x-if="activity.user_share !== null">
+                                                        <div class="flex items-baseline gap-2 bg-blue-50 p-2 rounded">
+                                                            <span class="text-xs text-gray-600">You owe:</span>
+                                                            <p class="text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </template>
 

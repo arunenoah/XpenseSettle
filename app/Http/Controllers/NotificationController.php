@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\Expense;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
@@ -25,7 +26,7 @@ class NotificationController extends Controller
         }
 
         $activities = $query->limit(50)->get()->map(function ($activity) use ($user) {
-            return [
+            $data = [
                 'id' => $activity->id,
                 'type' => $activity->type,
                 'title' => $activity->title,
@@ -37,7 +38,21 @@ class NotificationController extends Controller
                 'user_name' => $activity->user?->name,
                 'metadata' => $activity->metadata,
                 'is_read' => $activity->isReadBy($user->id),
+                'user_share' => null, // Default to null
             ];
+
+            // For expenses, calculate user's share amount
+            if ($activity->type === 'expense_created' && $activity->related_id) {
+                $expense = Expense::find($activity->related_id);
+                if ($expense) {
+                    $userSplit = $expense->splits()->where('user_id', $user->id)->first();
+                    if ($userSplit) {
+                        $data['user_share'] = $userSplit->share_amount;
+                    }
+                }
+            }
+
+            return $data;
         });
 
         $unreadCount = Activity::where('user_id', '!=', $user->id)
