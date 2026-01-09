@@ -30,12 +30,11 @@
             default => 'o', // outline is default
         };
 
-        // blade-heroicons uses the "heroicon" prefix
-        // Icons are referenced as: heroicon-o-arrow-up-circle, heroicon-s-star, etc.
+        // blade-heroicons creates components like: heroicon-o-home, heroicon-s-star, etc.
         $kebabName = Str::kebab($name);
-        $iconName = 'heroicon-' . $variantPrefix . '-' . $kebabName;
+        $componentName = 'heroicon-' . $variantPrefix . '-' . $kebabName;
     @endphp
 
-    {{-- Use blade-icons x-icon component with the heroicon name --}}
-    <x-icon name="{{ $iconName }}" {{ $attributes }} />
+    {{-- Dynamically render the heroicon component --}}
+    <x-dynamic-component :component="$componentName" {{ $attributes }} />
 @endif
