@@ -34,11 +34,8 @@
         // Icons are referenced as: heroicon-o-arrow-up-circle, heroicon-s-star, etc.
         $kebabName = Str::kebab($name);
         $iconName = 'heroicon-' . $variantPrefix . '-' . $kebabName;
-
-        $classes = $attributes->get('class', 'w-5 h-5');
-        $iconAttributes = array_merge(['class' => $classes], $attributes->except('class')->getAttributes());
     @endphp
 
-    {{-- Dynamically render the icon component from blade-icons --}}
-    <x-dynamic-component :component="'icon'" :name="$iconName" :attributes="$iconAttributes" />
+    {{-- Use blade-icons x-icon component with the heroicon name --}}
+    <x-icon name="{{ $iconName }}" {{ $attributes }} />
 @endif
