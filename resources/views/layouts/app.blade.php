@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'ExpenseSettle') - Expense Sharing Made Easy</title>
+    <title>@yield('title', 'SettleX') - Expense Sharing Made Easy</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         [x-cloak] {
@@ -27,36 +27,36 @@
             <!-- Logo Section -->
             <div class="flex justify-center items-center h-16 border-b border-gray-100">
                 <a href="{{ route('dashboard') }}" class="text-2xl font-bold text-blue-600">
-                    💰 ExpenseSettle
+                    ⚖️ SettleX
                 </a>
             </div>
 
             <!-- Top Menu - Centered -->
             <div class="flex justify-center items-center py-2 gap-1 sm:gap-4 overflow-x-auto">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span class="text-base sm:text-lg">🏠</span>
+                    <span>🏠</span>
                     <span class="hidden xs:inline sm:inline">Home</span>
                 </a>
                 <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span class="text-base sm:text-lg">👥</span>
+                    <span>👥</span>
                     <span class="hidden xs:inline sm:inline">Groups</span>
                 </a>
                 <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span class="text-base sm:text-lg">🔐</span>
+                    <span>🔒</span>
                     <span class="hidden xs:inline sm:inline">Pin</span>
                 </a>
-                
+
                 @if(auth()->user()->email === 'arun@example.com')
                     <a href="{{ route('admin.verify') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('admin.*') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-purple-100 text-purple-900 hover:bg-purple-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap border-2 border-purple-300">
-                        <span class="text-base sm:text-lg">🔧</span>
+                        <span>🔧</span>
                         <span class="hidden xs:inline sm:inline">Admin</span>
                     </a>
                 @endif
-                
+
                 <form action="{{ route('logout') }}" method="POST" class="inline">
                     @csrf
                     <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                        <span class="text-base sm:text-lg">🚪</span>
+                        <span>🚪</span>
                         <span class="hidden xs:inline sm:inline">Exit</span>
                     </button>
                 </form>
@@ -75,11 +75,11 @@
                 @endphp
 
                 <div class="relative" x-data="{ open: false, filter: 'unread', activities: [], unreadCount: {{ $unreadCount }} }">
-                    <button @click="open = !open; if(open) loadNotifications()" 
-                            class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2" 
+                    <button @click="open = !open; if(open) loadNotifications()"
+                            class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2"
                             title="Notifications">
-                        🔔
-                        <span x-show="unreadCount > 0" 
+                        <span>🔔</span>
+                        <span x-show="unreadCount > 0"
                               x-text="unreadCount > 9 ? '9+' : unreadCount"
                               class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                         </span>
@@ -119,7 +119,7 @@
                         <div class="max-h-96 overflow-y-auto">
                             <template x-if="activities.length === 0">
                                 <div class="p-8 text-center text-gray-500">
-                                    <span class="text-4xl mb-2 block">🔔</span>
+                                    <span>🔔</span>
                                     <p class="text-sm">No notifications</p>
                                 </div>
                             </template>
@@ -207,9 +207,7 @@
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
+                            <span>⚠️</span>
                         </div>
                         <div class="ml-3">
                             <ul class="list-disc pl-5 space-y-1">
@@ -228,9 +226,7 @@
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-                            </svg>
+                            <span>✅</span>
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-green-700">{{ session('success') }}</p>
@@ -245,9 +241,7 @@
                 <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
+                            <span>⚠️</span>
                         </div>
                         <div class="ml-3">
                             <p class="text-sm text-red-700">{{ session('error') }}</p>
@@ -267,7 +261,7 @@
     <footer class="bg-white border-t border-gray-200 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div class="text-center text-sm text-gray-600">
-                <p>&copy; {{ date('Y') }} ExpenseSettle. Track shared expenses with ease.</p>
+                <p>&copy; {{ date('Y') }} SettleX. Track shared expenses with ease.</p>
             </div>
         </div>
     </footer>
@@ -377,7 +371,7 @@
         }
 
         function handleForegroundNotification(notification) {
-            const title = notification?.title || 'ExpenseSettle';
+            const title = notification?.title || 'SettleX';
             const body = notification?.body || 'New notification';
 
             console.log(`🔔 ${title}: ${body}`);

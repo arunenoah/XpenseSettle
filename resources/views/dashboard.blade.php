@@ -50,7 +50,7 @@
                             <button onclick="openBalanceModal('you_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-red-400 transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
-                                    <x-heroicon name="arrow-up-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+                                    <span>⬆️</span>
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-1 sm:mb-2">
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['you_owe']) }}
@@ -64,7 +64,7 @@
                             <button onclick="openBalanceModal('they_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-green-400 transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
-                                    <x-heroicon name="arrow-down-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+                                    <span>⬇️</span>
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-1 sm:mb-2">
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['they_owe']) }}

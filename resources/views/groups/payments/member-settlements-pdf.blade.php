@@ -395,7 +395,7 @@
     @endforeach
 
     <div class="footer">
-        <p>This report was automatically generated on {{ $exportDate }} from ExpenseSettle</p>
+        <p>This report was automatically generated on {{ $exportDate }} from SettleX</p>
         <p>{{ $group->name }} - Settlement Report for All Members</p>
     </div>
 </body>

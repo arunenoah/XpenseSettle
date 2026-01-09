@@ -18,39 +18,48 @@ class ExpenseCategory
     {
         return [
             self::ACCOMMODATION => [
-                'icon' => '🏨',
+                'icon' => 'building-office-2',
+                'icon_type' => 'heroicon',
                 'description' => 'Hotels, Airbnb, hostels'
             ],
             self::FOOD_DINING => [
-                'icon' => '🍽️',
+                'icon' => 'utensils',
+                'icon_type' => 'heroicon',
                 'description' => 'Restaurants, cafés, takeaways'
             ],
             self::GROCERIES => [
-                'icon' => '🛒',
+                'icon' => 'shopping-cart',
+                'icon_type' => 'heroicon',
                 'description' => 'Supermarket purchases, cooking supplies'
             ],
             self::TRANSPORT => [
-                'icon' => '✈️',
+                'icon' => 'plane',
+                'icon_type' => 'heroicon',
                 'description' => 'Flights, trains, buses, fuel, taxis, Uber'
             ],
             self::ACTIVITIES => [
-                'icon' => '🎫',
+                'icon' => 'ticket',
+                'icon_type' => 'heroicon',
                 'description' => 'Sightseeing, tickets, tours, events'
             ],
             self::SHOPPING => [
-                'icon' => '🛍️',
+                'icon' => 'shopping-bag',
+                'icon_type' => 'heroicon',
                 'description' => 'Clothes, souvenirs, personal items'
             ],
             self::UTILITIES => [
-                'icon' => '⚙️',
+                'icon' => 'wrench',
+                'icon_type' => 'heroicon',
                 'description' => 'Wi-Fi, laundry, tips, service charges'
             ],
             self::FEES => [
-                'icon' => '💳',
+                'icon' => 'credit-card',
+                'icon_type' => 'heroicon',
                 'description' => 'Booking fees, convenience fees, taxes'
             ],
             self::OTHER => [
-                'icon' => '📝',
+                'icon' => 'document-text',
+                'icon_type' => 'heroicon',
                 'description' => 'Miscellaneous expenses'
             ],
         ];

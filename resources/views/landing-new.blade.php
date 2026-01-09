@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpenseSettle - Split Expenses with Friends</title>
+    <title>SettleX - Split Expenses with Friends</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <style>
@@ -37,7 +37,7 @@
             <div class="flex justify-between items-center h-14">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">💰</span>
-                    <span class="text-lg font-bold text-blue-600">ExpenseSettle</span>
+                    <span class="text-lg font-bold text-blue-600">SettleX</span>
                 </div>
                 <div class="flex gap-2 sm:gap-3">
                     @guest
@@ -164,7 +164,7 @@
         <div class="max-w-6xl mx-auto">
             <div class="text-center mb-12">
                 <h2 class="text-3xl md:text-4xl font-bold mb-3">The Solution</h2>
-                <p class="text-gray-600">ExpenseSettle handles the complexity</p>
+                <p class="text-gray-600">SettleX handles the complexity</p>
             </div>
             <div class="space-y-4 max-w-3xl mx-auto">
                 <!-- Step 1 -->
@@ -441,7 +441,7 @@
             <div class="space-y-3" x-data="{ openFaq: null }">
                 <div class="bg-white rounded-lg border border-gray-200">
                     <button @click="openFaq = openFaq === 1 ? null : 1" class="w-full flex justify-between items-center p-4 hover:bg-gray-50">
-                        <h3 class="font-semibold text-gray-900 text-left">Is ExpenseSettle really free?</h3>
+                        <h3 class="font-semibold text-gray-900 text-left">Is SettleX really free?</h3>
                         <span class="text-gray-400 flex-shrink-0" :class="{ 'transform rotate-180': openFaq === 1 }">▼</span>
                     </button>
                     <div x-show="openFaq === 1" class="px-4 pb-4 text-sm text-gray-600 border-t">
@@ -521,7 +521,7 @@
                 <div>
                     <div class="flex items-center gap-2 mb-3">
                         <span class="text-xl">💰</span>
-                        <span class="font-bold text-white">ExpenseSettle</span>
+                        <span class="font-bold text-white">SettleX</span>
                     </div>
                     <p class="text-xs">Split expenses fairly.</p>
                 </div>
@@ -548,7 +548,7 @@
                 </div>
             </div>
             <div class="border-t border-gray-800 pt-6 text-center text-xs">
-                <p>&copy; {{ date('Y') }} ExpenseSettle. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} SettleX. All rights reserved.</p>
             </div>
         </div>
     </footer>

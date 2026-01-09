@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ExpenseSettle - Split Expenses with Friends</title>
+    <title>SettleX - Split Expenses with Friends</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .gradient-bg {
@@ -25,7 +25,7 @@
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <span class="text-2xl">💰</span>
-                    <span class="ml-2 text-xl font-bold text-blue-600">ExpenseSettle</span>
+                    <span class="ml-2 text-xl font-bold text-blue-600">SettleX</span>
                 </div>
                 <div class="flex gap-4">
                     @guest
@@ -180,7 +180,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">See It In Action</h2>
-                <p class="text-xl text-gray-600">A visual walkthrough of ExpenseSettle's powerful features</p>
+                <p class="text-xl text-gray-600">A visual walkthrough of SettleX's powerful features</p>
             </div>
 
             <div class="space-y-20">
@@ -502,7 +502,7 @@
     <section class="gradient-bg text-white py-20">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-4xl md:text-5xl font-bold mb-6">Ready to Simplify Your Group Expenses?</h2>
-            <p class="text-xl mb-8 text-gray-100">Join thousands of users who trust ExpenseSettle for fair and easy expense splitting</p>
+            <p class="text-xl mb-8 text-gray-100">Join thousands of users who trust SettleX for fair and easy expense splitting</p>
             @guest
                 <a href="{{ route('register') }}" class="inline-block px-8 py-4 bg-white text-blue-600 rounded-lg hover:bg-gray-100 font-bold text-lg shadow-lg">
                     Get Started Free
@@ -521,9 +521,9 @@
             <div class="text-center">
                 <div class="flex items-center justify-center mb-4">
                     <span class="text-2xl">💰</span>
-                    <span class="ml-2 text-xl font-bold text-white">ExpenseSettle</span>
+                    <span class="ml-2 text-xl font-bold text-white">SettleX</span>
                 </div>
-                <p class="text-sm mb-4">© 2025 ExpenseSettle. All rights reserved.</p>
+                <p class="text-sm mb-4">© 2025 SettleX. All rights reserved.</p>
                 <p class="text-sm">Split expenses fairly and settle up easily with friends.</p>
             </div>
         </div>

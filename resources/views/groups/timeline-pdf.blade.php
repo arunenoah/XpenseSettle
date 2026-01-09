@@ -290,7 +290,7 @@
         <div class="footer">
             <p>
                 Generated on {{ $exportedAt->format('F d, Y \a\t H:i') }}<br>
-                ExpenseSettle - Group Settlement Management
+                SettleX - Group Settlement Management
             </p>
         </div>
     </div>

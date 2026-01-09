@@ -109,16 +109,6 @@ Core Entities:
 •  ✅ Push notifications (Firebase)
 
 
-
-⚠️ Limitations/Pending
-
-•  ⚠️ OCR extraction not implemented (infrastructure ready, needs API integration)
-•  ⚠️ PDF attachments: UI says accepted but code only handles images
-•  ⚠️ Receipt parsing: Manual entry only (OCR would automate this)
-•  ⚠️ Item-wise splitting partially implemented
-
-
-
 🎯 Target Users
 
 1. Travel Groups: Friends on vacation splitting hotels, meals, activities
@@ -126,6 +116,8 @@ Core Entities:
 3. Family Groups: Parents tracking shared expenses for kids/events
 4. Event Organizers: Managing group expenses for weddings, parties
 5. Small Teams: Informal team expenses without corporate tools
+
+
 
 
 
@@ -151,6 +143,12 @@ Market Comparison:
 •  Tricount: Limited features on free tier
 •  Your Edge: More flexible member system + OCR potential + self-hosted option
 
+⚠️ Limitations/Pending
+
+•  ⚠️ OCR extraction not implemented (infrastructure ready, needs API integration)
+•  ⚠️ PDF attachments: UI says accepted but code only handles images
+•  ⚠️ Receipt parsing: Manual entry only (OCR would automate this)
+•  ⚠️ Item-wise splitting partially implemented
 
 
 🚀 MVP Validation Checklist

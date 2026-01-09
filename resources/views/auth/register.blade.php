@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - ExpenseSettle</title>
+    <title>Register - SettleX</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
@@ -11,7 +11,7 @@
         <div class="w-full max-w-md space-y-8">
             <!-- Logo -->
             <div class="text-center">
-                <h1 class="text-4xl font-bold text-blue-600 mb-2">💰 ExpenseSettle</h1>
+                <h1 class="text-4xl font-bold text-blue-600 mb-2">⚖️ SettleX</h1>
                 <p class="text-gray-600">Track shared expenses with ease</p>
             </div>
 
