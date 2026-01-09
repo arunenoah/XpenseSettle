@@ -92,26 +92,26 @@
                     <div x-show="open"
                          @click.away="open = false"
                          x-transition
-                         class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
+                         class="absolute right-0 mt-2 w-full sm:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 -right-4 sm:right-0">
 
                         <!-- Header with Tabs -->
-                        <div class="p-4 border-b border-gray-200">
-                            <div class="flex items-center justify-between mb-3">
-                                <div class="flex gap-4">
+                        <div class="p-2 sm:p-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between mb-2 sm:mb-3 gap-2">
+                                <div class="flex gap-2 sm:gap-4">
                                     <button @click="filter = 'unread'; loadNotifications()"
                                             :class="filter === 'unread' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
-                                            class="pb-1 transition-colors">
+                                            class="pb-1 transition-colors text-xs sm:text-sm">
                                         Unread <span x-text="unreadCount"></span>
                                     </button>
                                     <button @click="filter = 'all'; loadNotifications()"
                                             :class="filter === 'all' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
-                                            class="pb-1 transition-colors">
+                                            class="pb-1 transition-colors text-xs sm:text-sm">
                                         All
                                     </button>
                                 </div>
                                 <button @click="markAllAsRead()"
                                         x-show="unreadCount > 0"
-                                        class="text-sm text-teal-600 hover:text-teal-700 font-semibold">
+                                        class="text-xs sm:text-sm text-teal-600 hover:text-teal-700 font-semibold whitespace-nowrap">
                                     Mark all as read
                                 </button>
                             </div>
@@ -120,53 +120,55 @@
                         <!-- Notifications List -->
                         <div class="max-h-96 overflow-y-auto">
                             <template x-if="activities.length === 0">
-                                <div class="p-8 text-center text-gray-500">
-                                    <span>🔔</span>
-                                    <p class="text-sm">No notifications</p>
+                                <div class="p-4 sm:p-8 text-center text-gray-500">
+                                    <span class="text-2xl">🔔</span>
+                                    <p class="text-xs sm:text-sm mt-2">No notifications</p>
                                 </div>
                             </template>
 
                             <template x-for="activity in activities" :key="activity.id">
                                 <div @click="markAsRead(activity.id)"
-                                     class="p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer relative">
-                                    <div class="flex items-start gap-3">
-                                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <span x-text="activity.icon" class="text-lg"></span>
+                                     class="p-2 sm:p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer relative">
+                                    <div class="flex items-start gap-2 sm:gap-3">
+                                        <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span x-text="activity.icon" class="text-base sm:text-lg"></span>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <!-- Main Title -->
-                                            <p class="text-sm font-semibold text-gray-900" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
+                                            <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
 
                                             <!-- Activity Details Based on Type -->
                                             <template x-if="activity.type === 'expense_created'">
-                                                <div class="mt-1 space-y-1">
-                                                    <p class="text-xs text-gray-700">
+                                                <div class="mt-1 space-y-2">
+                                                    <p class="text-xs text-gray-700 line-clamp-2">
                                                         <span x-text="`Added expense: ${activity.title}`"></span>
                                                     </p>
-                                                    <div class="flex items-baseline gap-2">
-                                                        <span class="text-xs text-gray-500">Total:</span>
-                                                        <p class="text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
-                                                    </div>
-                                                    <template x-if="activity.user_share !== null">
-                                                        <div class="flex items-baseline gap-2 bg-blue-50 p-2 rounded">
-                                                            <span class="text-xs text-gray-600">You owe:</span>
-                                                            <p class="text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
+                                                    <div class="grid grid-cols-2 gap-2">
+                                                        <div>
+                                                            <p class="text-xs text-gray-500 mb-1">Total:</p>
+                                                            <p class="text-base sm:text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
                                                         </div>
-                                                    </template>
+                                                        <template x-if="activity.user_share !== null">
+                                                            <div class="bg-blue-50 p-2 rounded">
+                                                                <p class="text-xs text-gray-600 mb-1">You owe:</p>
+                                                                <p class="text-base sm:text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
+                                                            </div>
+                                                        </template>
+                                                    </div>
                                                 </div>
                                             </template>
 
                                             <template x-if="activity.type === 'payment_made'">
                                                 <div class="mt-1 space-y-1">
                                                     <p class="text-xs text-gray-700">Marked payment as paid</p>
-                                                    <p class="text-lg font-bold text-green-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                    <p class="text-base sm:text-lg font-bold text-green-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
                                                 </div>
                                             </template>
 
                                             <template x-if="activity.type === 'advance_paid'">
                                                 <div class="mt-1 space-y-1">
                                                     <p class="text-xs text-gray-700">Paid advance</p>
-                                                    <p class="text-lg font-bold text-amber-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'} per person`"></p>
+                                                    <p class="text-base sm:text-lg font-bold text-amber-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'} per person`"></p>
                                                 </div>
                                             </template>
 
@@ -175,9 +177,9 @@
                                             </template>
 
                                             <!-- Timestamp -->
-                                            <p class="text-xs text-gray-500 mt-2" x-text="formatTime(activity.created_at)"></p>
+                                            <p class="text-xs text-gray-500 mt-1 sm:mt-2" x-text="formatTime(activity.created_at)"></p>
                                         </div>
-                                        <span x-show="!activity.is_read" class="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0 mt-2"></span>
+                                        <span x-show="!activity.is_read" class="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-teal-500 rounded-full flex-shrink-0 mt-1 sm:mt-2"></span>
                                     </div>
                                 </div>
                             </template>
