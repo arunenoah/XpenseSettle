@@ -91,19 +91,21 @@
                                  .catch(err => console.error('Error loading notifications:', err));
                          },
                          markAsRead(id) {
+                             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                              fetch(`/notifications/${id}/read`, {
                                  method: 'POST',
                                  headers: {
-                                     'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').content,
+                                     'X-CSRF-TOKEN': csrfToken,
                                      'Content-Type': 'application/json'
                                  }
                              }).then(() => this.loadNotifications());
                          },
                          markAllAsRead() {
+                             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                              fetch('/notifications/mark-all-read', {
                                  method: 'POST',
                                  headers: {
-                                     'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').content,
+                                     'X-CSRF-TOKEN': csrfToken,
                                      'Content-Type': 'application/json'
                                  }
                              }).then(() => this.loadNotifications());
