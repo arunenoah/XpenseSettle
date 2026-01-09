@@ -75,9 +75,55 @@
                         ->count();
                 @endphp
 
-                <div class="relative flex-shrink-0" x-data="{ open: false, filter: 'unread', activities: [], unreadCount: {{ $unreadCount }} }">
-                    <button @click="open = !open; if(open) loadNotifications()"
-                            class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2"
+                <div class="relative flex-shrink-0"
+                     x-data="{
+                         open: false,
+                         filter: 'unread',
+                         activities: [],
+                         unreadCount: {{ $unreadCount }},
+                         loadNotifications() {
+                             fetch(`/notifications?filter=${this.filter}`)
+                                 .then(res => res.json())
+                                 .then(data => {
+                                     this.activities = data.activities;
+                                     this.unreadCount = data.unread_count;
+                                 })
+                                 .catch(err => console.error('Error loading notifications:', err));
+                         },
+                         markAsRead(id) {
+                             fetch(`/notifications/${id}/read`, {
+                                 method: 'POST',
+                                 headers: {
+                                     'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').content,
+                                     'Content-Type': 'application/json'
+                                 }
+                             }).then(() => this.loadNotifications());
+                         },
+                         markAllAsRead() {
+                             fetch('/notifications/mark-all-read', {
+                                 method: 'POST',
+                                 headers: {
+                                     'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]').content,
+                                     'Content-Type': 'application/json'
+                                 }
+                             }).then(() => this.loadNotifications());
+                         },
+                         formatTime(dateString) {
+                             const date = new Date(dateString);
+                             const now = new Date();
+                             const diffMs = now - date;
+                             const diffMins = Math.floor(diffMs / 60000);
+                             const diffHours = Math.floor(diffMs / 3600000);
+                             const diffDays = Math.floor(diffMs / 86400000);
+                             if (diffMins < 1) return 'Just now';
+                             if (diffMins < 60) return `${diffMins}m ago`;
+                             if (diffHours < 24) return `${diffHours}h ago`;
+                             if (diffDays < 7) return `${diffDays}d ago`;
+                             return date.toLocaleDateString();
+                         }
+                     }">
+                    <button @click="open = !open; if(open) { loadNotifications(); }"
+                            class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2 cursor-pointer"
                             title="Notifications">
                         <span>🔔</span>
                         <span x-show="unreadCount > 0"
@@ -168,59 +214,6 @@
                         </div>
                     </div>
                 </div>
-
-                <script nonce="{{ request()->attributes->get('nonce', '') }}">
-                function loadNotifications() {
-                    const filter = Alpine.store('notifications')?.filter || 'unread';
-                    fetch(`/notifications?filter=${filter}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            Alpine.store('notifications', {
-                                activities: data.activities.map(a => ({
-                                    ...a,
-                                    is_read: a.read_by && a.read_by.includes({{ auth()->id() }})
-                                })),
-                                unreadCount: data.unread_count,
-                                filter: data.filter
-                            });
-                        });
-                }
-
-                function markAsRead(id) {
-                    fetch(`/notifications/${id}/read`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Content-Type': 'application/json'
-                        }
-                    }).then(() => loadNotifications());
-                }
-
-                function markAllAsRead() {
-                    fetch('/notifications/mark-all-read', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Content-Type': 'application/json'
-                        }
-                    }).then(() => loadNotifications());
-                }
-
-                function formatTime(dateString) {
-                    const date = new Date(dateString);
-                    const now = new Date();
-                    const diffMs = now - date;
-                    const diffMins = Math.floor(diffMs / 60000);
-                    const diffHours = Math.floor(diffMs / 3600000);
-                    const diffDays = Math.floor(diffMs / 86400000);
-
-                    if (diffMins < 1) return 'Just now';
-                    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-                    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-                    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-                    return date.toLocaleDateString();
-                }
-                </script>
             </div>
         </div>
     </nav>
