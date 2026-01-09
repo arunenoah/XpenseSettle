@@ -92,8 +92,7 @@
                     <div x-show="open"
                          @click.away="open = false"
                          x-transition
-                         class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50"
-                         style="display: none;">
+                         class="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
 
                         <!-- Header with Tabs -->
                         <div class="p-4 border-b border-gray-200">
