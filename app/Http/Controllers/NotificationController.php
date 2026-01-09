@@ -24,7 +24,7 @@ class NotificationController extends Controller
             $query->unreadFor($user->id);
         }
 
-        $activities = $query->limit(50)->get()->map(function ($activity) {
+        $activities = $query->limit(50)->get()->map(function ($activity) use ($user) {
             return [
                 'id' => $activity->id,
                 'type' => $activity->type,
