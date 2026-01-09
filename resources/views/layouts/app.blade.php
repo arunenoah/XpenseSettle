@@ -92,7 +92,7 @@
                     <div x-show="open"
                          @click.away="open = false"
                          x-transition
-                         class="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-full mt-2 w-72 sm:w-96 bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
+                         class="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-full mt-2 w-80 sm:w-[420px] max-w-[calc(100vw-16px)] sm:max-w-none bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
 
                         <!-- Header with Tabs -->
                         <div class="px-3 py-2.5 sm:p-4 border-b border-gray-200 bg-white">
