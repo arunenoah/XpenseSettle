@@ -139,20 +139,26 @@
 
                                             <!-- Activity Details Based on Type -->
                                             <template x-if="activity.type === 'expense_created'">
-                                                <p class="text-xs text-gray-700 mt-1">
-                                                    <span x-text="`💵 Added expense: ${activity.title}`"></span>
-                                                </p>
-                                                <p class="text-sm font-semibold text-blue-600 mt-1" x-text="`₹${parseFloat(activity.amount).toFixed(2)}`"></p>
+                                                <div class="mt-1 space-y-1">
+                                                    <p class="text-xs text-gray-700">
+                                                        <span x-text="`Added expense: ${activity.title}`"></span>
+                                                    </p>
+                                                    <p class="text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                </div>
                                             </template>
 
                                             <template x-if="activity.type === 'payment_made'">
-                                                <p class="text-xs text-gray-700 mt-1" x-text="`✅ Marked payment as paid`"></p>
-                                                <p class="text-sm font-semibold text-green-600 mt-1" x-text="`₹${parseFloat(activity.amount).toFixed(2)}`"></p>
+                                                <div class="mt-1 space-y-1">
+                                                    <p class="text-xs text-gray-700">Marked payment as paid</p>
+                                                    <p class="text-lg font-bold text-green-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                </div>
                                             </template>
 
                                             <template x-if="activity.type === 'advance_paid'">
-                                                <p class="text-xs text-gray-700 mt-1" x-text="`💰 Paid advance`"></p>
-                                                <p class="text-sm font-semibold text-amber-600 mt-1" x-text="`₹${parseFloat(activity.amount).toFixed(2)} per person`"></p>
+                                                <div class="mt-1 space-y-1">
+                                                    <p class="text-xs text-gray-700">Paid advance</p>
+                                                    <p class="text-lg font-bold text-amber-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'} per person`"></p>
+                                                </div>
                                             </template>
 
                                             <template x-if="activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'">
