@@ -50,7 +50,7 @@
                             <button onclick="openBalanceModal('you_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-red-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-red-400 transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">You Owe</h3>
-                                    <span class="text-lg sm:text-2xl">📤</span>
+                                    <x-heroicon name="arrow-up-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold text-red-600 mb-1 sm:mb-2">
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['you_owe']) }}
@@ -64,7 +64,7 @@
                             <button onclick="openBalanceModal('they_owe', '{{ $currency }}', {{ json_encode($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border border-green-200 p-3 sm:p-4 md:p-6 hover:shadow-md hover:border-green-400 transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">They Owe You</h3>
-                                    <span class="text-lg sm:text-2xl">📥</span>
+                                    <x-heroicon name="arrow-down-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold text-green-600 mb-1 sm:mb-2">
                                     {{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency($balances['they_owe']) }}
@@ -78,7 +78,11 @@
                             <button onclick="openBalanceModal('{{ $balances['net'] >= 0 ? 'they_owe' : 'you_owe' }}', '{{ $currency }}', {{ json_encode($balances['net'] >= 0 ? ($settlementDetailsByCurrency[$currency]['they_owe_breakdown'] ?? []) : ($settlementDetailsByCurrency[$currency]['you_owe_breakdown'] ?? [])) }}, '{{ $currencySymbols[$currency] ?? $currency }}')" class="bg-white rounded-lg shadow-sm border {{ $balances['net'] >= 0 ? 'border-green-200 hover:border-green-400' : 'border-red-200 hover:border-red-400' }} p-3 sm:p-4 md:p-6 hover:shadow-md transition-all cursor-pointer text-left">
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
-                                    <span class="text-lg sm:text-2xl">{{ $balances['net'] >= 0 ? '✅' : '⚠️' }}</span>
+                                    @if($balances['net'] >= 0)
+                                        <x-heroicon name="check-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+                                    @else
+                                        <x-heroicon name="exclamation-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+                                    @endif
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold {{ $balances['net'] >= 0 ? 'text-green-600' : 'text-red-600' }} mb-1 sm:mb-2">
                                     {{ $balances['net'] >= 0 ? '+' : '' }}{{ $currencySymbols[$currency] ?? $currency }}{{ formatCurrency(abs($balances['net'])) }}
@@ -114,7 +118,7 @@
                             </div>
                             <div class="mb-4">
                                 <p class="text-xs text-gray-600 mb-1">{{ $payment->split->expense->title }}</p>
-                                <p class="text-2xl font-bold text-red-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
+                                <p class="text-2xl font-bold text-red-600">₹{{ number_format($payment->split->share_amount, 2) }}</p>
                             </div>
                             <div class="flex gap-2">
                                 <button data-payment-id="{{ $payment->id }}"
@@ -160,7 +164,7 @@
                         </div>
                         <div class="mb-4">
                             <p class="text-xs text-gray-600 mb-1">{{ $payment->split->expense->title }}</p>
-                            <p class="text-2xl font-bold text-green-600">₹{{ number_format($payment->split->share_amount, 0) }}</p>
+                            <p class="text-2xl font-bold text-green-600">₹{{ number_format($payment->split->share_amount, 2) }}</p>
                         </div>
                         <p class="text-xs text-gray-500">{{ $payment->paid_date ? \Carbon\Carbon::parse($payment->paid_date)->format('M d, Y') : $payment->created_at->format('M d, Y') }}</p>
                     </div>
@@ -386,7 +390,7 @@
                                     <p class="text-xs text-gray-500 mt-1">{{ $expense->date->format('M d, Y') }}</p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="font-bold text-gray-900">₹{{ number_format($expense->amount, 0) }}</p>
+                                    <p class="font-bold text-gray-900">₹{{ number_format($expense->amount, 2) }}</p>
                                     <span class="text-xs text-gray-500">{{ ucfirst(str_replace('_', ' ', $expense->split_type)) }}</span>
                                 </div>
                             </div>
