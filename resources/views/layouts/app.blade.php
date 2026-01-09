@@ -128,14 +128,41 @@
 
                             <template x-for="activity in activities" :key="activity.id">
                                 <div @click="markAsRead(activity.id)"
-                                     class="p-2 sm:p-3 border-b border-gray-100 hover:bg-blue-50 transition-colors cursor-pointer relative">
+                                     :class="{
+                                         'border-l-4 border-blue-500 bg-blue-50 hover:bg-blue-100': activity.type === 'expense_created',
+                                         'border-l-4 border-green-500 bg-green-50 hover:bg-green-100': activity.type === 'payment_made',
+                                         'border-l-4 border-amber-500 bg-amber-50 hover:bg-amber-100': activity.type === 'advance_paid',
+                                         'border-l-4 border-purple-500 bg-purple-50 hover:bg-purple-100': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                     }"
+                                     class="p-2 sm:p-3 border-b border-gray-100 transition-colors cursor-pointer relative">
                                     <div class="flex items-start gap-2 sm:gap-3">
-                                        <div class="w-8 sm:w-10 h-8 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <div :class="{
+                                            'bg-blue-200': activity.type === 'expense_created',
+                                            'bg-green-200': activity.type === 'payment_made',
+                                            'bg-amber-200': activity.type === 'advance_paid',
+                                            'bg-purple-200': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                        }"
+                                        class="w-8 sm:w-10 h-8 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                             <span x-text="activity.icon" class="text-base sm:text-lg"></span>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <!-- Main Title -->
-                                            <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
+                                            <!-- Main Title with Type Badge -->
+                                            <div class="flex items-center gap-2 justify-between">
+                                                <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
+                                                <span :class="{
+                                                    'bg-blue-200 text-blue-800': activity.type === 'expense_created',
+                                                    'bg-green-200 text-green-800': activity.type === 'payment_made',
+                                                    'bg-amber-200 text-amber-800': activity.type === 'advance_paid',
+                                                    'bg-purple-200 text-purple-800': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                                }"
+                                                class="text-xs font-semibold px-2 py-0.5 rounded whitespace-nowrap flex-shrink-0"
+                                                x-text="{
+                                                    'expense_created': '📝 Expense',
+                                                    'payment_made': '✅ Paid',
+                                                    'advance_paid': '💰 Advance'
+                                                }[activity.type] || 'Activity'">
+                                                </span>
+                                            </div>
 
                                             <!-- Activity Details Based on Type -->
                                             <template x-if="activity.type === 'expense_created'">
