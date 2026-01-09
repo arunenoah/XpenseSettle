@@ -17,13 +17,29 @@ class NotificationController extends Controller
 
         $query = Activity::where('user_id', '!=', $user->id)
             ->whereIn('group_id', $user->groups()->pluck('groups.id'))
+            ->with(['group', 'user'])
             ->orderByDesc('created_at');
 
         if ($filter === 'unread') {
             $query->unreadFor($user->id);
         }
 
-        $activities = $query->limit(50)->get();
+        $activities = $query->limit(50)->get()->map(function ($activity) {
+            return [
+                'id' => $activity->id,
+                'type' => $activity->type,
+                'title' => $activity->title,
+                'description' => $activity->description,
+                'amount' => $activity->amount,
+                'icon' => $activity->icon,
+                'created_at' => $activity->created_at,
+                'group_name' => $activity->group?->name,
+                'user_name' => $activity->user?->name,
+                'metadata' => $activity->metadata,
+                'is_read' => $activity->isReadBy($user->id),
+            ];
+        });
+
         $unreadCount = Activity::where('user_id', '!=', $user->id)
             ->whereIn('group_id', $user->groups()->pluck('groups.id'))
             ->unreadFor($user->id)
