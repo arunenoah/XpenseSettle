@@ -79,9 +79,9 @@
                                 <div class="flex flex-col sm:flex-row items-center justify-between mb-2 sm:mb-4">
                                     <h3 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1 sm:mb-0">Your Balance</h3>
                                     @if($balances['net'] >= 0)
-                                        <x-heroicon name="check-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+                                        <span>✅</span>
                                     @else
-                                        <x-heroicon name="exclamation-circle" class="w-6 h-6 sm:w-8 sm:h-8 text-red-600" />
+                                        <span>⚠️</span>
                                     @endif
                                 </div>
                                 <p class="text-xl sm:text-2xl md:text-3xl font-bold {{ $balances['net'] >= 0 ? 'text-green-600' : 'text-red-600' }} mb-1 sm:mb-2">

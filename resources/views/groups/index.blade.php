@@ -83,7 +83,7 @@
         </div>
     @else
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 sm:p-8 text-center">
-            <x-heroicon name="users" class="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-blue-400 mb-4" />
+            <span class="text-blue-400">👥</span>
             <h3 class="text-lg sm:text-xl font-semibold text-gray-900">No groups yet</h3>
             <p class="mt-2 text-gray-600">Create your first group to start tracking expenses</p>
             <a href="{{ route('groups.create') }}" class="mt-4 inline-flex items-center px-4 py-2 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
