@@ -90,12 +90,13 @@
 
                     <!-- Notification Panel -->
                     <div x-show="open"
-                         @click.away="open = false"
+                         @click.outside="open = false"
                          x-transition
-                         class="absolute left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 top-full mt-2 w-full sm:w-[500px] max-w-[calc(100vw-16px)] sm:max-w-none bg-white rounded-lg shadow-2xl border border-gray-200 z-50">
+                         style="width: calc(95vw); max-width: 350px; max-height: 85vh; overflow-y: auto;"
+                         class="fixed left-1/2 -translate-x-1/2 sm:!left-auto sm:!right-4 sm:!translate-x-0 top-20 bg-white rounded-lg shadow-2xl border border-gray-200 z-[9999]">
 
                         <!-- Header with Tabs -->
-                        <div class="px-3 py-2.5 sm:p-4 border-b border-gray-200 bg-white">
+                        <div class="sticky top-0 px-3 py-2.5 sm:p-4 border-b border-gray-200 bg-white z-10">
                             <div class="flex items-center justify-between mb-2 sm:mb-3 gap-1.5 sm:gap-2">
                                 <div class="flex gap-1.5 sm:gap-4">
                                     <button @click="filter = 'unread'; loadNotifications()"
@@ -118,7 +119,7 @@
                         </div>
 
                         <!-- Notifications List -->
-                        <div class="max-h-80 sm:max-h-96 overflow-y-auto bg-gray-50 p-2">
+                        <div class="bg-gray-50 p-2">
                             <template x-if="activities.length === 0">
                                 <div class="p-4 sm:p-8 text-center text-gray-500">
                                     <span class="text-2xl">🔔</span>
@@ -134,17 +135,17 @@
                                          'border-l-4 border-amber-500': activity.type === 'advance_paid',
                                          'border-l-4 border-purple-500': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                      }"
-                                     class="mx-1.5 my-2 p-3 sm:mx-2 sm:my-2.5 sm:p-4 bg-white rounded-lg transition-all cursor-pointer hover:shadow-md">
+                                     class="mx-1 my-1 p-2.5 sm:mx-1.5 sm:my-1.5 sm:p-3 bg-white rounded-lg transition-all cursor-pointer hover:shadow-md">
                                     <!-- Header: Icon + User/Group + Badge + Unread Dot -->
-                                    <div class="flex items-center gap-2 sm:gap-3 mb-3">
+                                    <div class="flex items-center gap-2 sm:gap-3 mb-2">
                                         <div :class="{
-                                            'bg-blue-100 border-2 border-blue-300': activity.type === 'expense_created',
-                                            'bg-green-100 border-2 border-green-300': activity.type === 'payment_made',
-                                            'bg-amber-100 border-2 border-amber-300': activity.type === 'advance_paid',
-                                            'bg-purple-100 border-2 border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
+                                            'bg-blue-100 border border-blue-300': activity.type === 'expense_created',
+                                            'bg-green-100 border border-green-300': activity.type === 'payment_made',
+                                            'bg-amber-100 border border-amber-300': activity.type === 'advance_paid',
+                                            'bg-purple-100 border border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                         }"
-                                        class="w-8 sm:w-10 h-8 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                                            <span x-text="activity.icon" class="text-lg sm:text-xl"></span>
+                                        class="w-7 sm:w-9 h-7 sm:h-9 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <span x-text="activity.icon" class="text-sm sm:text-lg"></span>
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
@@ -155,7 +156,7 @@
                                             'bg-amber-100 text-amber-700': activity.type === 'advance_paid',
                                             'bg-purple-100 text-purple-700': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
                                         }"
-                                        class="text-xs sm:text-sm font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full whitespace-nowrap flex-shrink-0"
+                                        class="text-xs font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
                                         x-text="{
                                             'expense_created': '📝',
                                             'payment_made': '✅',
@@ -167,15 +168,15 @@
 
                                     <!-- Activity Details Based on Type -->
                                     <template x-if="activity.type === 'expense_created'">
-                                        <div class="space-y-2">
+                                        <div class="space-y-1">
                                             <p class="text-xs sm:text-sm text-gray-700 line-clamp-1" x-text="`${activity.title}`"></p>
-                                            <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+                                            <div class="grid grid-cols-2 gap-3 pt-1 border-t border-gray-100">
                                                 <div>
                                                     <p class="text-xs text-gray-500 mb-0.5">Total</p>
                                                     <p class="text-base sm:text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
                                                 </div>
                                                 <template x-if="activity.user_share !== null">
-                                                    <div class="text-right">
+                                                    <div>
                                                         <p class="text-xs text-gray-500 mb-0.5">You owe</p>
                                                         <p class="text-base sm:text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
                                                     </div>
@@ -203,7 +204,7 @@
                                     </template>
 
                                     <!-- Timestamp -->
-                                    <p class="text-xs text-gray-400 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-100" x-text="formatTime(activity.created_at)"></p>
+                                    <p class="text-xs text-gray-400 mt-1 pt-1 border-t border-gray-100" x-text="formatTime(activity.created_at)"></p>
                                 </div>
                             </template>
                         </div>
