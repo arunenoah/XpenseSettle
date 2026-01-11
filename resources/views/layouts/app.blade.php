@@ -147,25 +147,37 @@
             transform: translateY(0);
         }
         
-        /* Desktop navigation - hide on mobile */
-        .desktop-nav {
-            display: block;
-        }
-        
-        @media (max-width: 768px) {
-            .desktop-nav {
-                display: none !important;
-            }
-        }
-        
         /* Mobile top bar - hide on desktop */
         .mobile-top-bar {
             display: none !important;
+            visibility: hidden !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
         }
         
         @media (max-width: 768px) {
             .mobile-top-bar {
                 display: block !important;
+                visibility: visible !important;
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+            }
+        }
+        
+        /* Desktop header - hide on mobile */
+        .desktop-header {
+            display: block !important;
+        }
+        
+        @media (max-width: 768px) {
+            .desktop-header {
+                display: none !important;
+                visibility: hidden !important;
+                position: absolute !important;
+                top: -9999px !important;
+                left: -9999px !important;
             }
         }
     </style>
@@ -202,18 +214,26 @@
             <!-- Actions -->
             <div class="flex items-center gap-2">
                 <!-- Notifications -->
-                <button class="p-2 rounded-full ripple relative">
+                @php
+                    $unreadCount = \App\Models\Activity::where('user_id', '<>', auth()->id())
+                        ->whereIn('group_id', auth()->user()->groups()->pluck('groups.id'))
+                        ->unreadFor(auth()->id())
+                        ->count();
+                @endphp
+                <a href="{{ route('notifications.index') }}" class="p-2 rounded-full ripple relative">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                     </svg>
-                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                </button>
+                    @if($unreadCount > 0)
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">{{ $unreadCount }}</span>
+                    @endif
+                </a>
             </div>
         </div>
     </header>
 
-    <!-- Desktop Navigation -->
-    <nav class="desktop-nav bg-white shadow-sm sticky top-0 z-50">
+    <!-- Desktop Header - Logo Only -->
+    <header class="desktop-header bg-white shadow-sm sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Logo Section -->
             <div class="flex justify-center items-center h-32 border-b border-gray-100">
@@ -279,10 +299,10 @@
                 </div>
             </div>
         </div>
-    </nav>
+    </header>
 
     <!-- Main Content Area -->
-    <main class="pb-20 md:pb-0 safe-area-bottom">
+    <main class="pb-20 md:pb-20 safe-area-bottom">
         @yield('content')
     </main>
 
