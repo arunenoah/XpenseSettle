@@ -72,24 +72,67 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
         
+        /* Mobile top bar - mobile only */
+        .mobile-top-bar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            z-index: 9999 !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            transform: translateZ(0) !important;
+            will-change: transform !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Force mobile header to stick */
+        @media (max-width: 1024px) {
+            .mobile-top-bar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                z-index: 9999 !important;
+                display: block !important;
+                visibility: visible !important;
+            }
+            
+            /* Hide mobile top bar on desktop */
+            @media (min-width: 1025px) {
+                .mobile-top-bar {
+                    display: none !important;
+                }
+            }
+        }
+        
         /* Bottom tab bar - mobile only */
         .bottom-tab-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
             background: white;
             border-top: 1px solid #e5e7eb;
             display: none;
             justify-content: space-around;
             padding: 8px 0 max(8px, env(safe-area-inset-bottom));
-            z-index: 50;
+            z-index: 50 !important;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 0 !important;
+            margin-top: 0 !important;
+            margin: 0 !important;
+            padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+            min-height: auto !important;
+            max-height: none !important;
+            height: auto !important;
         }
         
         @media (max-width: 1024px) {
             .bottom-tab-bar {
-                display: flex;
+                display: flex !important;
             }
         }
         
@@ -170,6 +213,25 @@
         /* Desktop header - hide on mobile */
         .desktop-header {
             display: block !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        .desktop-header.scrolled {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        /* Add padding to main content for fixed header */
+        @media (min-width: 1025px) {
+            main {
+                padding-top: 96px !important; /* Height of fixed desktop header */
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            main {
+                padding-top: 60px !important; /* Height of fixed mobile header */
+            }
         }
         
         @media (max-width: 1024px) {
@@ -203,14 +265,19 @@
 </head>
 <body class="bg-[#fefefe] safe-area-top">
     <!-- Mobile Top App Bar -->
-    <header class="mobile-top-bar bg-white shadow-sm sticky top-0 z-40 safe-area-top">
+    <header class="mobile-top-bar bg-white shadow-sm fixed top-0 left-0 right-0 z-[60] safe-area-top" 
+            style="position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 9999 !important; display: block !important; visibility: visible !important;">
         <div class="flex items-center justify-between px-4 py-3">
             <!-- Back Button (conditional) -->
+            @if(!request()->routeIs('dashboard'))
             <button class="p-2 -ml-2 rounded-full ripple" onclick="history.back()">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
             </button>
+            @else
+            <div class="p-2 -ml-2"></div>
+            @endif
             
             <!-- Title -->
             <div class="flex-1 text-center mr-8">
@@ -230,21 +297,18 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                     </svg>
-                    @if($unreadCount > 0)
-                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">{{ $unreadCount }}</span>
-                    @endif
                 </a>
             </div>
         </div>
     </header>
 
     <!-- Desktop Header - Logo Only -->
-    <header class="desktop-header bg-white shadow-sm sticky top-0 z-40">
+    <header class="desktop-header bg-white shadow-sm fixed top-0 left-0 right-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Logo Section -->
-            <div class="flex justify-center items-center h-32 border-b border-gray-100">
+            <div class="flex justify-center items-center h-24 border-b border-gray-100">
                 <a href="{{ route('dashboard') }}" class="flex items-center">
-                    <img width="300" src="{{ url('SettleX_logo.png') }}" alt="SettleX Logo">
+                    <img width="250" src="{{ url('SettleX_logo.png') }}" alt="SettleX Logo">
                 </a>
             </div>
 
@@ -254,7 +318,7 @@
                 <span class="text-sm text-gray-700 font-medium whitespace-nowrap">{{ auth()->user()->name }}</span>
 
                 <!-- Center: Menu Items -->
-                <div class="flex justify-center items-center gap-1 sm:gap-4 overflow-x-auto flex-1">
+                <div class="flex justify-center items-center gap-1 sm:gap-4 overflow-x-auto flex-1" style="transform: translateY(-10px);">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
                     <span>🏠</span>
                     <span class="hidden xs:inline sm:inline">Home</span>
@@ -313,7 +377,7 @@
     </main>
 
     <!-- Bottom Tab Bar -->
-    <nav class="bottom-tab-bar">
+    <nav class="bottom-tab-bar" style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; margin: 0 !important; padding: 8px 0 !important; padding-bottom: max(8px, env(safe-area-inset-bottom)) !important; margin-bottom: 0 !important; margin-top: 0 !important; min-height: auto !important; height: auto !important;">
         <a href="{{ route('dashboard') }}" class="tab-item {{ request()->routeIs('dashboard') ? 'active' : '' }} ripple">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
@@ -328,6 +392,24 @@
             <span class="text-xs">Groups</span>
         </a>
         
+        @if(request()->routeIs('dashboard'))
+        <a href="{{ route('groups.create') }}" class="tab-item ripple" title="Add Group">
+            <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center -mt-2">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </div>
+            <span class="text-xs">Add Group</span>
+        </a>
+@elseif(request()->routeIs('groups.*') && request()->route('group'))
+        <a href="{{ route('groups.expenses.create', request()->route('group')) }}" class="tab-item ripple" title="Add Expense">
+            <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center -mt-2">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </div>
+        </a>
+@else
         <a href="{{ route('groups.create') }}" class="tab-item ripple">
             <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center -mt-2">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -335,6 +417,7 @@
                 </svg>
             </div>
         </a>
+@endif
         
         <a href="{{ route('auth.show-update-pin') }}" class="tab-item {{ request()->routeIs('auth.*') ? 'active' : '' }} ripple">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,7 +536,8 @@
                     return response.text();
                 })
                 .then(html => {
-                    console.log('Raw HTML response:', html.substring(0, 500));
+                    console.log('Raw HTML response length:', html.length);
+                    console.log('Raw HTML response preview:', html.substring(0, 1000));
                     
                     // Try to find the activities JSON data
                     let activities = [];
@@ -467,7 +551,7 @@
                             activities = data.activities || [];
                             console.log('Found activities via regex:', activities.length);
                         } catch (e) {
-                            console.log('Failed to parse activities JSON');
+                            console.log('Failed to parse activities JSON:', e);
                         }
                     }
                     
@@ -475,6 +559,7 @@
                     if (activities.length === 0) {
                         const jsonMatches = html.match(/\{[\s\S]*?\}/g);
                         if (jsonMatches) {
+                            console.log('Found', jsonMatches.length, 'JSON objects');
                             for (const jsonStr of jsonMatches) {
                                 try {
                                     const data = JSON.parse(jsonStr);
@@ -490,7 +575,28 @@
                         }
                     }
                     
-                    // 3. Fallback HTML parsing
+                    // 3. Try broader search for activity data
+                    if (activities.length === 0) {
+                        console.log('Trying broader search for activity data...');
+                        // Look for any array that might contain activities
+                        const arrayMatches = html.match(/\[[\s\S]*?\]/g);
+                        if (arrayMatches) {
+                            for (const arrayStr of arrayMatches) {
+                                try {
+                                    const data = JSON.parse(arrayStr);
+                                    if (Array.isArray(data) && data.length > 0 && data[0].id) {
+                                        activities = data;
+                                        console.log('Found activities array:', activities.length);
+                                        break;
+                                    }
+                                } catch (e) {
+                                    // Continue trying
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 4. Fallback HTML parsing
                     if (activities.length === 0) {
                         console.log('Falling back to HTML parsing...');
                         activities = parseHtmlForNotifications(html);
@@ -804,6 +910,24 @@
             closeNotificationModal();
         }
 
+        // Desktop header scroll effect
+        let lastScrollY = 0;
+        const desktopHeader = document.querySelector('.desktop-header');
+        
+        if (desktopHeader) {
+            window.addEventListener('scroll', () => {
+                const currentScrollY = window.scrollY;
+                
+                if (currentScrollY > 50) {
+                    desktopHeader.classList.add('scrolled');
+                } else {
+                    desktopHeader.classList.remove('scrolled');
+                }
+                
+                lastScrollY = currentScrollY;
+            });
+        }
+
         // Handle keyboard avoid for mobile
         if ('visualViewport' in window) {
             window.visualViewport.addEventListener('resize', () => {
@@ -864,8 +988,9 @@
                      @notificationData="$el.parentElement.__alpineNotifications = $event.detail"
                      x-data="notificationComponent()">
                     <button @click="open = !open; if(open) { loadNotifications(); }"
-                            class="relative text-gray-700 hover:text-gray-900 font-medium transition-colors p-2 cursor-pointer"
-                            title="Notifications">
+                            class="relative text-gray-700 hover:text-gray-900 font-medium transition-colors p-2 cursor-pointer hidden"
+                            title="Notifications"
+                            style="display: none !important;">
                         <span>🔔</span>
                         <span x-show="unreadCount > 0"
                               x-text="unreadCount"
