@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ExpenseSettle</string>
-    <string name="title_activity_main">ExpenseSettle</string>
+    <string name="app_name">SettleX</string>
+    <string name="title_activity_main">SettleX</string>
     <string name="package_name">com.expensesettle.app</string>
     <string name="custom_url_scheme">com.expensesettle.app</string>
 </resources>
