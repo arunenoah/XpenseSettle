@@ -12,9 +12,8 @@
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <div class="flex items-center gap-2 text-2xl font-bold text-blue-600">
+                <div class="flex items-center">
                     <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-8 w-auto">
-                    <span>SettleX</span>
                 </div>
                 <div class="flex gap-4">
                     <a href="{{ route('login') }}" class="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">Sign In</a>

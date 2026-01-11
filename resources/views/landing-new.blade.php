@@ -36,9 +36,8 @@
     <nav class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-14">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center">
                     <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-7 w-auto">
-                    <span class="text-lg font-bold text-blue-600">SettleX</span>
                 </div>
                 <div class="flex gap-2 sm:gap-3">
                     @guest

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - SettleX</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50">
@@ -11,7 +12,7 @@
         <div class="w-full max-w-md space-y-8">
             <!-- Logo -->
             <div class="text-center">
-                <h1 class="text-4xl font-bold text-blue-600 mb-2">⚖️ SettleX</h1>
+                <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-16 w-auto mx-auto mb-4">
                 <p class="text-gray-600">Track shared expenses with ease</p>
             </div>
 
