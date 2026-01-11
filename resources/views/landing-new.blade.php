@@ -37,8 +37,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-center items-center h-32 border-b border-gray-100">
                 <a href="{{ route('dashboard') }}" class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-[300px] h-auto">
+                    <img width="300" src="{{ url('SettleX_logo.png') }}" alt="SettleX Logo">
                 </a>
+            </div>
             </div>
             <div class="flex gap-2 sm:gap-3">
                 @guest
