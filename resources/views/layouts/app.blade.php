@@ -195,7 +195,9 @@
             </button>
             
             <!-- Title -->
-            <h1 class="text-lg font-semibold flex-1 text-center mr-8">SettleX</h1>
+            <div class="flex-1 text-center mr-8">
+                <img width="120" src="{{ url('SettleX_logo.png') }}" alt="SettleX Logo" class="h-auto mx-auto">
+            </div>
             
             <!-- Actions -->
             <div class="flex items-center gap-2">
