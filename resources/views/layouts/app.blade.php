@@ -8,23 +8,25 @@
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
-        /* Mobile-first critical styles */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        
-        body {
-            overscroll-behavior: none;
-            -webkit-overflow-scrolling: touch;
-            touch-action: manipulation;
-        }
-        
-        input, textarea {
-            -webkit-user-select: text;
-            user-select: text;
+        /* Mobile-first critical styles - only on mobile */
+        @media (max-width: 768px) {
+            * {
+                -webkit-tap-highlight-color: transparent;
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                user-select: none;
+            }
+            
+            body {
+                overscroll-behavior: none;
+                -webkit-overflow-scrolling: touch;
+                touch-action: manipulation;
+            }
+            
+            input, textarea {
+                -webkit-user-select: text;
+                user-select: text;
+            }
         }
         
         .ripple {
@@ -69,7 +71,7 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
         
-        /* Bottom tab bar */
+        /* Bottom tab bar - mobile only */
         .bottom-tab-bar {
             position: fixed;
             bottom: 0;
@@ -77,11 +79,17 @@
             right: 0;
             background: white;
             border-top: 1px solid #e5e7eb;
-            display: flex;
+            display: none;
             justify-content: space-around;
             padding: 8px 0 max(8px, env(safe-area-inset-bottom));
             z-index: 50;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .bottom-tab-bar {
+                display: flex;
+            }
         }
         
         .tab-item {
@@ -138,6 +146,28 @@
             opacity: 1;
             transform: translateY(0);
         }
+        
+        /* Desktop navigation - hide on mobile */
+        .desktop-nav {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .desktop-nav {
+                display: none;
+            }
+        }
+        
+        /* Mobile top bar - hide on desktop */
+        .mobile-top-bar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-top-bar {
+                display: block;
+            }
+        }
     </style>
     <style>
         [x-cloak] {
@@ -154,8 +184,8 @@
     @endauth
 </head>
 <body class="bg-[#fefefe] safe-area-top">
-    <!-- Top App Bar -->
-    <header class="bg-white shadow-sm sticky top-0 z-40 safe-area-top">
+    <!-- Mobile Top App Bar -->
+    <header class="mobile-top-bar bg-white shadow-sm sticky top-0 z-40 safe-area-top">
         <div class="flex items-center justify-between px-4 py-3">
             <!-- Back Button (conditional) -->
             <button class="p-2 -ml-2 rounded-full ripple" onclick="history.back()">
@@ -180,8 +210,62 @@
         </div>
     </header>
 
+    <!-- Desktop Navigation -->
+    <nav class="desktop-nav bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Logo Section -->
+            <div class="flex justify-center items-center h-32 border-b border-gray-100">
+                <a href="{{ route('dashboard') }}" class="flex items-center">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-18 sm:w-20 md:w-24 h-auto">
+                </a>
+            </div>
+
+            <!-- User Info & Navigation Menu & Notifications Bar (Combined) -->
+            <div class="flex justify-between items-center py-2 gap-2 sm:gap-4 px-2 border-b border-gray-100">
+                <!-- Left: User Name -->
+                <span class="text-sm text-gray-700 font-medium whitespace-nowrap">{{ auth()->user()->name }}</span>
+
+                <!-- Center: Menu Items -->
+                <div class="flex justify-center items-center gap-1 sm:gap-4 overflow-x-auto flex-1">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span>🏠</span>
+                    <span class="hidden xs:inline sm:inline">Home</span>
+                </a>
+                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span>👥</span>
+                    <span class="hidden xs:inline sm:inline">Groups</span>
+                </a>
+                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                    <span>🔒</span>
+                    <span class="hidden xs:inline sm:inline">Pin</span>
+                </a>
+
+                @if(auth()->user()->email === 'arun@example.com')
+                    <a href="{{ route('admin.verify') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('admin.*') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-purple-100 text-purple-900 hover:bg-purple-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap border-2 border-purple-300">
+                        <span>🔧</span>
+                        <span class="hidden xs:inline sm:inline">Admin</span>
+                    </a>
+                @endif
+
+                <form action="{{ route('logout') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                        <span>🚪</span>
+                        <span class="hidden xs:inline sm:inline">Exit</span>
+                    </button>
+                </form>
+                </div>
+
+                <!-- Right: Notifications -->
+                @php
+                    $unreadCount = \App\Models\Activity::where('user_id', '<>', auth()->id())
+                        ->whereIn('group_id', auth()->user()->groups()->pluck('groups.id'))
+                        ->unreadFor(auth()->id())
+                        ->count();
+                @endphp
+
     <!-- Main Content Area -->
-    <main class="pb-20 safe-area-bottom">
+    <main class="pb-20 md:pb-0 safe-area-bottom">
         @yield('content')
     </main>
 
@@ -216,11 +300,11 @@
             <span class="text-xs">PIN</span>
         </a>
         
-        <a href="{{ route('profile') }}" class="tab-item {{ request()->routeIs('profile.*') ? 'active' : '' }} ripple">
+        <a href="{{ route('logout') }}" class="tab-item ripple" onclick="return confirm('Are you sure you want to logout?')">
             <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
             </svg>
-            <span class="text-xs">Profile</span>
+            <span class="text-xs">Logout</span>
         </a>
     </nav>
 
