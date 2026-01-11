@@ -13,7 +13,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-32">
                 <div class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-18 h-auto">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-18 sm:w-20 md:w-24 h-auto">
                 </div>
                 <div class="flex gap-4">
                     <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">Sign In</a>
