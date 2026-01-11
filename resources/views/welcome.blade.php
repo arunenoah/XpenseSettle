@@ -11,14 +11,14 @@
     <!-- Navigation -->
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-32">
-                <div class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-18 sm:w-20 md:w-24 h-auto">
-                </div>
-                <div class="flex gap-4">
-                    <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">Sign In</a>
-                    <a href="{{ route('register') }}" class="px-4 py-2 sm:px-6 sm:py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium">Get Started</a>
-                </div>
+            <div class="flex justify-center items-center h-32 border-b border-gray-100">
+                <a href="{{ route('dashboard') }}" class="flex items-center">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-[250px] h-auto">
+                </a>
+            </div>
+            <div class="flex gap-4">
+                <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">Sign In</a>
+                <a href="{{ route('register') }}" class="px-4 py-2 sm:px-6 sm:py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium">Get Started</a>
             </div>
         </div>
     </nav>
