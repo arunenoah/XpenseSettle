@@ -261,6 +261,18 @@
         window.APP_API_URL = "{{ env('APP_URL') }}/api";
     </script>
     @endauth
+    
+    <!-- Fallback loading spinner hide -->
+    <script>
+        // Hide loading spinner after 3 seconds as emergency fallback
+        setTimeout(function() {
+            const spinner = document.getElementById('loading-spinner');
+            if (spinner && spinner.style.display !== 'none') {
+                console.log('Emergency fallback: Force hiding loading spinner');
+                spinner.style.display = 'none';
+            }
+        }, 3000);
+    </script>
 </head>
 <body class="bg-[#fefefe] safe-area-top">
     <!-- Loading Spinner -->
@@ -1237,17 +1249,30 @@
         window.appInitialized = true;
         
         document.addEventListener('DOMContentLoaded', async function() {
-            // Hide loading spinner
+            // Hide loading spinner immediately
             const loadingSpinner = document.getElementById('loading-spinner');
             if (loadingSpinner) {
+                console.log('Hiding loading spinner...');
+                loadingSpinner.style.opacity = '0';
+                loadingSpinner.style.transition = 'opacity 0.3s ease-out';
                 setTimeout(() => {
-                    loadingSpinner.style.opacity = '0';
-                    loadingSpinner.style.transition = 'opacity 0.3s ease-out';
-                    setTimeout(() => {
-                        loadingSpinner.style.display = 'none';
-                    }, 300);
-                }, 500); // Show for at least 500ms for better UX
+                    loadingSpinner.style.display = 'none';
+                    console.log('Loading spinner hidden');
+                }, 300);
             }
+            
+            // Also hide on window load as backup
+            window.addEventListener('load', function() {
+                const spinner = document.getElementById('loading-spinner');
+                if (spinner && spinner.style.display !== 'none') {
+                    console.log('Backup: Hiding loading spinner on window load');
+                    spinner.style.opacity = '0';
+                    spinner.style.transition = 'opacity 0.3s ease-out';
+                    setTimeout(() => {
+                        spinner.style.display = 'none';
+                    }, 300);
+                }
+            });
             
             // Track page loads
             if (!window.pageLoadCount) {
