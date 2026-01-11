@@ -37,7 +37,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-14">
                 <div class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-7 w-auto">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-10 w-auto">
                 </div>
                 <div class="flex gap-2 sm:gap-3">
                     @guest

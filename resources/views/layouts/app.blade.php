@@ -28,7 +28,7 @@
             <!-- Logo Section -->
             <div class="flex justify-center items-center h-16 border-b border-gray-100">
                 <a href="{{ route('dashboard') }}" class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-8 w-auto">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-12 w-auto">
                 </a>
             </div>
 

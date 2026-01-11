@@ -12,7 +12,7 @@
         <div class="w-full max-w-md space-y-8">
             <!-- Logo -->
             <div class="text-center">
-                <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-16 w-auto mx-auto mb-4">
+                <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-20 w-auto mx-auto mb-4">
                 <p class="text-gray-600">Track shared expenses with ease</p>
             </div>
 
