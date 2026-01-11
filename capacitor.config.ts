@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.arunkumar.expensesettle.app',
-  appName: 'ExpenseSettle',
+  appName: 'SettleX',
   webDir: 'public',
   server: {
     // Base URL - will auto-redirect unauthenticated users to login

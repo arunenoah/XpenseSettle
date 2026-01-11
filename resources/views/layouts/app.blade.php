@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SettleX') - Expense Sharing Made Easy</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         [x-cloak] {
@@ -26,8 +27,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Logo Section -->
             <div class="flex justify-center items-center h-16 border-b border-gray-100">
-                <a href="{{ route('dashboard') }}" class="text-2xl font-bold text-blue-600">
-                    ⚖️ SettleX
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 text-2xl font-bold text-blue-600">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-8 w-auto">
+                    <span>SettleX</span>
                 </a>
             </div>
 

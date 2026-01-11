@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SettleX - Split Expenses with Friends</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <style>
@@ -36,7 +37,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-14">
                 <div class="flex items-center gap-2">
-                    <span class="text-2xl">💰</span>
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-7 w-auto">
                     <span class="text-lg font-bold text-blue-600">SettleX</span>
                 </div>
                 <div class="flex gap-2 sm:gap-3">

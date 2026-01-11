@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SettleX - Expense Sharing Made Easy</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -11,7 +12,10 @@
     <nav class="bg-white shadow-sm sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
-                <h1 class="text-2xl font-bold text-blue-600">⚖️ SettleX</h1>
+                <div class="flex items-center gap-2 text-2xl font-bold text-blue-600">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-8 w-auto">
+                    <span>SettleX</span>
+                </div>
                 <div class="flex gap-4">
                     <a href="{{ route('login') }}" class="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">Sign In</a>
                     <a href="{{ route('register') }}" class="px-4 py-2 sm:px-6 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Get Started</a>
