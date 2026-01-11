@@ -156,7 +156,7 @@
             left: -9999px !important;
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .mobile-top-bar {
                 display: block !important;
                 visibility: visible !important;
@@ -171,13 +171,18 @@
             display: block !important;
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .desktop-header {
                 display: none !important;
                 visibility: hidden !important;
                 position: absolute !important;
                 top: -9999px !important;
                 left: -9999px !important;
+                width: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
             }
         }
     </style>
@@ -220,7 +225,7 @@
                         ->unreadFor(auth()->id())
                         ->count();
                 @endphp
-                <a href="{{ route('notifications.index') }}" class="p-2 rounded-full ripple relative">
+                <a href="#" onclick="openNotificationModal(); return false;" class="p-2 rounded-full ripple relative">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                     </svg>
@@ -287,7 +292,7 @@
                 @endphp
 
                 <div class="relative">
-                    <button onclick="window.location.href='{{ route('notifications.index') }}'" class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all text-sm">
+                    <a href="#" onclick="openNotificationModal(); return false;" class="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all text-sm">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                         </svg>
@@ -295,7 +300,7 @@
                         @if($unreadCount > 0)
                             <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{{ $unreadCount }}</span>
                         @endif
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -348,6 +353,39 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
+    <!-- Test Button (remove after testing) -->
+    <div style="position: fixed; top: 100px; right: 20px; z-index: 100;">
+        <button onclick="testModal()" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
+            Test Modal
+        </button>
+    </div>
+
+    <!-- Notification Modal -->
+    <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full max-h-[85vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900">Notifications</h2>
+                <button onclick="closeNotificationModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body - Scrollable -->
+            <div class="flex-1 overflow-y-auto" id="notification-content" style="max-height: 60vh;">
+                <!-- Notifications will be loaded here -->
+                <div class="text-center text-gray-500 py-8">
+                    <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                    <p>Loading notifications...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Mobile Touch & Keyboard Scripts -->
     <script>
         // Toast notification system
@@ -363,6 +401,425 @@
                 toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 300);
             }, duration);
+        }
+
+        // Notification Modal Functions
+        function openNotificationModal() {
+            console.log('Opening notification modal...');
+            const modal = document.getElementById('notification-modal');
+            if (!modal) {
+                console.error('Modal not found!');
+                alert('Modal not found!');
+                return;
+            }
+            console.log('Modal found:', modal);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden'; // Prevent background scroll
+            loadNotifications();
+        }
+
+        function closeNotificationModal() {
+            console.log('Closing notification modal...');
+            const modal = document.getElementById('notification-modal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto'; // Restore background scroll
+        }
+
+        // Test function - call this to test modal
+        function testModal() {
+            console.log('Testing modal...');
+            openNotificationModal();
+        }
+
+        // Auto-test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, modal functions ready');
+            // Add test button for debugging
+            setTimeout(() => {
+                console.log('Modal test ready - click notification icon or call testModal()');
+            }, 1000);
+        });
+
+        // Close modal when clicking outside
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('notification-modal');
+            if (event.target === modal) {
+                closeNotificationModal();
+            }
+        });
+
+        function loadNotifications() {
+            const content = document.getElementById('notification-content');
+            
+            // Show loading state
+            content.innerHTML = `
+                <div class="p-4 text-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p class="text-gray-500">Loading notifications...</p>
+                </div>
+            `;
+            
+            // Fetch notifications page
+            fetch('/notifications?filter=unread')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    console.log('Raw HTML response:', html.substring(0, 500));
+                    
+                    // Try to find the activities JSON data
+                    let activities = [];
+                    
+                    // 1. Look for activities JSON in the response
+                    const activitiesMatch = html.match(/"activities":\s*\[([\s\S]*?)\]/);
+                    if (activitiesMatch) {
+                        try {
+                            const activitiesJson = '{"activities":[' + activitiesMatch[1] + ']}';
+                            const data = JSON.parse(activitiesJson);
+                            activities = data.activities || [];
+                            console.log('Found activities via regex:', activities.length);
+                        } catch (e) {
+                            console.log('Failed to parse activities JSON');
+                        }
+                    }
+                    
+                    // 2. Try to find complete JSON object
+                    if (activities.length === 0) {
+                        const jsonMatches = html.match(/\{[\s\S]*?\}/g);
+                        if (jsonMatches) {
+                            for (const jsonStr of jsonMatches) {
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    if (data.activities) {
+                                        activities = data.activities;
+                                        console.log('Found activities in JSON:', activities.length);
+                                        break;
+                                    }
+                                } catch (e) {
+                                    // Continue trying
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 3. Fallback HTML parsing
+                    if (activities.length === 0) {
+                        console.log('Falling back to HTML parsing...');
+                        activities = parseHtmlForNotifications(html);
+                    }
+                    
+                    console.log('Total activities found:', activities.length);
+                    
+                    if (activities.length > 0) {
+                        displayActivities(activities);
+                    } else {
+                        // Show debug info
+                        content.innerHTML = `
+                            <div class="p-4">
+                                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                                    <h4 class="text-sm font-medium text-yellow-800 mb-2">Debug Info</h4>
+                                    <p class="text-sm text-yellow-700">Found ${activities.length} activities</p>
+                                    <p class="text-xs text-yellow-600 mt-2">Raw response length: ${html.length} characters</p>
+                                </div>
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">Raw Content (first 1000 chars):</h4>
+                                    <div class="text-xs text-gray-600 font-mono whitespace-pre-wrap">${html.substring(0, 1000)}${html.length > 1000 ? '...' : ''}</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                    content.innerHTML = `
+                        <div class="p-4 text-center">
+                            <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <p class="text-gray-500 mb-4">Unable to load notifications</p>
+                            <button onclick="loadNotifications()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                Try Again
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+
+        function displayActivities(activities) {
+            const content = document.getElementById('notification-content');
+            
+            let activitiesHtml = '<div class="p-4 space-y-3">';
+            
+            activities.forEach((activity, index) => {
+                const timeAgo = activity.created_at ? formatTimeAgo(activity.created_at) : 'Just now';
+                const type = activity.type || 'info';
+                const icon = getActivityIcon(type, activity.icon);
+                const color = getActivityColor(type);
+                
+                // Parse metadata if available
+                let metadataInfo = '';
+                try {
+                    if (activity.metadata) {
+                        const metadata = JSON.parse(activity.metadata);
+                        if (metadata.payer_name) metadataInfo += `Paid by: ${metadata.payer_name}`;
+                        if (metadata.split_count) metadataInfo += ` • Split: ${metadata.split_count} people`;
+                        if (activity.user_share) metadataInfo += ` • Your share: $${activity.user_share}`;
+                    }
+                } catch (e) {
+                    // Ignore metadata parsing errors
+                }
+                
+                activitiesHtml += `
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onclick="handleActivityClick('${activity.id}')">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="w-10 h-10 ${color.bg} rounded-full flex items-center justify-center text-lg">
+                                    ${activity.icon || icon}
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <p class="text-sm font-medium text-gray-900">${activity.title || 'Activity'}</p>
+                                    <span class="text-xs text-gray-500">${timeAgo}</span>
+                                </div>
+                                <p class="text-sm text-gray-600 mt-1">${activity.description || 'No description'}</p>
+                                <div class="flex items-center justify-between mt-2">
+                                    <div class="flex items-center space-x-2">
+                                        ${activity.amount ? `<span class="text-sm font-semibold text-green-600">$${activity.amount}</span>` : ''}
+                                        ${activity.group_name ? `<span class="text-xs text-gray-500">📍 ${activity.group_name}</span>` : ''}
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        ${activity.user_name ? `<span class="text-xs text-gray-500">👤 ${activity.user_name}</span>` : ''}
+                                        ${activity.is_read === false ? '<div class="w-2 h-2 bg-blue-500 rounded-full"></div>' : ''}
+                                    </div>
+                                </div>
+                                ${metadataInfo ? `<p class="text-xs text-gray-500 mt-1">${metadataInfo}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            activitiesHtml += '</div>';
+            content.innerHTML = activitiesHtml;
+        }
+
+        function getActivityIcon(type, emojiIcon) {
+            // Use the emoji icon if available, otherwise fallback to type-based icons
+            if (emojiIcon) {
+                return emojiIcon;
+            }
+            
+            const icons = {
+                'expense_created': '💰',
+                'payment': '💳',
+                'group': '👥',
+                'default': '📢'
+            };
+            return icons[type] || icons['default'];
+        }
+
+        function getActivityColor(type) {
+            const colors = {
+                'expense_created': { bg: 'bg-green-100', dot: 'bg-green-500' },
+                'payment': { bg: 'bg-blue-100', dot: 'bg-blue-500' },
+                'group': { bg: 'bg-purple-100', dot: 'bg-purple-500' },
+                'default': { bg: 'bg-gray-100', dot: 'bg-gray-500' }
+            };
+            return colors[type] || colors['default'];
+        }
+
+        function handleActivityClick(id) {
+            console.log('Activity clicked:', id);
+            // You can add navigation logic here
+            closeNotificationModal();
+        }
+
+        function parseHtmlForNotifications(html) {
+            const notifications = [];
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            
+            // Look for various notification patterns
+            const selectors = [
+                'a[href*="activity"]',
+                '.activity',
+                '.notification',
+                '.list-group-item',
+                'tr',
+                '[class*="item"]',
+                '[class*="notification"]',
+                '[class*="activity"]',
+                'div[class*="p-3"]',
+                'div[class*="p-4"]'
+            ];
+            
+            for (const selector of selectors) {
+                const items = temp.querySelectorAll(selector);
+                items.forEach((item, index) => {
+                    const text = item.textContent.trim();
+                    if (text && text.length > 5 && !text.includes('Logout') && !text.includes('Login')) {
+                        notifications.push({
+                            id: `html-${index}`,
+                            title: `Notification ${index + 1}`,
+                            message: text,
+                            created_at: new Date().toISOString(),
+                            type: 'info'
+                        });
+                    }
+                });
+                
+                if (notifications.length > 0) break;
+            }
+            
+            return notifications.slice(0, 50); // Limit to 50 notifications
+        }
+
+        function displayFormattedNotifications(data) {
+            const content = document.getElementById('notification-content');
+            
+            let notificationsHtml = '<div class="p-4 space-y-3">';
+            
+            if (data.notifications && data.notifications.length > 0) {
+                data.notifications.forEach((notification, index) => {
+                    const timeAgo = notification.created_at ? formatTimeAgo(notification.created_at) : 'Just now';
+                    const type = notification.type || 'info';
+                    const icon = getNotificationIcon(type);
+                    const color = getNotificationColor(type);
+                    
+                    notificationsHtml += `
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onclick="handleNotificationClick('${notification.id || index}')">
+                            <div class="flex items-start space-x-3">
+                                <div class="flex-shrink-0">
+                                    <div class="w-10 h-10 ${color.bg} rounded-full flex items-center justify-center">
+                                        ${icon}
+                                    </div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-sm font-medium text-gray-900">${notification.title || 'Notification'}</p>
+                                        <span class="text-xs text-gray-500">${timeAgo}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-1">${notification.message || notification.description || 'No message'}</p>
+                                    ${notification.group_name ? `<p class="text-xs text-gray-500 mt-1">Group: ${notification.group_name}</p>` : ''}
+                                    ${notification.user_name ? `<p class="text-xs text-gray-500">From: ${notification.user_name}</p>` : ''}
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <div class="w-2 h-2 ${color.dot} rounded-full mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                notificationsHtml += `
+                    <div class="text-center py-8">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                        </svg>
+                        <p class="text-gray-500">No new notifications</p>
+                    </div>
+                `;
+            }
+            
+            notificationsHtml += '</div>';
+            content.innerHTML = notificationsHtml;
+        }
+
+        function parseHtmlNotifications(html) {
+            const content = document.getElementById('notification-content');
+            
+            // Create a temporary div to parse HTML
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            
+            // Look for notification items
+            const items = temp.querySelectorAll('a, .activity, .notification, .list-group-item, tr, [class*="item"]');
+            
+            if (items.length > 0) {
+                let notificationsHtml = '<div class="p-4 space-y-3">';
+                items.forEach((item, index) => {
+                    const text = item.textContent.trim();
+                    if (text && text.length > 10) {
+                        notificationsHtml += `
+                            <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+                                <div class="flex items-start space-x-3">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900">Notification #${index + 1}</p>
+                                        <p class="text-sm text-gray-600 mt-1">${text}</p>
+                                        <p class="text-xs text-gray-500 mt-1">Just now</p>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        <div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                notificationsHtml += '</div>';
+                content.innerHTML = notificationsHtml;
+            } else {
+                // Show raw content for debugging
+                content.innerHTML = `
+                    <div class="p-4">
+                        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Raw Content:</h4>
+                            <div class="text-xs text-gray-600 font-mono whitespace-pre-wrap">${html.substring(0, 1000)}${html.length > 1000 ? '...' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function getNotificationIcon(type) {
+            const icons = {
+                'expense': '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path></svg>',
+                'payment': '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>',
+                'group': '<svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>',
+                'default': '<svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+            };
+            return icons[type] || icons['default'];
+        }
+
+        function getNotificationColor(type) {
+            const colors = {
+                'expense': { bg: 'bg-green-100', dot: 'bg-green-500' },
+                'payment': { bg: 'bg-blue-100', dot: 'bg-blue-500' },
+                'group': { bg: 'bg-purple-100', dot: 'bg-purple-500' },
+                'default': { bg: 'bg-blue-100', dot: 'bg-blue-500' }
+            };
+            return colors[type] || colors['default'];
+        }
+
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000); // seconds
+            
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        function handleNotificationClick(id) {
+            console.log('Notification clicked:', id);
+            // You can add navigation logic here
+            closeNotificationModal();
         }
 
         // Handle keyboard avoid for mobile
