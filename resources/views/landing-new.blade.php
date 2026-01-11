@@ -35,9 +35,9 @@
     <!-- Navigation -->
     <nav class="fixed top-0 left-0 right-0 bg-white shadow-sm z-50 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-center items-center h-32 border-b border-gray-100">
+            <div class="flex justify-center items-center h-40 border-b border-gray-100">
                 <a href="{{ route('dashboard') }}" class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-[250px] h-auto">
+                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="w-[400px] h-auto">
                 </a>
             </div>
             <div class="flex gap-2 sm:gap-3">
