@@ -264,14 +264,14 @@
     
     <!-- Fallback loading spinner hide -->
     <script>
-        // Hide loading spinner after 3 seconds as emergency fallback
+        // Hide loading spinner after 2.5 seconds as emergency fallback (2s + 0.5s buffer)
         setTimeout(function() {
             const spinner = document.getElementById('loading-spinner');
             if (spinner && spinner.style.display !== 'none') {
                 console.log('Emergency fallback: Force hiding loading spinner');
                 spinner.style.display = 'none';
             }
-        }, 3000);
+        }, 2500);
     </script>
 </head>
 <body class="bg-[#fefefe] safe-area-top">
@@ -1249,30 +1249,20 @@
         window.appInitialized = true;
         
         document.addEventListener('DOMContentLoaded', async function() {
-            // Hide loading spinner immediately
+            // Hide loading spinner after exactly 2 seconds
             const loadingSpinner = document.getElementById('loading-spinner');
             if (loadingSpinner) {
-                console.log('Hiding loading spinner...');
-                loadingSpinner.style.opacity = '0';
-                loadingSpinner.style.transition = 'opacity 0.3s ease-out';
+                console.log('Loading spinner will hide after 2 seconds...');
                 setTimeout(() => {
-                    loadingSpinner.style.display = 'none';
-                    console.log('Loading spinner hidden');
-                }, 300);
-            }
-            
-            // Also hide on window load as backup
-            window.addEventListener('load', function() {
-                const spinner = document.getElementById('loading-spinner');
-                if (spinner && spinner.style.display !== 'none') {
-                    console.log('Backup: Hiding loading spinner on window load');
-                    spinner.style.opacity = '0';
-                    spinner.style.transition = 'opacity 0.3s ease-out';
+                    console.log('Hiding loading spinner now...');
+                    loadingSpinner.style.opacity = '0';
+                    loadingSpinner.style.transition = 'opacity 0.3s ease-out';
                     setTimeout(() => {
-                        spinner.style.display = 'none';
+                        loadingSpinner.style.display = 'none';
+                        console.log('Loading spinner hidden');
                     }, 300);
-                }
-            });
+                }, 2000); // Exactly 2 seconds
+            }
             
             // Track page loads
             if (!window.pageLoadCount) {
