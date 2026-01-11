@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- DEBUG: Layout Start - {{ uniqid() }} -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -349,9 +350,6 @@
             <span class="text-xs">Logout</span>
         </a>
     </nav>
-
-    <!-- Toast Container -->
-    <div class="toast-container" id="toast-container"></div>
 
     <!-- Notification Modal -->
     <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
@@ -1060,64 +1058,6 @@
     }
     </script>
 
-    <!-- Main Content -->
-    <main class="flex-1 py-6 sm:py-8 lg:py-10">
-        <!-- Alerts -->
-        @if($errors->any())
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <span>⚠️</span>
-                        </div>
-                        <div class="ml-3">
-                            <ul class="list-disc pl-5 space-y-1">
-                                @foreach($errors->all() as $error)
-                                    <li class="text-sm text-red-700">{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        @if(session('success'))
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <span>✅</span>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-green-700">{{ session('success') }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <span>⚠️</span>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm text-red-700">{{ session('error') }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        <!-- Page Content -->
-        <div class="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-            @yield('content')
-        </div>
-    </main>
-
     <!-- Footer -->
     <footer class="bg-white border-t border-gray-200 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1126,7 +1066,6 @@
             </div>
         </div>
     </footer>
-
 
     <!-- Toast Notifications -->
     @include('components.toast')
@@ -1304,5 +1243,6 @@
             }
         }
     </script>
+    <!-- DEBUG: Layout End - {{ uniqid() }} -->
 </body>
 </html>

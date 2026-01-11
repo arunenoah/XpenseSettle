@@ -144,7 +144,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('admin')->name('admin.')->grou
     Route::post('/logout', [\App\Http\Controllers\AdminController::class, 'logout'])->name('logout');
     
     // Admin Dashboard (requires PIN verification)
-    Route::get('/', [\App\Http\Controllers\AdminController::class, 'index'])->name('dashboard');
+    Route::get('/admin', [\App\Http\Controllers\AdminController::class, 'index'])->name('admin.dashboard');
     Route::post('/users/{user}/plan', [\App\Http\Controllers\AdminController::class, 'updateUserPlan'])->name('users.update-plan');
     Route::post('/groups/{group}/plan', [\App\Http\Controllers\AdminController::class, 'updateGroupPlan'])->name('groups.update-plan');
     Route::post('/groups/{group}/reset-ocr', [\App\Http\Controllers\AdminController::class, 'resetOCRCounter'])->name('groups.reset-ocr');
