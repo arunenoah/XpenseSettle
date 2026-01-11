@@ -2,11 +2,143 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'SettleX') - Expense Sharing Made Easy</title>
+    <title>SettleX</title>
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        /* Mobile-first critical styles */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+            touch-action: manipulation;
+        }
+        
+        input, textarea {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .ripple:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .safe-area-top {
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* Bottom tab bar */
+        .bottom-tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+            z-index: 50;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            transition: color 0.2s;
+            position: relative;
+        }
+        
+        .tab-item.active {
+            color: #374151;
+        }
+        
+        .tab-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 3px;
+            background: #374151;
+            border-radius: 0 0 3px 3px;
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .toast {
+            background: #323232;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: auto;
+        }
+        
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
     <style>
         [x-cloak] {
             display: none !important;
@@ -21,50 +153,142 @@
     </script>
     @endauth
 </head>
-<body class="bg-[#fefefe]">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Logo Section -->
-            <div class="flex justify-center items-center h-32 border-b border-gray-100">
-                <a href="{{ route('dashboard') }}" class="flex items-center">
-                    <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" width=250 classs="w-18 sm:w-20 md:w-24 h-auto">
-                </a>
+<body class="bg-[#fefefe] safe-area-top">
+    <!-- Top App Bar -->
+    <header class="bg-white shadow-sm sticky top-0 z-40 safe-area-top">
+        <div class="flex items-center justify-between px-4 py-3">
+            <!-- Back Button (conditional) -->
+            <button class="p-2 -ml-2 rounded-full ripple" onclick="history.back()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            
+            <!-- Title -->
+            <h1 class="text-lg font-semibold flex-1 text-center mr-8">SettleX</h1>
+            
+            <!-- Actions -->
+            <div class="flex items-center gap-2">
+                <!-- Notifications -->
+                <button class="p-2 rounded-full ripple relative">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                    </svg>
+                    <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
             </div>
+        </div>
+    </header>
 
-            <!-- User Info & Navigation Menu & Notifications Bar (Combined) -->
-            <div class="flex justify-between items-center py-2 gap-2 sm:gap-4 px-2 border-b border-gray-100">
-                <!-- Left: User Name -->
-                <span class="text-sm text-gray-700 font-medium whitespace-nowrap">{{ auth()->user()->name }}</span>
+    <!-- Main Content Area -->
+    <main class="pb-20 safe-area-bottom">
+        @yield('content')
+    </main>
 
-                <!-- Center: Menu Items -->
-                <div class="flex justify-center items-center gap-1 sm:gap-4 overflow-x-auto flex-1">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span>🏠</span>
-                    <span class="hidden xs:inline sm:inline">Home</span>
-                </a>
-                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span>👥</span>
-                    <span class="hidden xs:inline sm:inline">Groups</span>
-                </a>
-                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                    <span>🔒</span>
-                    <span class="hidden xs:inline sm:inline">Pin</span>
-                </a>
+    <!-- Bottom Tab Bar -->
+    <nav class="bottom-tab-bar">
+        <a href="{{ route('dashboard') }}" class="tab-item {{ request()->routeIs('dashboard') ? 'active' : '' }} ripple">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+            <span class="text-xs">Home</span>
+        </a>
+        
+        <a href="{{ route('groups.index') }}" class="tab-item {{ request()->routeIs('groups.*') ? 'active' : '' }} ripple">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span class="text-xs">Groups</span>
+        </a>
+        
+        <a href="{{ route('groups.create') }}" class="tab-item ripple">
+            <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center -mt-2">
+                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </div>
+        </a>
+        
+        <a href="{{ route('auth.show-update-pin') }}" class="tab-item {{ request()->routeIs('auth.*') ? 'active' : '' }} ripple">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            <span class="text-xs">PIN</span>
+        </a>
+        
+        <a href="{{ route('profile') }}" class="tab-item {{ request()->routeIs('profile.*') ? 'active' : '' }} ripple">
+            <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+            <span class="text-xs">Profile</span>
+        </a>
+    </nav>
 
-                @if(auth()->user()->email === 'arun@example.com')
-                    <a href="{{ route('admin.verify') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('admin.*') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg' : 'bg-purple-100 text-purple-900 hover:bg-purple-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap border-2 border-purple-300">
-                        <span>🔧</span>
-                        <span class="hidden xs:inline sm:inline">Admin</span>
-                    </a>
-                @endif
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
 
-                <form action="{{ route('logout') }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="flex items-center gap-1 px-2 py-2 sm:px-4 bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
-                        <span>🚪</span>
-                        <span class="hidden xs:inline sm:inline">Exit</span>
-                    </button>
+    <!-- Mobile Touch & Keyboard Scripts -->
+    <script>
+        // Toast notification system
+        function showToast(message, duration = 3000) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Handle keyboard avoid for mobile
+        if ('visualViewport' in window) {
+            window.visualViewport.addEventListener('resize', () => {
+                const height = window.visualViewport.height;
+                document.documentElement.style.setProperty('--vh', `${height * 0.01}px`);
+            });
+        }
+
+        // Pull to refresh
+        let startY = 0;
+        let isPulling = false;
+        
+        document.addEventListener('touchstart', (e) => {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+            }
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (!isPulling) return;
+            
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            
+            if (diff > 0 && window.scrollY === 0) {
+                e.preventDefault();
+                if (diff > 100) {
+                    // Trigger refresh
+                    window.location.reload();
+                }
+            }
+        });
+        
+        document.addEventListener('touchend', () => {
+            isPulling = false;
+        });
+
+        // Remove focus outline on touch devices
+        document.addEventListener('touchstart', () => {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
+        });
+    </script>
                 </form>
                 </div>
 
