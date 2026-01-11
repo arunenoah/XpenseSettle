@@ -86,7 +86,7 @@
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .bottom-tab-bar {
                 display: flex;
             }
@@ -353,13 +353,6 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <!-- Test Button (remove after testing) -->
-    <div style="position: fixed; top: 100px; right: 20px; z-index: 100;">
-        <button onclick="testModal()" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
-            Test Modal
-        </button>
-    </div>
-
     <!-- Notification Modal -->
     <div id="notification-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-lg max-w-md w-full max-h-[85vh] overflow-hidden flex flex-col">
@@ -433,15 +426,6 @@
             console.log('Testing modal...');
             openNotificationModal();
         }
-
-        // Auto-test on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, modal functions ready');
-            // Add test button for debugging
-            setTimeout(() => {
-                console.log('Modal test ready - click notification icon or call testModal()');
-            }, 1000);
-        });
 
         // Close modal when clicking outside
         document.addEventListener('click', function(event) {
@@ -1152,8 +1136,44 @@
 
     <!-- Firebase Cloud Messaging for Capacitor/Mobile -->
     <script nonce="{{ request()->attributes->get('nonce', '') }}">
+        // Global initialization guard
+        if (window.appScriptLoaded) {
+            console.log('⚠️ App script already loaded, preventing duplication');
+            // Stop all further execution
+            throw new Error('Script already loaded');
+        }
+        window.appScriptLoaded = true;
+        console.log('🚀 App script loading for the first time');
+        
         // Setup Firebase messaging when Capacitor is available and user is authenticated
+        // Prevent multiple initializations
+        if (window.appInitialized) {
+            console.log('⚠️ App already initialized, skipping...');
+            return;
+        }
+        window.appInitialized = true;
+        
         document.addEventListener('DOMContentLoaded', async function() {
+            // Track page loads
+            if (!window.pageLoadCount) {
+                window.pageLoadCount = 0;
+            }
+            window.pageLoadCount++;
+            console.log(`🔄 Page loaded #${window.pageLoadCount}, modal functions ready`);
+            
+            // Prevent multiple Firebase setups
+            if (window.firebaseSetup) {
+                console.log('⚠️ Firebase already setup, skipping...');
+                return;
+            }
+            window.firebaseSetup = true;
+            
+            // Modal functions are ready
+            setTimeout(() => {
+                console.log(`📱 Modal test ready - click notification icon or call testModal() (Load #${window.pageLoadCount})`);
+            }, 1000);
+            
+            // Setup Firebase if available
             if (typeof window.Capacitor !== 'undefined' && window.SANCTUM_TOKEN) {
                 console.log('✅ Capacitor + Token detected - Setting up Firebase...');
                 await setupFirebaseMessaging();
