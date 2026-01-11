@@ -16,8 +16,8 @@
                     <img src="{{ asset('SettleX_logo.png') }}" alt="SettleX Logo" class="h-16 w-auto">
                 </div>
                 <div class="flex gap-4">
-                    <a href="{{ route('login') }}" class="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">Sign In</a>
-                    <a href="{{ route('register') }}" class="px-4 py-2 sm:px-6 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">Get Started</a>
+                    <a href="{{ route('login') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">Sign In</a>
+                    <a href="{{ route('register') }}" class="px-4 py-2 sm:px-6 sm:py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium">Get Started</a>
                 </div>
             </div>
         </div>
@@ -28,16 +28,16 @@
         <div class="text-center mb-12 sm:mb-16">
             <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
                 Split Expenses
-                <span class="text-blue-600">Effortlessly</span>
+                <span class="text-gray-800">Effortlessly</span>
             </h2>
             <p class="text-lg sm:text-xl text-gray-600 mb-8">
                 Track shared expenses with friends, roommates, or colleagues. Settle up fairly and painlessly.
             </p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="{{ route('register') }}" class="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg">
+                <a href="{{ route('register') }}" class="px-8 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold text-lg">
                     Create Free Account
                 </a>
-                <a href="#features" class="px-8 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-lg">
+                <a href="#features" class="px-8 py-3 border-2 border-gray-800 text-gray-800 rounded-lg hover:bg-gray-50 transition-colors font-semibold text-lg">
                     Learn More
                 </a>
             </div>
@@ -46,17 +46,17 @@
         <!-- Screenshot or Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                <div class="text-3xl font-bold text-blue-600 mb-2">∞</div>
+                <div class="text-3xl font-bold text-gray-800 mb-2">∞</div>
                 <p class="text-gray-700 font-semibold">Unlimited Groups</p>
                 <p class="text-gray-600 text-sm">Create groups for trips, apartments, events, and more</p>
             </div>
             <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                <div class="text-3xl font-bold text-blue-600 mb-2">🧮</div>
+                <div class="text-3xl font-bold text-gray-800 mb-2">🧮</div>
                 <p class="text-gray-700 font-semibold">Smart Splitting</p>
                 <p class="text-gray-600 text-sm">Equal, custom, or percentage-based splits</p>
             </div>
             <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                <div class="text-3xl font-bold text-blue-600 mb-2">📱</div>
+                <div class="text-3xl font-bold text-gray-800 mb-2">📱</div>
                 <p class="text-gray-700 font-semibold">Mobile Friendly</p>
                 <p class="text-gray-600 text-sm">Track expenses on the go from any device</p>
             </div>

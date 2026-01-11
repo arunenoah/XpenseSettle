@@ -39,15 +39,15 @@
 
                 <!-- Center: Menu Items -->
                 <div class="flex justify-center items-center gap-1 sm:gap-4 overflow-x-auto flex-1">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('dashboard') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
                     <span>🏠</span>
                     <span class="hidden xs:inline sm:inline">Home</span>
                 </a>
-                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                <a href="{{ route('groups.index') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('groups.index') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
                     <span>👥</span>
                     <span class="hidden xs:inline sm:inline">Groups</span>
                 </a>
-                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
+                <a href="{{ route('auth.show-update-pin') }}" class="flex items-center gap-1 px-2 py-2 sm:px-4 {{ request()->routeIs('auth.show-update-pin') ? 'bg-gray-800 text-white shadow-lg' : 'bg-gray-100 text-gray-900 hover:bg-gray-200' }} rounded-lg font-semibold transition-all text-xs sm:text-sm whitespace-nowrap">
                     <span>🔒</span>
                     <span class="hidden xs:inline sm:inline">Pin</span>
                 </a>
@@ -80,7 +80,7 @@
                      @notificationData="$el.parentElement.__alpineNotifications = $event.detail"
                      x-data="notificationComponent()">
                     <button @click="open = !open; if(open) { loadNotifications(); }"
-                            class="relative text-gray-700 hover:text-blue-600 font-medium transition-colors p-2 cursor-pointer"
+                            class="relative text-gray-700 hover:text-gray-900 font-medium transition-colors p-2 cursor-pointer"
                             title="Notifications">
                         <span>🔔</span>
                         <span x-show="unreadCount > 0"
@@ -101,12 +101,12 @@
                             <div class="flex items-center justify-between mb-2 sm:mb-3 gap-1.5 sm:gap-2">
                                 <div class="flex gap-1.5 sm:gap-4">
                                     <button @click="filter = 'unread'; loadNotifications()"
-                                            :class="filter === 'unread' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
+                                            :class="filter === 'unread' ? 'text-gray-900 font-bold border-b-2 border-gray-900' : 'text-gray-600'"
                                             class="pb-1 transition-colors text-xs sm:text-sm">
                                         Unread <span x-text="unreadCount"></span>
                                     </button>
                                     <button @click="filter = 'all'; loadNotifications()"
-                                            :class="filter === 'all' ? 'text-blue-600 font-bold border-b-2 border-blue-600' : 'text-gray-600'"
+                                            :class="filter === 'all' ? 'text-gray-900 font-bold border-b-2 border-gray-900' : 'text-gray-600'"
                                             class="pb-1 transition-colors text-xs sm:text-sm">
                                         All
                                     </button>
@@ -131,7 +131,7 @@
                             <template x-for="activity in activities" :key="activity.id">
                                 <div @click="markAsRead(activity.id)"
                                      :class="{
-                                         'border-l-4 border-blue-500': activity.type === 'expense_created',
+                                         'border-l-4 border-gray-500': activity.type === 'expense_created',
                                          'border-l-4 border-green-500': activity.type === 'payment_made',
                                          'border-l-4 border-amber-500': activity.type === 'advance_paid',
                                          'border-l-4 border-purple-500': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
@@ -140,7 +140,7 @@
                                     <!-- Header: Icon + User/Group + Badge + Unread Dot -->
                                     <div class="flex items-center gap-2 sm:gap-3 mb-2">
                                         <div :class="{
-                                            'bg-blue-100 border border-blue-300': activity.type === 'expense_created',
+                                            'bg-gray-100 border border-gray-300': activity.type === 'expense_created',
                                             'bg-green-100 border border-green-300': activity.type === 'payment_made',
                                             'bg-amber-100 border border-amber-300': activity.type === 'advance_paid',
                                             'bg-purple-100 border border-purple-300': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
@@ -152,7 +152,7 @@
                                             <p class="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1" x-text="`${activity.user_name} • ${activity.group_name}`"></p>
                                         </div>
                                         <span :class="{
-                                            'bg-blue-100 text-blue-700': activity.type === 'expense_created',
+                                            'bg-gray-100 text-gray-700': activity.type === 'expense_created',
                                             'bg-green-100 text-green-700': activity.type === 'payment_made',
                                             'bg-amber-100 text-amber-700': activity.type === 'advance_paid',
                                             'bg-purple-100 text-purple-700': activity.type !== 'expense_created' && activity.type !== 'payment_made' && activity.type !== 'advance_paid'
@@ -164,7 +164,7 @@
                                             'advance_paid': '💰'
                                         }[activity.type] || '📌'">
                                         </span>
-                                        <span x-show="!activity.is_read" class="w-2.5 h-2.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                                        <span x-show="!activity.is_read" class="w-2.5 h-2.5 bg-gray-500 rounded-full flex-shrink-0"></span>
                                     </div>
 
                                     <!-- Activity Details Based on Type -->
@@ -174,12 +174,12 @@
                                             <div class="grid grid-cols-2 gap-3 pt-1 border-t border-gray-100">
                                                 <div>
                                                     <p class="text-xs text-gray-500 mb-0.5">Total</p>
-                                                    <p class="text-base sm:text-lg font-bold text-blue-600" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
+                                                    <p class="text-base sm:text-lg font-bold text-gray-900" x-text="`₹${activity.amount ? parseFloat(activity.amount).toFixed(2) : '0.00'}`"></p>
                                                 </div>
                                                 <template x-if="activity.user_share !== null">
                                                     <div>
                                                         <p class="text-xs text-gray-500 mb-0.5">You owe</p>
-                                                        <p class="text-base sm:text-lg font-bold text-blue-700" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
+                                                        <p class="text-base sm:text-lg font-bold text-gray-900" x-text="`₹${parseFloat(activity.user_share).toFixed(2)}`"></p>
                                                     </div>
                                                 </template>
                                             </div>

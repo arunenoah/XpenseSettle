@@ -41,10 +41,10 @@
                 </div>
                 <div class="flex gap-2 sm:gap-3">
                     @guest
-                        <a href="{{ route('login') }}" class="px-3 sm:px-4 py-2 text-gray-700 hover:text-blue-600 font-medium text-sm transition">Login</a>
-                        <a href="{{ route('register') }}" class="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">Sign Up</a>
+                        <a href="{{ route('login') }}" class="px-3 sm:px-4 py-2 text-gray-700 hover:text-gray-900 font-medium text-sm transition">Login</a>
+                        <a href="{{ route('register') }}" class="px-4 sm:px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition font-medium text-sm">Sign Up</a>
                     @else
-                        <a href="{{ route('dashboard') }}" class="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">Dashboard</a>
+                        <a href="{{ route('dashboard') }}" class="px-4 sm:px-6 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition font-medium text-sm">Dashboard</a>
                     @endguest
                 </div>
             </div>
