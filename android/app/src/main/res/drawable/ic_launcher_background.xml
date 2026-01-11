@@ -4,8 +4,13 @@
     android:height="108dp"
     android:viewportHeight="108"
     android:viewportWidth="108">
-    <!-- Simple solid background that complements the custom icon -->
+    <!-- Solid background to match icon and prevent white corners -->
     <path
         android:fillColor="#023c69"
         android:pathData="M0,0h108v108h-108z" />
+    <!-- Add slight gradient for depth -->
+    <path
+        android:fillColor="#0d5c96"
+        android:pathData="M0,0L108,0L108,108L0,108Z"
+        android:fillAlpha="0.3" />
 </vector>
