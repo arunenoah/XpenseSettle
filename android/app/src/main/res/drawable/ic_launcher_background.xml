@@ -4,53 +4,8 @@
     android:height="108dp"
     android:viewportHeight="108"
     android:viewportWidth="108">
-    <!-- Background with SettleX brand colors -->
+    <!-- Simple solid background that complements the custom icon -->
     <path
         android:fillColor="#023c69"
         android:pathData="M0,0h108v108h-108z" />
-    <!-- Gradient overlay -->
-    <path
-        android:fillColor="#0d5c96"
-        android:pathData="M0,0L108,0L108,108L0,108Z" />
-    <!-- SettleX scales symbol -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M54,20C66,20 76,30 76,42C76,54 66,64 54,64C42,64 32,54 32,42C32,30 42,20 54,20Z" />
-    <!-- Scales detail -->
-    <path
-        android:fillColor="#023c69"
-        android:pathData="M54,26C62,26 68,32 68,40C68,48 62,54 54,54C46,54 40,48 40,40C40,32 46,26 54,26Z" />
-    <!-- Balance beam -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M25,42L83,42L83,46L25,46Z" />
-    <!-- Left scale -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M30,48L40,48L40,56L30,56Z" />
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M28,56L42,56L42,58L28,58Z" />
-    <!-- Right scale -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M68,48L78,48L78,56L68,56Z" />
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M66,56L80,56L80,58L66,58Z" />
-    <!-- Center pole -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M52,46L56,46L56,70L52,70Z" />
-    <!-- Base -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M45,70L63,70L63,74L45,74Z" />
-    <!-- SettleX text -->
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M35,82L73,82L73,86L35,86Z" />
-    <path
-        android:fillColor="#ffffff"
-        android:pathData="M38,88L70,88L70,91L38,91Z" />
 </vector>
