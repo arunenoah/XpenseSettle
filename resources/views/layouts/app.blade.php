@@ -91,20 +91,19 @@
         /* Force mobile header to stick */
         @media (max-width: 1024px) {
             .mobile-top-bar {
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                z-index: 9999 !important;
                 display: block !important;
-                visibility: visible !important;
             }
-            
-            /* Hide mobile top bar on desktop */
-            @media (min-width: 1025px) {
-                .mobile-top-bar {
-                    display: none !important;
-                }
+            .bottom-tab-bar {
+                display: flex !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+        }
+        
+        /* Hide mobile top bar on desktop */
+        @media (min-width: 1025px) {
+            .mobile-top-bar {
+                display: none !important;
             }
         }
         
@@ -399,7 +398,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
             </div>
-            <span class="text-xs">Add Group</span>
         </a>
 @elseif(request()->routeIs('groups.*') && request()->route('group'))
         <a href="{{ route('groups.expenses.create', request()->route('group')) }}" class="tab-item ripple" title="Add Expense">
