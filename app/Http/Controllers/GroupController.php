@@ -591,4 +591,193 @@ class GroupController extends Controller
 
         return redirect()->back()->with('success', 'Lifetime plan activated! You now have unlimited access to all features across all groups.');
     }
+
+    // ============================================================================
+    // API Methods - For mobile and programmatic access
+    // ============================================================================
+
+    /**
+     * API: List all groups for authenticated user
+     */
+    public function apiIndex(Request $request)
+    {
+        $groups = auth()->user()->groups()
+            ->withoutTrashed()
+            ->with('creator', 'members')
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $groups,
+        ]);
+    }
+
+    /**
+     * API: Get group details
+     */
+    public function apiShow(Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'group' => $group->load('creator', 'members'),
+                'total_expenses' => $group->expenses()->count(),
+                'total_members' => $group->members()->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * API: Create group
+     */
+    public function apiStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
+        ]);
+
+        try {
+            $group = $this->groupService->createGroup(auth()->user(), $validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Group created successfully',
+                'data' => $group,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create group: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Update group
+     */
+    public function apiUpdate(Request $request, Group $group)
+    {
+        $this->authorize('update', $group);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
+        ]);
+
+        try {
+            $group->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Group updated successfully',
+                'data' => $group,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update group: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Delete group
+     */
+    public function apiDestroy(Group $group)
+    {
+        $this->authorize('delete', $group);
+
+        try {
+            $group->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Group deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete group: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Get group members
+     */
+    public function apiMembers(Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $members = $group->members()
+            ->with('user')
+            ->get()
+            ->map(function ($member) {
+                return [
+                    'id' => $member->user->id,
+                    'name' => $member->user->name,
+                    'email' => $member->user->email,
+                    'role' => $member->role,
+                    'family_count' => $member->family_count,
+                    'joined_at' => $member->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'count' => $members->count(),
+            'data' => $members,
+        ]);
+    }
+
+    /**
+     * API: Add member to group
+     */
+    public function apiAddMember(Request $request, Group $group)
+    {
+        $this->authorize('update', $group);
+
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'role' => 'nullable|in:admin,member',
+            'family_count' => 'nullable|integer|min:1',
+        ]);
+
+        try {
+            // Find user by email
+            $user = User::where('email', $validated['email'])->first();
+
+            if ($group->members()->where('user_id', $user->id)->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User is already a member of this group',
+                ], 422);
+            }
+
+            // Add user to group
+            $member = GroupMember::create([
+                'group_id' => $group->id,
+                'user_id' => $user->id,
+                'role' => $validated['role'] ?? 'member',
+                'family_count' => $validated['family_count'] ?? 1,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Member added successfully',
+                'data' => $member,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add member: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

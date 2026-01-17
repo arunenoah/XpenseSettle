@@ -819,4 +819,134 @@ class DashboardController extends Controller
 
         return $transactions;
     }
+
+    // ============================================================================
+    // API Methods - For mobile and programmatic access
+    // ============================================================================
+
+    /**
+     * API: Get user dashboard summary
+     */
+    public function apiIndex(Request $request)
+    {
+        $user = auth()->user();
+        $groups = $user->groups()->withoutTrashed()->get();
+
+        $summary = [
+            'total_groups' => $groups->count(),
+            'total_expenses' => 0,
+            'total_owed' => 0,
+            'total_to_receive' => 0,
+        ];
+
+        foreach ($groups as $group) {
+            $summary['total_expenses'] += $group->expenses()->count();
+
+            // Calculate balances
+            $balances = $this->getUserGroupBalance($user, $group);
+            if ($balances['balance'] > 0) {
+                $summary['total_owed'] += $balances['balance'];
+            } else {
+                $summary['total_to_receive'] += abs($balances['balance']);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $summary,
+        ]);
+    }
+
+    /**
+     * API: Get group dashboard
+     */
+    public function apiGroupDashboard(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $user = auth()->user();
+        $expenses = $group->expenses()->with('payer', 'splits')->latest()->get();
+
+        $balance = $this->getUserGroupBalance($user, $group);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'group' => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'description' => $group->description,
+                    'currency' => $group->currency,
+                ],
+                'user_balance' => $balance,
+                'total_expenses' => $expenses->count(),
+                'total_amount' => $expenses->sum('amount'),
+                'member_count' => $group->members()->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * API: Get group settlement summary
+     */
+    public function apiGroupSummary(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $members = $group->members()->with('user')->get();
+        $balances = [];
+
+        foreach ($members as $member) {
+            $balance = $this->getUserGroupBalance($member->user, $group);
+            $balances[] = [
+                'user_id' => $member->user->id,
+                'user_name' => $member->user->name,
+                'balance' => $balance['balance'],
+                'owes' => $balance['balance'] > 0,
+                'is_owed' => $balance['balance'] < 0,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'group' => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                ],
+                'members_balances' => $balances,
+                'net_balance' => collect($balances)->sum('balance'),
+            ],
+        ]);
+    }
+
+    /**
+     * Helper: Get user's balance in a group
+     */
+    private function getUserGroupBalance($user, $group)
+    {
+        $expenses = $group->expenses()->with('payer', 'splits')->get();
+
+        $paid = 0;
+        $owes = 0;
+
+        foreach ($expenses as $expense) {
+            if ($expense->payer_id === $user->id) {
+                $paid += $expense->amount;
+            }
+
+            // Check splits
+            foreach ($expense->splits as $split) {
+                if ($split->user_id === $user->id) {
+                    $owes += $split->share_amount;
+                }
+            }
+        }
+
+        return [
+            'balance' => $owes - $paid,
+            'paid' => $paid,
+            'owes' => $owes,
+        ];
+    }
 }

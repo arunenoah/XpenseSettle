@@ -116,4 +116,91 @@ class AdvanceController extends Controller
             return redirect()->back()->with('error', 'Failed to delete advance: ' . $e->getMessage());
         }
     }
+
+    // ============================================================================
+    // API Methods - For mobile and programmatic access
+    // ============================================================================
+
+    /**
+     * API: Create advance record
+     */
+    public function apiStore(Request $request, Group $group)
+    {
+        // Check authorization
+        if (!$group->hasMember(auth()->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not a member of this group',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'sent_to_user_id' => 'required|exists:users,id',
+            'amount_per_person' => 'required|numeric|min:0.01',
+            'senders' => 'required|array|min:1',
+            'senders.*' => 'exists:users,id',
+            'date' => 'required|date',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Create the advance record
+            $advance = Advance::create([
+                'group_id' => $group->id,
+                'sent_to_user_id' => $validated['sent_to_user_id'],
+                'amount_per_person' => $validated['amount_per_person'],
+                'date' => $validated['date'],
+                'description' => $validated['description'],
+            ]);
+
+            // Attach the senders
+            $advance->senders()->attach($validated['senders']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Advance recorded successfully',
+                'data' => $advance->load('senders'),
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record advance: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Delete advance record
+     */
+    public function apiDestroy(Group $group, Advance $advance)
+    {
+        // Check authorization
+        if ($advance->group_id !== $group->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Advance not found in this group',
+            ], 404);
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not a member of this group',
+            ], 403);
+        }
+
+        try {
+            $advance->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Advance deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete advance: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

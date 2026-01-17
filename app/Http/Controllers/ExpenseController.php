@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Models\ExpenseSplit;
 use App\Models\Group;
 use App\Models\User;
 use App\Services\ActivityService;
@@ -401,6 +402,231 @@ class ExpenseController extends Controller
             );
 
             return back()->with('error', 'Failed to delete expense: ' . $e->getMessage());
+        }
+    }
+
+    // ============================================================================
+    // API Methods - For mobile and programmatic access
+    // ============================================================================
+
+    /**
+     * API: List expenses in group
+     */
+    public function apiIndex(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $expenses = $group->expenses()
+            ->with('payer', 'splits')
+            ->latest()
+            ->get()
+            ->map(function ($expense) {
+                return [
+                    'id' => $expense->id,
+                    'title' => $expense->title,
+                    'description' => $expense->description,
+                    'amount' => $expense->amount,
+                    'currency' => $expense->currency,
+                    'date' => $expense->date,
+                    'category' => $expense->category,
+                    'payer' => [
+                        'id' => $expense->payer->id,
+                        'name' => $expense->payer->name,
+                    ],
+                    'splits_count' => $expense->splits()->count(),
+                    'created_at' => $expense->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'count' => $expenses->count(),
+            'data' => $expenses,
+        ]);
+    }
+
+    /**
+     * API: Get expense details
+     */
+    public function apiShow(Group $group, Expense $expense)
+    {
+        if ($expense->group_id !== $group->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Expense not found in this group',
+            ], 404);
+        }
+
+        $this->authorize('viewMembers', $group);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $expense->id,
+                'title' => $expense->title,
+                'description' => $expense->description,
+                'amount' => $expense->amount,
+                'currency' => $expense->currency,
+                'date' => $expense->date,
+                'category' => $expense->category,
+                'payer' => [
+                    'id' => $expense->payer->id,
+                    'name' => $expense->payer->name,
+                    'email' => $expense->payer->email,
+                ],
+                'splits' => $expense->splits()
+                    ->with('user')
+                    ->get()
+                    ->map(function ($split) {
+                        return [
+                            'id' => $split->id,
+                            'user_id' => $split->user_id,
+                            'user_name' => $split->user->name,
+                            'share_amount' => $split->share_amount,
+                            'is_paid' => $split->is_paid,
+                        ];
+                    }),
+            ],
+        ]);
+    }
+
+    /**
+     * API: Create expense
+     */
+    public function apiStore(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
+            'date' => 'required|date',
+            'category' => 'nullable|string|max:255',
+            'split_type' => 'required|in:equal,itemwise,percentage',
+            'members' => 'required|array|min:1',
+            'members.*' => 'integer|exists:users,id',
+            'splits' => 'nullable|array',
+        ]);
+
+        try {
+            // Create expense
+            $expense = new Expense([
+                'group_id' => $group->id,
+                'payer_id' => auth()->id(),
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'amount' => $validated['amount'],
+                'currency' => $validated['currency'] ?? 'USD',
+                'date' => $validated['date'],
+                'category' => $validated['category'],
+                'split_type' => $validated['split_type'],
+            ]);
+            $expense->save();
+
+            // Process splits
+            $splits = $this->processSplits(
+                $validated['split_type'],
+                $validated['splits'] ?? null,
+                $validated['members'],
+                $validated['amount']
+            );
+
+            // Create expense splits
+            foreach ($splits as $userId => $amount) {
+                ExpenseSplit::create([
+                    'expense_id' => $expense->id,
+                    'user_id' => $userId,
+                    'share_amount' => $amount,
+                    'is_paid' => false,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense created successfully',
+                'data' => $expense->load('splits', 'payer'),
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create expense: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Update expense
+     */
+    public function apiUpdate(Request $request, Group $group, Expense $expense)
+    {
+        if ($expense->group_id !== $group->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Expense not found in this group',
+            ], 404);
+        }
+
+        $this->authorize('viewMembers', $group);
+
+        $validated = $request->validate([
+            'title' => 'sometimes|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'amount' => 'sometimes|numeric|min:0.01',
+            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
+            'date' => 'sometimes|date',
+            'category' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $expense->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense updated successfully',
+                'data' => $expense->load('splits', 'payer'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update expense: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Delete expense
+     */
+    public function apiDestroy(Group $group, Expense $expense)
+    {
+        if ($expense->group_id !== $group->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Expense not found in this group',
+            ], 404);
+        }
+
+        // Check authorization
+        if ($expense->payer_id !== auth()->id() && !$group->isAdmin(auth()->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You are not authorized to delete this expense',
+            ], 403);
+        }
+
+        try {
+            $this->expenseService->deleteExpense($expense);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Expense deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete expense: ' . $e->getMessage(),
+            ], 500);
         }
     }
 

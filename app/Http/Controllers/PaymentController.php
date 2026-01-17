@@ -1803,4 +1803,199 @@ class PaymentController extends Controller
             'details' => $analysis
         ], 200, [], JSON_PRETTY_PRINT);
     }
+
+    // ============================================================================
+    // API Methods - For mobile and programmatic access
+    // ============================================================================
+
+    /**
+     * API: Get payment history for a group
+     */
+    public function apiPaymentHistory(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $payments = $group->payments()
+            ->with('payer', 'recipient')
+            ->latest()
+            ->get()
+            ->map(function ($payment) {
+                return [
+                    'id' => $payment->id,
+                    'payer' => [
+                        'id' => $payment->payer->id,
+                        'name' => $payment->payer->name,
+                    ],
+                    'recipient' => [
+                        'id' => $payment->recipient->id,
+                        'name' => $payment->recipient->name,
+                    ],
+                    'amount' => $payment->amount,
+                    'status' => $payment->status,
+                    'created_at' => $payment->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'count' => $payments->count(),
+            'data' => $payments,
+        ]);
+    }
+
+    /**
+     * API: Get transaction history for a group
+     */
+    public function apiTransactionHistory(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $expenses = $group->expenses()
+            ->with('payer', 'splits.user')
+            ->latest()
+            ->get()
+            ->map(function ($expense) {
+                return [
+                    'id' => $expense->id,
+                    'type' => 'expense',
+                    'title' => $expense->title,
+                    'amount' => $expense->amount,
+                    'payer' => [
+                        'id' => $expense->payer->id,
+                        'name' => $expense->payer->name,
+                    ],
+                    'date' => $expense->date,
+                    'splits_count' => $expense->splits()->count(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'count' => $expenses->count(),
+            'data' => $expenses,
+        ]);
+    }
+
+    /**
+     * API: Mark payment as paid
+     */
+    public function apiMarkPayment(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $validated = $request->validate([
+            'split_id' => 'required|integer|exists:expense_splits,id',
+        ]);
+
+        try {
+            $split = ExpenseSplit::findOrFail($validated['split_id']);
+
+            // Verify split belongs to this group
+            if ($split->expense->group_id !== $group->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Split not found in this group',
+                ], 404);
+            }
+
+            $split->update(['is_paid' => true, 'paid_at' => now()]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment marked as paid',
+                'data' => $split,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark payment: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Batch mark payments as paid
+     */
+    public function apiMarkPaidBatch(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $validated = $request->validate([
+            'split_ids' => 'required|array|min:1',
+            'split_ids.*' => 'integer|exists:expense_splits,id',
+        ]);
+
+        try {
+            $updated = 0;
+            foreach ($validated['split_ids'] as $splitId) {
+                $split = ExpenseSplit::findOrFail($splitId);
+
+                // Verify split belongs to this group
+                if ($split->expense->group_id !== $group->id) {
+                    continue;
+                }
+
+                if (!$split->is_paid) {
+                    $split->update(['is_paid' => true, 'paid_at' => now()]);
+                    $updated++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payments marked as paid',
+                'updated' => $updated,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark payments: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Get settlement details for a group
+     */
+    public function apiSettlementDetails(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $settlement = $this->calculateSettlement($group, null);
+
+        return response()->json([
+            'success' => true,
+            'data' => $settlement,
+        ]);
+    }
+
+    /**
+     * API: Get recent activities in a group
+     */
+    public function apiRecentActivities(Request $request, Group $group)
+    {
+        $this->authorize('viewMembers', $group);
+
+        $expenses = $group->expenses()
+            ->with('payer')
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(function ($expense) {
+                return [
+                    'id' => $expense->id,
+                    'type' => 'expense_added',
+                    'title' => $expense->title,
+                    'description' => 'Expense added by ' . $expense->payer->name,
+                    'amount' => $expense->amount,
+                    'timestamp' => $expense->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'count' => $expenses->count(),
+            'data' => $expenses,
+        ]);
+    }
 }
