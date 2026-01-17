@@ -29,7 +29,51 @@ class GroupController extends Controller
     }
 
     /**
+     * API endpoint: Get list of all groups for the user
+     * Returns JSON with group details
+     */
+    public function apiIndex()
+    {
+        $groups = auth()->user()->groups()
+            ->withoutTrashed()
+            ->with('creator', 'members')
+            ->latest()
+            ->get();
+
+        return [
+            'success' => true,
+            'data' => [
+                'groups' => $groups->map(function ($group) {
+                    return [
+                        'id' => $group->id,
+                        'name' => $group->name,
+                        'description' => $group->description,
+                        'currency' => $group->currency ?? 'USD',
+                        'created_at' => $group->created_at,
+                        'creator' => [
+                            'id' => $group->creator->id,
+                            'name' => $group->creator->name,
+                            'email' => $group->creator->email,
+                        ],
+                        'member_count' => $group->members->count(),
+                        'is_admin' => $group->isAdmin(auth()->user()),
+                        'members' => $group->members->map(function ($member) {
+                            return [
+                                'id' => $member->id,
+                                'name' => $member->name,
+                                'email' => $member->email,
+                            ];
+                        })->toArray(),
+                    ];
+                })->toArray(),
+                'total_groups' => $groups->count(),
+            ]
+        ];
+    }
+
+    /**
      * Display list of all groups for the user.
+     * Web view - renders HTML groups list
      */
     public function index()
     {
@@ -92,8 +136,482 @@ class GroupController extends Controller
     }
 
     /**
+     * API endpoint: Get single group details
+     */
+    public function apiShow(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        // Check authorization
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        $group->load('creator', 'members', 'expenses');
+
+        return [
+            'success' => true,
+            'data' => [
+                'id' => $group->id,
+                'name' => $group->name,
+                'description' => $group->description,
+                'currency' => $group->currency ?? 'USD',
+                'icon' => $group->icon,
+                'created_at' => $group->created_at,
+                'created_by' => $group->created_by,
+                'creator' => [
+                    'id' => $group->creator->id,
+                    'name' => $group->creator->name,
+                    'email' => $group->creator->email,
+                ],
+                'member_count' => $group->members->count(),
+                'is_admin' => $group->isAdmin(auth()->user()),
+                'members' => $group->members->map(function ($member) {
+                    return [
+                        'id' => $member->id,
+                        'name' => $member->name,
+                        'email' => $member->email,
+                    ];
+                })->toArray(),
+                'expense_count' => $group->expenses()->count(),
+                'total_expense_amount' => $group->expenses()->sum('amount'),
+            ]
+        ];
+    }
+
+    /**
+     * API endpoint: Create a new group
+     */
+    public function apiStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
+        ]);
+
+        try {
+            $group = $this->groupService->createGroup(auth()->user(), $validated);
+
+            // Log group creation
+            $this->auditService->logSuccess(
+                'create_group',
+                'Group',
+                "Group '{$group->name}' created",
+                $group->id,
+                $group->id
+            );
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'description' => $group->description,
+                    'currency' => $group->currency ?? 'USD',
+                    'icon' => $group->icon,
+                    'created_at' => $group->created_at,
+                    'created_by' => $group->created_by,
+                    'creator' => [
+                        'id' => $group->creator->id,
+                        'name' => $group->creator->name,
+                        'email' => $group->creator->email,
+                    ],
+                    'member_count' => 1, // Just the creator initially
+                ],
+                'status' => 201,
+            ];
+        } catch (\Exception $e) {
+            // Log failed group creation
+            $this->auditService->logFailed(
+                'create_group',
+                'Group',
+                'Failed to create group',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to create group: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Update a group
+     */
+    public function apiUpdate(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        // Check authorization
+        if (!$group->isAdmin(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'Only group admins can update this group',
+                'status' => 403
+            ];
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
+        ]);
+
+        try {
+            // Track changes for audit log
+            $changes = [];
+            if ($group->name !== $validated['name']) {
+                $changes['name'] = ['from' => $group->name, 'to' => $validated['name']];
+            }
+            if ($group->description !== $validated['description']) {
+                $changes['description'] = ['from' => $group->description, 'to' => $validated['description']];
+            }
+            if ($group->currency !== $validated['currency']) {
+                $changes['currency'] = ['from' => $group->currency, 'to' => $validated['currency']];
+            }
+
+            $group = $this->groupService->updateGroup($group, $validated);
+
+            // Log group update if there were changes
+            if (!empty($changes)) {
+                $this->auditService->logSuccess(
+                    'update_group',
+                    'Group',
+                    "Group '{$group->name}' updated",
+                    $group->id,
+                    $group->id,
+                    $changes
+                );
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'description' => $group->description,
+                    'currency' => $group->currency ?? 'USD',
+                    'icon' => $group->icon,
+                    'created_at' => $group->created_at,
+                ],
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            // Log failed update
+            $this->auditService->logFailed(
+                'update_group',
+                'Group',
+                'Failed to update group',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to update group: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Delete a group
+     */
+    public function apiDestroy(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        // Check authorization
+        if (!$group->isAdmin(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'Only group admins can delete this group',
+                'status' => 403
+            ];
+        }
+
+        try {
+            $groupId = $group->id;
+            $groupName = $group->name;
+            $this->groupService->deleteGroup($group);
+
+            // Log group deletion
+            $this->auditService->logSuccess(
+                'delete_group',
+                'Group',
+                "Group '{$groupName}' deleted",
+                $groupId,
+                $groupId
+            );
+
+            return [
+                'success' => true,
+                'message' => "Group '{$groupName}' deleted successfully",
+                'data' => [
+                    'group_id' => $groupId,
+                    'group_name' => $groupName,
+                ],
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            // Log failed deletion
+            $this->auditService->logFailed(
+                'delete_group',
+                'Group',
+                'Failed to delete group',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to delete group: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Add a member to a group
+     */
+    public function apiAddMember(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        // Check authorization
+        if (!$group->isAdmin(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'Only group admins can add members',
+                'status' => 403
+            ];
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'family_count' => 'nullable|integer|min:1|max:20',
+        ]);
+
+        $userId = $validated['user_id'];
+        $memberUser = User::find($userId);
+
+        // Check if user is already a member
+        if ($group->hasMember($memberUser)) {
+            return [
+                'success' => false,
+                'message' => 'User is already a member of this group',
+                'status' => 409,
+            ];
+        }
+
+        try {
+            $member = GroupMember::create([
+                'group_id' => $group->id,
+                'user_id' => $userId,
+                'role' => 'member',
+                'family_count' => $validated['family_count'] ?? 1,
+            ]);
+
+            // Log member addition
+            $this->auditService->logSuccess(
+                'add_member',
+                'GroupMember',
+                "Member '{$memberUser->name}' added to group '{$group->name}'",
+                $member->id,
+                $group->id
+            );
+
+            // Send notification to the newly added user
+            $this->notificationService->notifyUserAddedToGroup($memberUser, $group, auth()->user());
+
+            return [
+                'success' => true,
+                'data' => [
+                    'member_id' => $member->id,
+                    'group_id' => $group->id,
+                    'user_id' => $memberUser->id,
+                    'user_name' => $memberUser->name,
+                    'user_email' => $memberUser->email,
+                    'role' => $member->role,
+                    'family_count' => $member->family_count ?? 1,
+                    'joined_at' => $member->created_at,
+                ],
+                'message' => $memberUser->name . ' has been added to the group',
+                'status' => 201,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to add member: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: List all members of a group (users and contacts)
+     */
+    public function apiMembers(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        // Check authorization - allow all members to view
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        try {
+            // Get all members (users + contacts) with relationships loaded
+            $allMembers = $group->allMembers()->get();
+
+            $membersData = $allMembers->map(function ($member) use ($group) {
+                // Determine member type and get appropriate details
+                if (method_exists($member, 'isActiveUser')) {
+                    // GroupMember object
+                    $isUser = $member->isActiveUser();
+                    $participant = $isUser ? $member->user : $member->contact;
+                    $type = $isUser ? 'user' : 'contact';
+                } else {
+                    // Direct User or Contact object
+                    $participant = $member;
+                    $type = $member instanceof \App\Models\User ? 'user' : 'contact';
+                }
+
+                $data = [
+                    'id' => $member->id ?? $participant->id,
+                    'name' => $participant->name,
+                    'email' => $participant->email ?? null,
+                    'type' => $type,
+                ];
+
+                // Add family_count for users if available
+                if (method_exists($member, 'isActiveUser') && $member->isActiveUser()) {
+                    $data['family_count'] = $member->family_count ?? 1;
+                    $data['role'] = $member->role ?? 'member';
+                }
+
+                return $data;
+            })->toArray();
+
+            return [
+                'success' => true,
+                'data' => [
+                    'group_id' => $group->id,
+                    'group_name' => $group->name,
+                    'members_count' => count($membersData),
+                    'members' => $membersData,
+                ],
+                'message' => 'Members retrieved successfully',
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve members: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
      * Display group dashboard with member balances and expenses.
      * Redirects to the dashboard which has the correct settlement calculations.
+     * Web route handler
      */
     public function show(Group $group)
     {
@@ -590,194 +1108,5 @@ class GroupController extends Controller
         $this->planService->activateLifetimePlan(auth()->user());
 
         return redirect()->back()->with('success', 'Lifetime plan activated! You now have unlimited access to all features across all groups.');
-    }
-
-    // ============================================================================
-    // API Methods - For mobile and programmatic access
-    // ============================================================================
-
-    /**
-     * API: List all groups for authenticated user
-     */
-    public function apiIndex(Request $request)
-    {
-        $groups = auth()->user()->groups()
-            ->withoutTrashed()
-            ->with('creator', 'members')
-            ->latest()
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $groups,
-        ]);
-    }
-
-    /**
-     * API: Get group details
-     */
-    public function apiShow(Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'group' => $group->load('creator', 'members'),
-                'total_expenses' => $group->expenses()->count(),
-                'total_members' => $group->members()->count(),
-            ],
-        ]);
-    }
-
-    /**
-     * API: Create group
-     */
-    public function apiStore(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
-        ]);
-
-        try {
-            $group = $this->groupService->createGroup(auth()->user(), $validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Group created successfully',
-                'data' => $group,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create group: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Update group
-     */
-    public function apiUpdate(Request $request, Group $group)
-    {
-        $this->authorize('update', $group);
-
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
-        ]);
-
-        try {
-            $group->update($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Group updated successfully',
-                'data' => $group,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update group: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Delete group
-     */
-    public function apiDestroy(Group $group)
-    {
-        $this->authorize('delete', $group);
-
-        try {
-            $group->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Group deleted successfully',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete group: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Get group members
-     */
-    public function apiMembers(Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $members = $group->members()
-            ->with('user')
-            ->get()
-            ->map(function ($member) {
-                return [
-                    'id' => $member->user->id,
-                    'name' => $member->user->name,
-                    'email' => $member->user->email,
-                    'role' => $member->role,
-                    'family_count' => $member->family_count,
-                    'joined_at' => $member->created_at,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'count' => $members->count(),
-            'data' => $members,
-        ]);
-    }
-
-    /**
-     * API: Add member to group
-     */
-    public function apiAddMember(Request $request, Group $group)
-    {
-        $this->authorize('update', $group);
-
-        $validated = $request->validate([
-            'email' => 'required|email|exists:users,email',
-            'role' => 'nullable|in:admin,member',
-            'family_count' => 'nullable|integer|min:1',
-        ]);
-
-        try {
-            // Find user by email
-            $user = User::where('email', $validated['email'])->first();
-
-            if ($group->members()->where('user_id', $user->id)->exists()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User is already a member of this group',
-                ], 422);
-            }
-
-            // Add user to group
-            $member = GroupMember::create([
-                'group_id' => $group->id,
-                'user_id' => $user->id,
-                'role' => $validated['role'] ?? 'member',
-                'family_count' => $validated['family_count'] ?? 1,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Member added successfully',
-                'data' => $member,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add member: ' . $e->getMessage(),
-            ], 500);
-        }
     }
 }

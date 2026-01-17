@@ -18,9 +18,10 @@ class DashboardController extends Controller
     }
 
     /**
-     * Display the user dashboard with summary and recent activity.
+     * API endpoint: Get user dashboard data
+     * Returns JSON with balance and settlement details
      */
-    public function index()
+    public function apiIndex()
     {
         $user = auth()->user();
 
@@ -252,6 +253,342 @@ class DashboardController extends Controller
             ->sortByDesc('total_owed')
             ->take(5);
 
+        // Filter settlement details to remove near-zero amounts and organize by person
+        $youOweBreakdown = $settlementDetailsByCurrency[$primaryCurrency]['you_owe_breakdown'] ?? [];
+        $theyOweYouBreakdown = $settlementDetailsByCurrency[$primaryCurrency]['they_owe_breakdown'] ?? [];
+
+        // Filter out near-zero amounts (< 0.01) and group by person
+        $youOweFiltered = [];
+        $youOweByPerson = []; // To aggregate across groups
+
+        foreach ($youOweBreakdown as $item) {
+            $amount = round($item['amount'], 2);
+            if ($amount > 0.01) { // Only include meaningful amounts
+                $personId = $item['person']['id'];
+
+                if (!isset($youOweByPerson[$personId])) {
+                    $youOweByPerson[$personId] = [
+                        'person' => $item['person'],
+                        'total_amount' => 0,
+                        'groups' => []
+                    ];
+                }
+
+                $youOweByPerson[$personId]['total_amount'] += $amount;
+                $youOweByPerson[$personId]['groups'][] = [
+                    'group_name' => $item['group_name'],
+                    'group_id' => $item['group_id'],
+                    'amount' => $amount,
+                    'expense_count' => $item['expense_count'],
+                    'expenses' => $item['expenses'] ?? [],
+                ];
+            }
+        }
+
+        $theyOweYouFiltered = [];
+        $theyOweYouByPerson = []; // To aggregate across groups
+
+        foreach ($theyOweYouBreakdown as $item) {
+            $amount = round($item['amount'], 2);
+            if ($amount > 0.01) { // Only include meaningful amounts
+                $personId = $item['person']['id'];
+
+                if (!isset($theyOweYouByPerson[$personId])) {
+                    $theyOweYouByPerson[$personId] = [
+                        'person' => $item['person'],
+                        'total_amount' => 0,
+                        'groups' => []
+                    ];
+                }
+
+                $theyOweYouByPerson[$personId]['total_amount'] += $amount;
+                $theyOweYouByPerson[$personId]['groups'][] = [
+                    'group_name' => $item['group_name'],
+                    'group_id' => $item['group_id'],
+                    'amount' => $amount,
+                    'expense_count' => $item['expense_count'],
+                    'expenses' => $item['expenses'] ?? [],
+                ];
+            }
+        }
+
+        return [
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+                'summary' => [
+                    'you_owe' => round($totalYouOwe, 2),
+                    'they_owe_you' => round($totalTheyOweYou, 2),
+                    'net_balance' => round($netBalance, 2),
+                    'pending_count' => $pendingCount,
+                    'currency' => $primaryCurrency,
+                ],
+                'you_owe_people' => array_map(function ($item) {
+                    return [
+                        'person' => [
+                            'id' => $item['person']['id'],
+                            'name' => $item['person']['name'],
+                            'email' => $item['person']['email'],
+                        ],
+                        'total_amount' => $item['total_amount'],
+                        'groups' => $item['groups'],
+                    ];
+                }, $youOweByPerson),
+                'they_owe_you_people' => array_map(function ($item) {
+                    return [
+                        'person' => [
+                            'id' => $item['person']['id'],
+                            'name' => $item['person']['name'],
+                            'email' => $item['person']['email'],
+                        ],
+                        'total_amount' => $item['total_amount'],
+                        'groups' => $item['groups'],
+                    ];
+                }, $theyOweYouByPerson),
+            ]
+        ];
+    }
+
+    /**
+     * Display the user dashboard with summary and recent activity.
+     * Web view - renders HTML dashboard
+     */
+    public function index()
+    {
+        $user = auth()->user();
+
+        // Get user's groups with expense stats
+        $groups = $user->groups()
+            ->with('expenses')
+            ->get()
+            ->map(function ($group) use ($user) {
+                return [
+                    'group' => $group,
+                    'total_expenses' => $group->expenses()->count(),
+                    'user_is_admin' => $group->isAdmin($user),
+                ];
+            });
+
+        // Get pending payments (exclude deleted groups)
+        $pendingPayments = $this->paymentService->getPendingPaymentsForUser($user)
+            ->load(['split.expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }])
+            ->filter(function ($payment) {
+                return $payment->split->expense->group !== null;
+            })
+            ->values();
+
+        // Get paid payments
+        $paidPayments = \App\Models\Payment::whereHas('split', function ($q) use ($user) {
+            $q->where('user_id', $user->id);
+        })
+            ->where('status', 'paid')
+            ->with(['split.expense.payer', 'split.expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }])
+            ->latest()
+            ->limit(10)
+            ->get()
+            ->filter(function ($payment) {
+                return $payment->split->expense->group !== null;
+            });
+
+        // Calculate totals across all groups - grouped by currency
+        $balancesByCurrency = [];  // currency => ['you_owe' => amount, 'they_owe' => amount]
+        $settlementDetailsByCurrency = [];  // currency => detailed breakdown for modal
+        $pendingCount = 0;
+
+        // Use PaymentController for consistent calculations
+        $paymentController = app(PaymentController::class);
+
+        // Track person balances across all groups per currency
+        $personBalancesByCurrency = [];  // currency => [personId => aggregated_data]
+
+        foreach ($user->groups as $group) {
+            $currency = $group->currency ?? 'INR';
+
+            // Initialize currency if not exists
+            if (!isset($balancesByCurrency[$currency])) {
+                $balancesByCurrency[$currency] = [
+                    'you_owe' => 0,
+                    'they_owe' => 0,
+                    'net' => 0
+                ];
+                $settlementDetailsByCurrency[$currency] = [
+                    'you_owe_breakdown' => [],
+                    'they_owe_breakdown' => [],
+                ];
+                $personBalancesByCurrency[$currency] = [];
+            }
+
+            // Get personal settlement for this group using PaymentController
+            $settlement = $paymentController->calculateSettlement($group, $user);
+
+            // Aggregate by person across groups in this currency
+            foreach ($settlement as $item) {
+                $personId = $item['user']->id;
+
+                if (!isset($personBalancesByCurrency[$currency][$personId])) {
+                    $personBalancesByCurrency[$currency][$personId] = [
+                        'person' => $item['user'],
+                        'net_amount' => 0,
+                        'groups' => [],  // Track which groups have balances with this person
+                        'all_expenses' => [],
+                        'all_split_ids' => [],
+                    ];
+                }
+
+                // Aggregate the net amount
+                $personBalancesByCurrency[$currency][$personId]['net_amount'] += $item['net_amount'];
+
+                // Track groups and expenses
+                $personBalancesByCurrency[$currency][$personId]['groups'][] = [
+                    'group_name' => $group->name,
+                    'group_id' => $group->id,
+                    'amount' => $item['net_amount'],
+                    'expense_count' => count($item['expenses'] ?? []),
+                    'expenses' => $item['expenses'] ?? [],
+                    'split_ids' => $item['split_ids'] ?? [],
+                ];
+
+                // Aggregate all expenses and split IDs
+                $personBalancesByCurrency[$currency][$personId]['all_expenses'] = array_merge(
+                    $personBalancesByCurrency[$currency][$personId]['all_expenses'],
+                    $item['expenses'] ?? []
+                );
+                $personBalancesByCurrency[$currency][$personId]['all_split_ids'] = array_merge(
+                    $personBalancesByCurrency[$currency][$personId]['all_split_ids'],
+                    $item['split_ids'] ?? []
+                );
+            }
+
+            $pendingCount += $pendingPayments
+                ->filter(function ($payment) use ($group) {
+                    return $payment->split->expense->group_id === $group->id;
+                })
+                ->count();
+        }
+
+        // Now build the final breakdowns with NET balances per person
+        foreach ($personBalancesByCurrency as $currency => $persons) {
+            foreach ($persons as $personId => $data) {
+                $netAmount = $data['net_amount'];
+
+                if ($netAmount > 0) {
+                    // User owes this person
+                    $balancesByCurrency[$currency]['you_owe'] += $netAmount;
+
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
+                        $personData = [
+                            'person' => $data['person'],
+                            'amount' => $groupData['amount'],  // Per-group amount
+                            'net_amount' => $groupData['amount'],
+                            'group_name' => $groupData['group_name'],
+                            'group_id' => $groupData['group_id'],
+                            'expense_count' => $groupData['expense_count'],
+                            'expenses' => $groupData['expenses'],
+                            'split_ids' => $groupData['split_ids'],
+                        ];
+                        $settlementDetailsByCurrency[$currency]['you_owe_breakdown'][] = $personData;
+                    }
+                } elseif ($netAmount < 0) {
+                    // This person owes user
+                    $balancesByCurrency[$currency]['they_owe'] += abs($netAmount);
+
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
+                        $personData = [
+                            'person' => $data['person'],
+                            'amount' => abs($groupData['amount']),  // Per-group amount
+                            'net_amount' => $groupData['amount'],
+                            'group_name' => $groupData['group_name'],
+                            'group_id' => $groupData['group_id'],
+                            'expense_count' => $groupData['expense_count'],
+                            'expenses' => $groupData['expenses'],
+                            'split_ids' => $groupData['split_ids'],
+                        ];
+                        $settlementDetailsByCurrency[$currency]['they_owe_breakdown'][] = $personData;
+                    }
+                }
+            }
+
+            // Calculate net for this currency
+            $balancesByCurrency[$currency]['net'] = $balancesByCurrency[$currency]['they_owe'] - $balancesByCurrency[$currency]['you_owe'];
+        }
+
+        // For backward compatibility, use primary currency (INR or first available)
+        $primaryCurrency = 'INR';
+        if (!isset($balancesByCurrency[$primaryCurrency]) && count($balancesByCurrency) > 0) {
+            $primaryCurrency = array_key_first($balancesByCurrency);
+        }
+
+        $totalYouOwe = $balancesByCurrency[$primaryCurrency]['you_owe'] ?? 0;
+        $totalTheyOweYou = $balancesByCurrency[$primaryCurrency]['they_owe'] ?? 0;
+        $netBalance = $balancesByCurrency[$primaryCurrency]['net'] ?? 0;
+
+        // Get recent expenses across all groups (exclude deleted groups)
+        $recentExpenses = Expense::whereHas('group', function ($q) {
+            $q->withoutTrashed();
+        })
+            ->whereHas('group.members', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->with(['payer', 'group' => function ($q) {
+                $q->withoutTrashed();
+            }])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Get expenses where user is a participant (exclude deleted groups)
+        $userExpenses = $user->expenseSplits()
+            ->whereHas('expense.group', function ($q) {
+                $q->withoutTrashed();
+            })
+            ->with(['expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }, 'expense.payer'])
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        // Get people who owe the user money (exclude deleted groups)
+        $peopleOweMe = \App\Models\Payment::whereHas('split.expense', function ($q) use ($user) {
+            $q->where('payer_id', $user->id);
+        })
+            ->whereHas('split.expense.group', function ($q) {
+                $q->withoutTrashed();
+            })
+            ->whereHas('split', function ($q) use ($user) {
+                $q->where('user_id', '!=', $user->id);
+            })
+            ->where('status', 'pending')
+            ->with(['split.user', 'split.expense.group' => function ($q) {
+                $q->withoutTrashed();
+            }])
+            ->get()
+            ->filter(function ($payment) {
+                return $payment->split->expense->group !== null;
+            })
+            ->groupBy('split.user_id')
+            ->map(function ($payments) {
+                $user = $payments->first()->split->user;
+                $totalOwed = $payments->sum('split.share_amount');
+                return [
+                    'user' => $user,
+                    'total_owed' => $totalOwed,
+                    'payment_count' => $payments->count(),
+                ];
+            })
+            ->sortByDesc('total_owed')
+            ->take(5);
+
         return view('dashboard', [
             'user' => $user,
             'groups' => $groups,
@@ -292,7 +629,182 @@ class DashboardController extends Controller
     }
 
     /**
+     * API endpoint: Get group-specific dashboard data
+     */
+    public function apiGroupDashboard(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        $user = auth()->user();
+
+        // Get balances for all members
+        $balances = app('App\Services\GroupService')->getGroupBalance($group);
+
+        // Get user's specific balance
+        $userBalance = $balances[$user->id] ?? [
+            'user' => $user,
+            'total_owed' => 0,
+            'total_paid' => 0,
+            'net_balance' => 0,
+        ];
+
+        // Get all expenses in this group (with payment relationships for settlement calculation)
+        $expenses = $group->expenses()
+            ->with('payer', 'splits.payment', 'splits.user', 'splits.contact')
+            ->latest()
+            ->get();
+
+        // Get pending payments for user in this group
+        $pendingPayments = $user->expenseSplits()
+            ->whereHas('expense', function ($q) use ($group) {
+                $q->where('group_id', $group->id);
+            })
+            ->whereDoesntHave('payment', function ($q) {
+                $q->where('status', 'paid');
+            })
+            ->with('expense', 'payment')
+            ->get();
+
+        // Get settlement summary (who owes whom)
+        $paymentController = app(PaymentController::class);
+        $settlement = $paymentController->calculateSettlement($group, $user);
+
+        // Calculate advance amounts for each member
+        $memberAdvances = $this->calculateMemberAdvances($group);
+
+        // Get recent paid payments for this group
+        $recentPayments = \App\Models\Payment::whereHas('split.expense', function ($q) use ($group) {
+            $q->where('group_id', $group->id);
+        })
+            ->where('status', 'paid')
+            ->with([
+                'split.user',
+                'split.expense.payer',
+                'split.expense.group',
+                'paidBy',
+                'attachments'
+            ])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        // Get recent advances for this group
+        $recentAdvances = \App\Models\Advance::where('group_id', $group->id)
+            ->with(['senders', 'sentTo'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        // Get recent received payments for this group
+        $recentReceivedPayments = \App\Models\ReceivedPayment::where('group_id', $group->id)
+            ->with(['fromUser', 'toUser'])
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        // Calculate family statistics
+        $userTotalHeadcount = $group->members()->sum('family_count') ?: 0;
+        $userCount = $group->members()->count();
+        if ($userTotalHeadcount == 0) {
+            $userTotalHeadcount = $userCount;
+        }
+
+        $contactTotalHeadcount = $group->contacts()->sum('family_count') ?: 0;
+        $contactCount = $group->contacts()->count();
+        if ($contactTotalHeadcount == 0) {
+            $contactTotalHeadcount = $contactCount;
+        }
+
+        $totalFamilyCount = $userTotalHeadcount + $contactTotalHeadcount;
+        $totalExpenses = $expenses->sum('amount');
+        $perHeadCost = $totalFamilyCount > 0 ? $totalExpenses / $totalFamilyCount : 0;
+        $memberCount = $userCount + $contactCount;
+        $perMemberShare = $memberCount > 0 ? $totalExpenses / $memberCount : 0;
+
+        return [
+            'success' => true,
+            'data' => [
+                'group' => [
+                    'id' => $group->id,
+                    'name' => $group->name,
+                    'description' => $group->description,
+                    'currency' => $group->currency ?? 'USD',
+                    'icon' => $group->icon,
+                ],
+                'user_balance' => [
+                    'user_id' => $userBalance['user']->id ?? $user->id,
+                    'total_owed' => round($userBalance['total_owed'] ?? 0, 2),
+                    'total_paid' => round($userBalance['total_paid'] ?? 0, 2),
+                    'net_balance' => round($userBalance['net_balance'] ?? 0, 2),
+                ],
+                'settlement' => array_map(function ($item) {
+                    return [
+                        'user' => [
+                            'id' => $item['user']->id,
+                            'name' => $item['user']->name,
+                            'email' => $item['user']->email,
+                        ],
+                        'net_amount' => round($item['net_amount'], 2),
+                        'expenses' => $item['expenses'] ?? [],
+                    ];
+                }, is_array($settlement) ? $settlement : $settlement->toArray()),
+                'pending_payments_count' => $pendingPayments->count(),
+                'recent_payments' => $recentPayments->map(function ($payment) {
+                    return [
+                        'id' => $payment->id,
+                        'amount' => $payment->split->share_amount,
+                        'payer' => $payment->split->expense->payer->name,
+                        'created_at' => $payment->created_at,
+                    ];
+                })->toArray(),
+                'statistics' => [
+                    'total_expenses' => round($totalExpenses, 2),
+                    'total_family_count' => $totalFamilyCount,
+                    'per_head_cost' => round($perHeadCost, 2),
+                    'member_count' => $memberCount,
+                    'per_member_share' => round($perMemberShare, 2),
+                ],
+                'members' => $group->members->map(function ($member) {
+                    return [
+                        'id' => $member->id,
+                        'name' => $member->name,
+                        'email' => $member->email,
+                        'family_count' => $member->family_count ?? 1,
+                    ];
+                })->toArray(),
+            ]
+        ];
+    }
+
+    /**
      * Display group-specific dashboard for members.
+     * Web view - renders HTML group dashboard
      */
     public function groupDashboard(Group $group)
     {
@@ -818,135 +1330,5 @@ class DashboardController extends Controller
         }
 
         return $transactions;
-    }
-
-    // ============================================================================
-    // API Methods - For mobile and programmatic access
-    // ============================================================================
-
-    /**
-     * API: Get user dashboard summary
-     */
-    public function apiIndex(Request $request)
-    {
-        $user = auth()->user();
-        $groups = $user->groups()->withoutTrashed()->get();
-
-        $summary = [
-            'total_groups' => $groups->count(),
-            'total_expenses' => 0,
-            'total_owed' => 0,
-            'total_to_receive' => 0,
-        ];
-
-        foreach ($groups as $group) {
-            $summary['total_expenses'] += $group->expenses()->count();
-
-            // Calculate balances
-            $balances = $this->getUserGroupBalance($user, $group);
-            if ($balances['balance'] > 0) {
-                $summary['total_owed'] += $balances['balance'];
-            } else {
-                $summary['total_to_receive'] += abs($balances['balance']);
-            }
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $summary,
-        ]);
-    }
-
-    /**
-     * API: Get group dashboard
-     */
-    public function apiGroupDashboard(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $user = auth()->user();
-        $expenses = $group->expenses()->with('payer', 'splits')->latest()->get();
-
-        $balance = $this->getUserGroupBalance($user, $group);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'group' => [
-                    'id' => $group->id,
-                    'name' => $group->name,
-                    'description' => $group->description,
-                    'currency' => $group->currency,
-                ],
-                'user_balance' => $balance,
-                'total_expenses' => $expenses->count(),
-                'total_amount' => $expenses->sum('amount'),
-                'member_count' => $group->members()->count(),
-            ],
-        ]);
-    }
-
-    /**
-     * API: Get group settlement summary
-     */
-    public function apiGroupSummary(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $members = $group->members()->with('user')->get();
-        $balances = [];
-
-        foreach ($members as $member) {
-            $balance = $this->getUserGroupBalance($member->user, $group);
-            $balances[] = [
-                'user_id' => $member->user->id,
-                'user_name' => $member->user->name,
-                'balance' => $balance['balance'],
-                'owes' => $balance['balance'] > 0,
-                'is_owed' => $balance['balance'] < 0,
-            ];
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'group' => [
-                    'id' => $group->id,
-                    'name' => $group->name,
-                ],
-                'members_balances' => $balances,
-                'net_balance' => collect($balances)->sum('balance'),
-            ],
-        ]);
-    }
-
-    /**
-     * Helper: Get user's balance in a group
-     */
-    private function getUserGroupBalance($user, $group)
-    {
-        $expenses = $group->expenses()->with('payer', 'splits')->get();
-
-        $paid = 0;
-        $owes = 0;
-
-        foreach ($expenses as $expense) {
-            if ($expense->payer_id === $user->id) {
-                $paid += $expense->amount;
-            }
-
-            // Check splits
-            foreach ($expense->splits as $split) {
-                if ($split->user_id === $user->id) {
-                    $owes += $split->share_amount;
-                }
-            }
-        }
-
-        return [
-            'balance' => $owes - $paid,
-            'paid' => $paid,
-            'owes' => $owes,
-        ];
     }
 }

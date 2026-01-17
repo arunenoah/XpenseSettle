@@ -16,6 +16,121 @@ class AdvanceController extends Controller
     {
         $this->auditService = $auditService;
     }
+
+    /**
+     * API endpoint: Record an advance/prepayment for group members
+     */
+    public function apiStore(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        $validated = $request->validate([
+            'sent_to_user_id' => 'required|exists:users,id',
+            'amount_per_person' => 'required|numeric|min:0.01',
+            'senders' => 'required|array|min:1',
+            'senders.*' => 'exists:users,id',
+            'date' => 'required|date',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Create the advance record
+            $advance = Advance::create([
+                'group_id' => $group->id,
+                'sent_to_user_id' => $validated['sent_to_user_id'],
+                'amount_per_person' => $validated['amount_per_person'],
+                'date' => $validated['date'],
+                'description' => $validated['description'],
+            ]);
+
+            // Attach the senders
+            $advance->senders()->attach($validated['senders']);
+
+            // Log advance recording
+            $totalAmount = $validated['amount_per_person'] * count($validated['senders']);
+            $this->auditService->logSuccess(
+                'record_advance',
+                'Advance',
+                "Advance of {$totalAmount} recorded in group '{$group->name}'",
+                $advance->id,
+                $group->id
+            );
+
+            // Log activity for timeline
+            ActivityService::logAdvancePaid($group, $advance, $validated['senders']);
+
+            // Load relationships for response
+            $advance->load('senders', 'sentTo');
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $advance->id,
+                    'group_id' => $group->id,
+                    'amount_per_person' => round($advance->amount_per_person, 2),
+                    'total_amount' => round($validated['amount_per_person'] * count($validated['senders']), 2),
+                    'date' => $advance->date,
+                    'description' => $advance->description,
+                    'created_at' => $advance->created_at,
+                    'sent_to' => [
+                        'id' => $advance->sentTo->id,
+                        'name' => $advance->sentTo->name,
+                        'email' => $advance->sentTo->email,
+                    ],
+                    'senders' => $advance->senders->map(function ($sender) {
+                        return [
+                            'id' => $sender->id,
+                            'name' => $sender->name,
+                            'email' => $sender->email,
+                        ];
+                    })->toArray(),
+                    'sender_count' => count($validated['senders']),
+                ],
+                'message' => 'Advance recorded successfully',
+                'status' => 201,
+            ];
+        } catch (\Exception $e) {
+            // Log failed advance recording
+            $this->auditService->logFailed(
+                'record_advance',
+                'Advance',
+                'Failed to record advance',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to record advance: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
     /**
      * Store a newly created advance.
      */
@@ -114,93 +229,6 @@ class AdvanceController extends Controller
             );
 
             return redirect()->back()->with('error', 'Failed to delete advance: ' . $e->getMessage());
-        }
-    }
-
-    // ============================================================================
-    // API Methods - For mobile and programmatic access
-    // ============================================================================
-
-    /**
-     * API: Create advance record
-     */
-    public function apiStore(Request $request, Group $group)
-    {
-        // Check authorization
-        if (!$group->hasMember(auth()->user())) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not a member of this group',
-            ], 403);
-        }
-
-        $validated = $request->validate([
-            'sent_to_user_id' => 'required|exists:users,id',
-            'amount_per_person' => 'required|numeric|min:0.01',
-            'senders' => 'required|array|min:1',
-            'senders.*' => 'exists:users,id',
-            'date' => 'required|date',
-            'description' => 'nullable|string|max:500',
-        ]);
-
-        try {
-            // Create the advance record
-            $advance = Advance::create([
-                'group_id' => $group->id,
-                'sent_to_user_id' => $validated['sent_to_user_id'],
-                'amount_per_person' => $validated['amount_per_person'],
-                'date' => $validated['date'],
-                'description' => $validated['description'],
-            ]);
-
-            // Attach the senders
-            $advance->senders()->attach($validated['senders']);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Advance recorded successfully',
-                'data' => $advance->load('senders'),
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to record advance: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Delete advance record
-     */
-    public function apiDestroy(Group $group, Advance $advance)
-    {
-        // Check authorization
-        if ($advance->group_id !== $group->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Advance not found in this group',
-            ], 404);
-        }
-
-        if (!$group->hasMember(auth()->user())) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not a member of this group',
-            ], 403);
-        }
-
-        try {
-            $advance->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Advance deleted successfully',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete advance: ' . $e->getMessage(),
-            ], 500);
         }
     }
 }

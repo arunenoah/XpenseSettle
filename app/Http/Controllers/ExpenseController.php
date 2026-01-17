@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
-use App\Models\ExpenseSplit;
 use App\Models\Group;
 use App\Models\User;
 use App\Services\ActivityService;
@@ -26,6 +25,396 @@ class ExpenseController extends Controller
         $this->notificationService = $notificationService;
         $this->planService = $planService;
         $this->auditService = $auditService;
+    }
+
+    /**
+     * API endpoint: Get list of all expenses in a group
+     */
+    public function apiIndex(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        $expenses = $group->expenses()
+            ->with('payer', 'splits.user', 'splits.contact', 'splits.payment')
+            ->latest()
+            ->get();
+
+        return [
+            'success' => true,
+            'data' => [
+                'group_id' => $group->id,
+                'group_name' => $group->name,
+                'currency' => $group->currency ?? 'USD',
+                'expenses' => $expenses->map(function ($expense) {
+                    return [
+                        'id' => $expense->id,
+                        'title' => $expense->title,
+                        'description' => $expense->description,
+                        'amount' => round($expense->amount, 2),
+                        'date' => $expense->date,
+                        'category' => $expense->category,
+                        'created_at' => $expense->created_at,
+                        'payer' => [
+                            'id' => $expense->payer->id,
+                            'name' => $expense->payer->name,
+                            'email' => $expense->payer->email,
+                        ],
+                        'split_count' => $expense->splits->count(),
+                        'splits' => $expense->splits->map(function ($split) {
+                            $participant = $split->user ?? $split->contact;
+                            return [
+                                'id' => $split->id,
+                                'participant_id' => $participant->id,
+                                'participant_name' => $participant->name,
+                                'participant_email' => $participant->email ?? null,
+                                'share_amount' => round($split->share_amount, 2),
+                                'payment_status' => $split->payment ? $split->payment->status : 'pending',
+                            ];
+                        })->toArray(),
+                    ];
+                })->toArray(),
+                'total_expenses' => round($expenses->sum('amount'), 2),
+                'expense_count' => $expenses->count(),
+            ]
+        ];
+    }
+
+    /**
+     * API endpoint: Create a new expense with equal or custom split
+     */
+    public function apiStore(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'amount' => 'required|numeric|min:0.01',
+            'date' => 'required|date',
+            'category' => 'nullable|string|in:Accommodation,Food & Dining,Groceries,Transport,Activities,Shopping,Utilities & Services,Fees & Charges,Other',
+            'split_type' => 'required|in:equal,custom',
+            'splits' => 'nullable|array',
+            'splits.*' => 'nullable|numeric|min:0',
+            'payer_id' => 'nullable|exists:users,id',
+        ]);
+
+        try {
+            // Get the selected payer (default to logged-in user)
+            $payerId = $validated['payer_id'] ?? auth()->id();
+            $payer = User::findOrFail($payerId);
+
+            // Verify payer is a member of the group
+            if (!$group->hasMember($payer)) {
+                return [
+                    'success' => false,
+                    'message' => 'The selected payer is not a member of this group',
+                    'status' => 400
+                ];
+            }
+
+            // Get all members (users + contacts) for validation
+            // For API, load fresh members to ensure relationships are loaded
+            $group = $group->fresh();
+            $allMembers = $group->allMembers()->get();
+
+            if (count($allMembers) === 0) {
+                // Fallback to members if allMembers returns empty
+                $allMembers = $group->members()->get();
+            }
+
+            // Process splits based on type
+            $processedSplits = $this->processSplits(
+                $request->get('split_type'),
+                $request->get('splits'),
+                $allMembers,
+                $validated['amount']
+            );
+
+            // Add processed splits to validated data
+            $validated['splits'] = $processedSplits;
+
+            $expense = $this->expenseService->createExpense(
+                $group,
+                $payer,
+                $validated
+            );
+
+            // Log expense creation to audit trail
+            $this->auditService->logSuccess(
+                'create_expense',
+                'Expense',
+                "Expense '{$validated['title']}' ({$validated['amount']}) created in group '{$group->name}'",
+                $expense->id,
+                $group->id
+            );
+
+            // Log activity for timeline
+            ActivityService::logExpenseCreated($group, $expense);
+
+            // Send notification to group members about the new expense
+            $this->notificationService->notifyExpenseCreated($expense, auth()->user());
+
+            // Load relationships for response
+            $expense->load('payer', 'splits.user', 'splits.contact', 'splits.payment');
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $expense->id,
+                    'group_id' => $group->id,
+                    'title' => $expense->title,
+                    'description' => $expense->description,
+                    'amount' => round($expense->amount, 2),
+                    'date' => $expense->date,
+                    'category' => $expense->category,
+                    'split_type' => $expense->split_type,
+                    'created_at' => $expense->created_at,
+                    'payer' => [
+                        'id' => $expense->payer->id,
+                        'name' => $expense->payer->name,
+                        'email' => $expense->payer->email,
+                    ],
+                    'split_count' => $expense->splits->count(),
+                    'splits' => $expense->splits->map(function ($split) {
+                        $participant = $split->user ?? $split->contact;
+                        return [
+                            'id' => $split->id,
+                            'participant_id' => $participant->id,
+                            'participant_name' => $participant->name,
+                            'share_amount' => round($split->share_amount, 2),
+                            'payment_status' => $split->payment ? $split->payment->status : 'pending',
+                        ];
+                    })->toArray(),
+                ],
+                'message' => 'Expense created successfully',
+                'status' => 201,
+            ];
+        } catch (\Exception $e) {
+            // Log failed expense creation
+            $this->auditService->logFailed(
+                'create_expense',
+                'Expense',
+                'Failed to create expense',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to create expense: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Update an existing expense
+     */
+    public function apiUpdate(Request $request)
+    {
+        $expenseId = $request->query('expense_id') ?? $request->input('expense_id');
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$expenseId || !$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameters: expense_id and group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        $expense = Expense::find($expenseId);
+        if (!$expense || $expense->group_id !== $group->id) {
+            return [
+                'success' => false,
+                'message' => 'Expense not found in this group',
+                'status' => 404
+            ];
+        }
+
+        // Check authorization
+        if ($expense->payer_id !== auth()->id() && !$group->isAdmin(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not authorized to edit this expense',
+                'status' => 403
+            ];
+        }
+
+        // Check if expense is fully paid
+        if ($expense->status === 'fully_paid') {
+            return [
+                'success' => false,
+                'message' => 'Cannot edit a fully paid expense',
+                'status' => 400
+            ];
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'amount' => 'required|numeric|min:0.01',
+            'date' => 'required|date',
+            'category' => 'nullable|string|in:Accommodation,Food & Dining,Groceries,Transport,Activities,Shopping,Utilities & Services,Fees & Charges,Other',
+            'split_type' => 'required|in:equal,custom',
+            'splits' => 'nullable|array',
+            'splits.*' => 'nullable|numeric|min:0',
+        ]);
+
+        try {
+            // Track changes for audit log
+            $changes = [];
+            if ($expense->title !== $validated['title']) {
+                $changes['title'] = ['from' => $expense->title, 'to' => $validated['title']];
+            }
+            if ($expense->amount != $validated['amount']) {
+                $changes['amount'] = ['from' => $expense->amount, 'to' => $validated['amount']];
+            }
+
+            // Get all members (users + contacts) for validation
+            // For API, load fresh members to ensure relationships are loaded
+            $group = $group->fresh();
+            $allMembers = $group->allMembers()->get();
+
+            if (count($allMembers) === 0) {
+                // Fallback to members if allMembers returns empty
+                $allMembers = $group->members()->get();
+            }
+
+            // Process splits
+            $processedSplits = $this->processSplits(
+                $request->get('split_type'),
+                $request->get('splits'),
+                $allMembers,
+                $validated['amount']
+            );
+
+            $validated['splits'] = $processedSplits;
+
+            $expense = $this->expenseService->updateExpense($expense, $validated);
+
+            // Log expense update if there were changes
+            if (!empty($changes)) {
+                $this->auditService->logSuccess(
+                    'update_expense',
+                    'Expense',
+                    "Expense '{$validated['title']}' updated in group '{$group->name}'",
+                    $expense->id,
+                    $group->id,
+                    $changes
+                );
+            }
+
+            // Load relationships for response
+            $expense->load('payer', 'splits.user', 'splits.contact', 'splits.payment');
+
+            return [
+                'success' => true,
+                'data' => [
+                    'id' => $expense->id,
+                    'group_id' => $group->id,
+                    'title' => $expense->title,
+                    'description' => $expense->description,
+                    'amount' => round($expense->amount, 2),
+                    'date' => $expense->date,
+                    'category' => $expense->category,
+                    'split_type' => $expense->split_type,
+                    'created_at' => $expense->created_at,
+                    'updated_at' => $expense->updated_at,
+                    'payer' => [
+                        'id' => $expense->payer->id,
+                        'name' => $expense->payer->name,
+                        'email' => $expense->payer->email,
+                    ],
+                    'split_count' => $expense->splits->count(),
+                    'splits' => $expense->splits->map(function ($split) {
+                        $participant = $split->user ?? $split->contact;
+                        return [
+                            'id' => $split->id,
+                            'participant_id' => $participant->id,
+                            'participant_name' => $participant->name,
+                            'share_amount' => round($split->share_amount, 2),
+                            'payment_status' => $split->payment ? $split->payment->status : 'pending',
+                        ];
+                    })->toArray(),
+                ],
+                'message' => 'Expense updated successfully',
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            // Log failed expense update
+            $this->auditService->logFailed(
+                'update_expense',
+                'Expense',
+                'Failed to update expense',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to update expense: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
     }
 
     /**
@@ -405,231 +794,6 @@ class ExpenseController extends Controller
         }
     }
 
-    // ============================================================================
-    // API Methods - For mobile and programmatic access
-    // ============================================================================
-
-    /**
-     * API: List expenses in group
-     */
-    public function apiIndex(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $expenses = $group->expenses()
-            ->with('payer', 'splits')
-            ->latest()
-            ->get()
-            ->map(function ($expense) {
-                return [
-                    'id' => $expense->id,
-                    'title' => $expense->title,
-                    'description' => $expense->description,
-                    'amount' => $expense->amount,
-                    'currency' => $expense->currency,
-                    'date' => $expense->date,
-                    'category' => $expense->category,
-                    'payer' => [
-                        'id' => $expense->payer->id,
-                        'name' => $expense->payer->name,
-                    ],
-                    'splits_count' => $expense->splits()->count(),
-                    'created_at' => $expense->created_at,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'count' => $expenses->count(),
-            'data' => $expenses,
-        ]);
-    }
-
-    /**
-     * API: Get expense details
-     */
-    public function apiShow(Group $group, Expense $expense)
-    {
-        if ($expense->group_id !== $group->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Expense not found in this group',
-            ], 404);
-        }
-
-        $this->authorize('viewMembers', $group);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $expense->id,
-                'title' => $expense->title,
-                'description' => $expense->description,
-                'amount' => $expense->amount,
-                'currency' => $expense->currency,
-                'date' => $expense->date,
-                'category' => $expense->category,
-                'payer' => [
-                    'id' => $expense->payer->id,
-                    'name' => $expense->payer->name,
-                    'email' => $expense->payer->email,
-                ],
-                'splits' => $expense->splits()
-                    ->with('user')
-                    ->get()
-                    ->map(function ($split) {
-                        return [
-                            'id' => $split->id,
-                            'user_id' => $split->user_id,
-                            'user_name' => $split->user->name,
-                            'share_amount' => $split->share_amount,
-                            'is_paid' => $split->is_paid,
-                        ];
-                    }),
-            ],
-        ]);
-    }
-
-    /**
-     * API: Create expense
-     */
-    public function apiStore(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'amount' => 'required|numeric|min:0.01',
-            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
-            'date' => 'required|date',
-            'category' => 'nullable|string|max:255',
-            'split_type' => 'required|in:equal,itemwise,percentage',
-            'members' => 'required|array|min:1',
-            'members.*' => 'integer|exists:users,id',
-            'splits' => 'nullable|array',
-        ]);
-
-        try {
-            // Create expense
-            $expense = new Expense([
-                'group_id' => $group->id,
-                'payer_id' => auth()->id(),
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'amount' => $validated['amount'],
-                'currency' => $validated['currency'] ?? 'USD',
-                'date' => $validated['date'],
-                'category' => $validated['category'],
-                'split_type' => $validated['split_type'],
-            ]);
-            $expense->save();
-
-            // Process splits
-            $splits = $this->processSplits(
-                $validated['split_type'],
-                $validated['splits'] ?? null,
-                $validated['members'],
-                $validated['amount']
-            );
-
-            // Create expense splits
-            foreach ($splits as $userId => $amount) {
-                ExpenseSplit::create([
-                    'expense_id' => $expense->id,
-                    'user_id' => $userId,
-                    'share_amount' => $amount,
-                    'is_paid' => false,
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Expense created successfully',
-                'data' => $expense->load('splits', 'payer'),
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create expense: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Update expense
-     */
-    public function apiUpdate(Request $request, Group $group, Expense $expense)
-    {
-        if ($expense->group_id !== $group->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Expense not found in this group',
-            ], 404);
-        }
-
-        $this->authorize('viewMembers', $group);
-
-        $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'amount' => 'sometimes|numeric|min:0.01',
-            'currency' => 'nullable|string|in:USD,EUR,GBP,INR,AUD,CAD',
-            'date' => 'sometimes|date',
-            'category' => 'nullable|string|max:255',
-        ]);
-
-        try {
-            $expense->update($validated);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Expense updated successfully',
-                'data' => $expense->load('splits', 'payer'),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update expense: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Delete expense
-     */
-    public function apiDestroy(Group $group, Expense $expense)
-    {
-        if ($expense->group_id !== $group->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Expense not found in this group',
-            ], 404);
-        }
-
-        // Check authorization
-        if ($expense->payer_id !== auth()->id() && !$group->isAdmin(auth()->user())) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You are not authorized to delete this expense',
-            ], 403);
-        }
-
-        try {
-            $this->expenseService->deleteExpense($expense);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Expense deleted successfully',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete expense: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
     /**
      * Process splits based on split type.
      *
@@ -648,14 +812,17 @@ class ExpenseController extends Controller
             $result = [];
 
             foreach ($members as $member) {
-                $result[$member->id] = $splitAmount;
+                // For GroupMember objects, use user_id or contact_id as the key
+                $memberId = $this->getMemberId($member);
+                $result[$memberId] = $splitAmount;
             }
 
             // Handle rounding issues
             $totalSplit = array_sum($result);
             if (abs($totalSplit - $totalAmount) > 0.01) {
                 $diff = round($totalAmount - $totalSplit, 2);
-                $result[$members[0]->id] += $diff;
+                $firstMemberId = $this->getMemberId($members[0]);
+                $result[$firstMemberId] += $diff;
             }
 
             return $result;
@@ -664,13 +831,26 @@ class ExpenseController extends Controller
             $customSplits = [];
 
             foreach ($members as $member) {
-                $customSplits[$member->id] = isset($splits[$member->id])
-                    ? round((float) $splits[$member->id], 2)
-                    : 0;
+                // For GroupMember objects, use user_id or contact_id as the key
+                $memberId = $this->getMemberId($member);
+
+                // Try both integer and string keys for flexibility
+                $key = $memberId;
+                $stringKey = (string) $memberId;
+
+                $value = 0;
+                if (isset($splits[$key])) {
+                    $value = round((float) $splits[$key], 2);
+                } elseif (isset($splits[$stringKey])) {
+                    $value = round((float) $splits[$stringKey], 2);
+                }
+
+                $customSplits[$memberId] = $value;
             }
 
             // Validate total
             $splitTotal = array_sum($customSplits);
+
             if (abs($splitTotal - $totalAmount) > 0.01) {
                 throw new \Exception(
                     "Splits total (\${$splitTotal}) does not match expense amount (\${$totalAmount})"
@@ -679,5 +859,23 @@ class ExpenseController extends Controller
 
             return $customSplits;
         }
+    }
+
+    /**
+     * Get the actual member ID (user_id or contact_id) from a member object.
+     * Handles both GroupMember objects and direct User/Contact objects.
+     *
+     * @param mixed $member
+     * @return int
+     */
+    private function getMemberId($member): int
+    {
+        // If it's a GroupMember object
+        if (method_exists($member, 'isActiveUser')) {
+            return $member->isActiveUser() ? $member->user_id : $member->contact_id;
+        }
+
+        // If it's a direct User or Contact object
+        return $member->id;
     }
 }

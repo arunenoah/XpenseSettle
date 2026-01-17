@@ -35,6 +35,712 @@ class PaymentController extends Controller
     }
 
     /**
+     * API: Get settlement details for a user in a group
+     *
+     * @param Request $request HTTP request with group_id parameter
+     * @return array API response with settlement details for all members (including settled)
+     */
+    public function settlementDetails(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'group_id parameter is required',
+                'status' => 400,
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404,
+            ];
+        }
+
+        // Check if user is member of group
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403,
+            ];
+        }
+
+        $user = auth()->user();
+
+        // Get settlement details for the current user
+        $settlements = $this->calculateSettlement($group, $user);
+
+        // Get all group members to include even those with zero settlement
+        $allMembers = $group->members()->get();
+        $memberIds = $allMembers->pluck('id')->toArray();
+
+        // Create a map of settlements by user ID for easy lookup
+        $settlementMap = [];
+        foreach ($settlements as $settlement) {
+            $settlementMap[$settlement['user']->id] = $settlement;
+        }
+
+        // Build comprehensive member list including those not in settlement
+        $memberSettlements = [];
+        foreach ($allMembers as $member) {
+            if ($member->id === $user->id) {
+                continue; // Skip current user
+            }
+
+            if (isset($settlementMap[$member->id])) {
+                // Member has settlement history
+                $settlement = $settlementMap[$member->id];
+                $memberSettlements[] = [
+                    'user_id' => $member->id,
+                    'user_name' => $member->name,
+                    'user' => $member,
+                    'amount' => $settlement['amount'],
+                    'net_amount' => $settlement['net_amount'],
+                    'status' => $settlement['status'],
+                    'is_settled' => abs($settlement['net_amount']) < 0.01,
+                    'expenses' => $settlement['expenses'] ?? [],
+                    'split_ids' => $settlement['split_ids'] ?? [],
+                ];
+            } else {
+                // Member with no settlement (fully settled from start)
+                $memberSettlements[] = [
+                    'user_id' => $member->id,
+                    'user_name' => $member->name,
+                    'user' => $member,
+                    'amount' => 0,
+                    'net_amount' => 0,
+                    'status' => 'settled',
+                    'is_settled' => true,
+                    'expenses' => [],
+                    'split_ids' => [],
+                ];
+            }
+        }
+
+        // Calculate summary totals
+        $totalYouOwe = 0;
+        $totalOwedToYou = 0;
+        foreach ($settlements as $settlement) {
+            if ($settlement['net_amount'] > 0) {
+                $totalYouOwe += $settlement['net_amount'];
+            } else {
+                $totalOwedToYou += abs($settlement['net_amount']);
+            }
+        }
+
+        return [
+            'success' => true,
+            'data' => [
+                'group_id' => $group->id,
+                'group_name' => $group->name,
+                'members' => $memberSettlements,
+                'total_count' => count($memberSettlements),
+                'summary' => [
+                    'total_you_owe' => round($totalYouOwe, 2),
+                    'total_owed_to_you' => round($totalOwedToYou, 2),
+                    'net_balance' => round($totalOwedToYou - $totalYouOwe, 2),
+                ],
+            ],
+            'status' => 200,
+        ];
+    }
+
+    /**
+     * API endpoint: Get payment history for a group
+     */
+    public function apiPaymentHistory(Group $group)
+    {
+        // Check authorization
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        try {
+            $user = auth()->user();
+
+            // Get payments for this group
+            $payments = Payment::whereHas('split.expense', function ($q) use ($group) {
+                $q->where('group_id', $group->id);
+            })
+            ->whereHas('split', function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                ->whereRaw('`expense_splits`.`user_id` != (SELECT `payer_id` FROM `expenses` WHERE `expenses`.`id` = `expense_splits`.`expense_id`)');
+            })
+            ->with([
+                'split.user',
+                'split.expense.payer',
+                'split.expense.group',
+                'paidBy',
+                'attachments'
+            ])
+            ->latest()
+            ->get();
+
+            $paymentsData = $payments->map(function ($payment) {
+                return [
+                    'id' => $payment->id,
+                    'split_id' => $payment->split_id,
+                    'amount' => round($payment->amount, 2),
+                    'status' => $payment->status,
+                    'paid_date' => $payment->paid_date,
+                    'created_at' => $payment->created_at,
+                    'paid_by' => $payment->paidBy ? [
+                        'id' => $payment->paidBy->id,
+                        'name' => $payment->paidBy->name,
+                        'email' => $payment->paidBy->email,
+                    ] : null,
+                    'expense' => [
+                        'id' => $payment->split->expense->id,
+                        'title' => $payment->split->expense->title,
+                        'amount' => round($payment->split->expense->amount, 2),
+                        'payer' => [
+                            'id' => $payment->split->expense->payer->id,
+                            'name' => $payment->split->expense->payer->name,
+                        ],
+                    ],
+                ];
+            })->toArray();
+
+            return [
+                'success' => true,
+                'data' => [
+                    'group_id' => $group->id,
+                    'group_name' => $group->name,
+                    'payments_count' => count($paymentsData),
+                    'payments' => $paymentsData,
+                ],
+                'message' => 'Payment history retrieved successfully',
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve payment history: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Mark a single split payment as paid
+     */
+    public function apiMarkPayment(Request $request)
+    {
+        $splitId = $request->query('split_id') ?? $request->input('split_id');
+
+        if (!$splitId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: split_id',
+                'status' => 400
+            ];
+        }
+
+        $split = ExpenseSplit::find($splitId);
+        if (!$split) {
+            return [
+                'success' => false,
+                'message' => 'Payment not found',
+                'status' => 404
+            ];
+        }
+
+        $user = auth()->user();
+
+        // Check authorization - only the person who owes can mark as paid
+        if ($split->user_id !== $user->id) {
+            return [
+                'success' => false,
+                'message' => 'You can only mark your own payments as paid',
+                'status' => 403
+            ];
+        }
+
+        $validated = $request->validate([
+            'paid_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            // Create or update payment
+            $payment = $this->paymentService->markAsPaid($split, $user, $validated);
+
+            // Log payment marked as paid
+            $expense = $split->expense;
+            $group = $expense->group;
+            $this->auditService->logSuccess(
+                'mark_paid',
+                'Payment',
+                "Payment of {$payment->amount} marked as paid for '{$expense->title}' in group '{$group->name}'",
+                $payment->id,
+                $group->id
+            );
+
+            // Notify the payer
+            $this->notificationService->notifyPaymentMarked($payment, $user);
+
+            // Check if expense is fully paid
+            app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'payment_id' => $payment->id,
+                    'split_id' => $split->id,
+                    'expense_id' => $expense->id,
+                    'amount' => round($payment->amount, 2),
+                    'status' => $payment->status,
+                    'paid_date' => $payment->paid_date,
+                    'created_at' => $payment->created_at,
+                ],
+                'message' => 'Payment marked as paid successfully',
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            // Log failed payment mark
+            $this->auditService->logFailed(
+                'mark_paid',
+                'Payment',
+                'Failed to mark payment as paid',
+                $e->getMessage()
+            );
+
+            return [
+                'success' => false,
+                'message' => 'Failed to mark payment: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Mark multiple payments as paid in batch
+     */
+    public function apiMarkPaidBatch(Request $request)
+    {
+        $user = auth()->user();
+
+        $validated = $request->validate([
+            'split_ids' => 'nullable|array',
+            'split_ids.*' => 'exists:expense_splits,id',
+            'payee_id' => 'nullable|exists:users,id',
+            'group_id' => 'nullable|exists:groups,id',
+            'payment_amount' => 'nullable|numeric|min:0.01',
+            'paid_date' => 'nullable|date',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $successCount = 0;
+        $failedCount = 0;
+        $totalAmount = 0;
+        $paidSplits = [];
+
+        try {
+            // Collect all splits first - filter out null values
+            $splitIds = array_filter($validated['split_ids'] ?? [], function($id) { return $id !== null && $id !== ''; });
+            foreach ($splitIds as $splitId) {
+                $split = ExpenseSplit::find($splitId);
+                if (!$split) {
+                    $failedCount++;
+                    continue;
+                }
+
+                // Check authorization - only the person who owes can mark as paid
+                if ($split->user_id !== $user->id) {
+                    $failedCount++;
+                    continue;
+                }
+
+                try {
+                    $payment = $this->paymentService->markAsPaid($split, $user, [
+                        'paid_date' => $validated['paid_date'] ?? now()->toDateString(),
+                        'notes' => $validated['notes'],
+                    ]);
+
+                    $successCount++;
+                    $totalAmount += $split->share_amount;
+
+                    $paidSplits[] = [
+                        'split_id' => $split->id,
+                        'payment_id' => $payment->id,
+                        'amount' => round($split->share_amount, 2),
+                        'status' => $payment->status,
+                    ];
+
+                    // Check if expense is fully paid
+                    app('App\Services\ExpenseService')->markExpenseAsPaid($split->expense);
+
+                } catch (\Exception $e) {
+                    $failedCount++;
+                    \Log::warning("Failed to mark split {$splitId} as paid: " . $e->getMessage());
+                }
+            }
+
+            // Handle manual settlement if no splits but payee_id provided
+            if ($successCount === 0 && !empty($validated['payee_id']) && !empty($validated['group_id']) && !empty($validated['payment_amount'])) {
+                $payeeId = $validated['payee_id'];
+                $groupId = $validated['group_id'];
+                $amount = $validated['payment_amount'];
+
+                $payment = ReceivedPayment::create([
+                    'group_id' => $groupId,
+                    'from_user_id' => $user->id,
+                    'to_user_id' => $payeeId,
+                    'amount' => $amount,
+                    'received_date' => $validated['paid_date'] ?? now()->toDateString(),
+                    'description' => $validated['notes'] ?? null,
+                ]);
+
+                $this->auditService->logSuccess(
+                    'manual_settlement',
+                    'Payment',
+                    "Manual settlement of \${$amount} to " . \App\Models\User::find($payeeId)->name,
+                    null,
+                    $groupId
+                );
+
+                $successCount = 1;
+                $totalAmount = $amount;
+                $paidSplits[] = [
+                    'payment_id' => $payment->id,
+                    'amount' => round($amount, 2),
+                    'type' => 'manual_settlement',
+                ];
+            }
+
+            if ($successCount === 0 && $failedCount === 0) {
+                return [
+                    'success' => false,
+                    'message' => 'No payment information provided',
+                    'status' => 400,
+                ];
+            }
+
+            return [
+                'success' => true,
+                'data' => [
+                    'success_count' => $successCount,
+                    'failed_count' => $failedCount,
+                    'total_amount' => round($totalAmount, 2),
+                    'paid_splits' => $paidSplits,
+                ],
+                'message' => "Successfully marked {$successCount} payment(s) as paid" . ($failedCount > 0 ? " ({$failedCount} failed)" : ''),
+                'status' => $successCount > 0 ? 200 : 400,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to process batch payments: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Get recent activities/transaction history for a group
+     */
+    public function apiRecentActivities(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+        $limit = $request->query('limit') ?? $request->input('limit') ?? 50;
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        try {
+            $transactions = $this->getGroupTransactionHistory($group);
+
+            // Limit the results
+            $transactions = array_slice($transactions, 0, $limit);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'group_id' => $group->id,
+                    'group_name' => $group->name,
+                    'total_activities' => count($transactions),
+                    'activities' => $transactions,
+                ],
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve activities: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
+     * API endpoint: Get comprehensive transaction history (expenses, advances, payments) filtered by date range
+     */
+    public function apiTransactionHistory(Request $request)
+    {
+        $groupId = $request->query('group_id') ?? $request->input('group_id');
+        $fromDate = $request->query('from_date') ?? $request->input('from_date');
+        $toDate = $request->query('to_date') ?? $request->input('to_date');
+
+        if (!$groupId) {
+            return [
+                'success' => false,
+                'message' => 'Missing required parameter: group_id',
+                'status' => 400
+            ];
+        }
+
+        $group = Group::find($groupId);
+        if (!$group) {
+            return [
+                'success' => false,
+                'message' => 'Group not found',
+                'status' => 404
+            ];
+        }
+
+        if (!$group->hasMember(auth()->user())) {
+            return [
+                'success' => false,
+                'message' => 'You are not a member of this group',
+                'status' => 403
+            ];
+        }
+
+        try {
+            $query = new \DateTime();
+            $fromDateTime = $fromDate ? new \DateTime($fromDate) : null;
+            $toDateTime = $toDate ? new \DateTime($toDate) : null;
+
+            // If no to_date provided, use today
+            if (!$toDateTime) {
+                $toDateTime = new \DateTime();
+            }
+
+            // Build transactions array
+            $transactions = [];
+
+            // 1. Get all expenses in the group within date range
+            $expenses = Expense::where('group_id', $group->id)
+                ->when($fromDateTime, function ($q) use ($fromDateTime) {
+                    return $q->where('date', '>=', $fromDateTime->format('Y-m-d'));
+                })
+                ->when($toDateTime, function ($q) use ($toDateTime) {
+                    return $q->where('date', '<=', $toDateTime->format('Y-m-d'));
+                })
+                ->with(['payer', 'splits.user', 'splits.contact'])
+                ->latest('date')
+                ->get();
+
+            foreach ($expenses as $expense) {
+                $transactions[] = [
+                    'type' => 'expense',
+                    'id' => $expense->id,
+                    'date' => $expense->date,
+                    'created_at' => $expense->created_at,
+                    'title' => $expense->title,
+                    'description' => $expense->description,
+                    'amount' => round($expense->amount, 2),
+                    'category' => $expense->category,
+                    'payer' => [
+                        'id' => $expense->payer->id,
+                        'name' => $expense->payer->name,
+                        'email' => $expense->payer->email,
+                    ],
+                    'split_type' => $expense->split_type,
+                    'splits' => $expense->splits->map(function ($split) {
+                        $participant = $split->user ?? $split->contact;
+                        return [
+                            'id' => $split->id,
+                            'participant_id' => $participant->id,
+                            'participant_name' => $participant->name,
+                            'share_amount' => round($split->share_amount, 2),
+                            'payment_status' => $split->payment ? $split->payment->status : 'pending',
+                        ];
+                    })->toArray(),
+                ];
+            }
+
+            // 2. Get all payments in the group within date range
+            $payments = Payment::whereHas('split.expense', function ($q) use ($group) {
+                $q->where('group_id', $group->id);
+            })
+                ->when($fromDateTime, function ($q) use ($fromDateTime) {
+                    // Properly group date conditions with parentheses
+                    return $q->where(function ($query) use ($fromDateTime) {
+                        $query->where('paid_date', '>=', $fromDateTime->format('Y-m-d'))
+                            ->orWhere('created_at', '>=', $fromDateTime);
+                    });
+                })
+                ->when($toDateTime, function ($q) use ($toDateTime) {
+                    // Properly group date conditions with parentheses
+                    return $q->where(function ($query) use ($toDateTime) {
+                        $query->where('paid_date', '<=', $toDateTime->format('Y-m-d'))
+                            ->orWhere('created_at', '<=', $toDateTime);
+                    });
+                })
+                ->with(['split.user', 'split.expense', 'paidBy'])
+                ->latest('paid_date')
+                ->get();
+
+            foreach ($payments as $payment) {
+                $transactions[] = [
+                    'type' => 'payment',
+                    'id' => $payment->id,
+                    'date' => $payment->paid_date ?? $payment->created_at->format('Y-m-d'),
+                    'created_at' => $payment->created_at,
+                    'amount' => round($payment->split->share_amount, 2),
+                    'status' => $payment->status,
+                    'paid_by' => $payment->paidBy ? [
+                        'id' => $payment->paidBy->id,
+                        'name' => $payment->paidBy->name,
+                    ] : null,
+                    'from_user' => [
+                        'id' => $payment->split->user->id,
+                        'name' => $payment->split->user->name,
+                    ],
+                    'for_expense' => [
+                        'id' => $payment->split->expense->id,
+                        'title' => $payment->split->expense->title,
+                        'payer' => [
+                            'id' => $payment->split->expense->payer->id,
+                            'name' => $payment->split->expense->payer->name,
+                        ],
+                    ],
+                ];
+            }
+
+            // 3. Get all advances in the group within date range
+            $advances = \App\Models\Advance::where('group_id', $group->id)
+                ->when($fromDateTime, function ($q) use ($fromDateTime) {
+                    // Properly group date conditions with parentheses
+                    return $q->where(function ($query) use ($fromDateTime) {
+                        $query->where('date', '>=', $fromDateTime->format('Y-m-d'))
+                            ->orWhere('created_at', '>=', $fromDateTime);
+                    });
+                })
+                ->when($toDateTime, function ($q) use ($toDateTime) {
+                    // Properly group date conditions with parentheses
+                    return $q->where(function ($query) use ($toDateTime) {
+                        $query->where('date', '<=', $toDateTime->format('Y-m-d'))
+                            ->orWhere('created_at', '<=', $toDateTime);
+                    });
+                })
+                ->with(['sentTo', 'senders'])
+                ->latest('date')
+                ->get();
+
+            foreach ($advances as $advance) {
+                $senders = $advance->senders()->get();
+                $totalAmount = $advance->getTotalAmount();
+
+                $transactions[] = [
+                    'type' => 'advance',
+                    'id' => $advance->id,
+                    'date' => $advance->date ? $advance->date->format('Y-m-d') : $advance->created_at->format('Y-m-d'),
+                    'created_at' => $advance->created_at,
+                    'amount_per_person' => round($advance->amount_per_person, 2),
+                    'total_amount' => round($totalAmount, 2),
+                    'description' => $advance->description,
+                    'given_by' => $senders->map(function ($sender) {
+                        return [
+                            'id' => $sender->id,
+                            'name' => $sender->name,
+                        ];
+                    })->toArray(),
+                    'given_to' => [
+                        'id' => $advance->sentTo->id,
+                        'name' => $advance->sentTo->name,
+                    ],
+                ];
+            }
+
+            // Sort all transactions by date (most recent first)
+            usort($transactions, function ($a, $b) {
+                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            });
+
+            // Calculate summary
+            $totalExpenses = array_reduce(
+                array_filter($transactions, fn($t) => $t['type'] === 'expense'),
+                fn($carry, $t) => $carry + $t['amount'],
+                0
+            );
+
+            $totalPayments = array_reduce(
+                array_filter($transactions, fn($t) => $t['type'] === 'payment'),
+                fn($carry, $t) => $carry + $t['amount'],
+                0
+            );
+
+            $totalAdvances = array_reduce(
+                array_filter($transactions, fn($t) => $t['type'] === 'advance'),
+                fn($carry, $t) => $carry + $t['total_amount'],
+                0
+            );
+
+            return [
+                'success' => true,
+                'data' => [
+                    'group_id' => $group->id,
+                    'group_name' => $group->name,
+                    'currency' => $group->currency ?? 'USD',
+                    'date_range' => [
+                        'from' => $fromDate ?? 'earliest',
+                        'to' => $toDate ?? date('Y-m-d'),
+                    ],
+                    'summary' => [
+                        'total_expenses' => round($totalExpenses, 2),
+                        'total_payments' => round($totalPayments, 2),
+                        'total_advances' => round($totalAdvances, 2),
+                        'net_balance' => round($totalAdvances - $totalPayments, 2),
+                    ],
+                    'transactions_count' => count($transactions),
+                    'transactions' => $transactions,
+                ],
+                'message' => 'Transaction history retrieved successfully',
+                'status' => 200,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve transaction history: ' . $e->getMessage(),
+                'status' => 400,
+            ];
+        }
+    }
+
+    /**
      * Display payment history for a group.
      */
     public function groupPaymentHistory(Group $group)
@@ -1802,200 +2508,5 @@ class PaymentController extends Controller
             'expenses_analyzed' => count($analysis),
             'details' => $analysis
         ], 200, [], JSON_PRETTY_PRINT);
-    }
-
-    // ============================================================================
-    // API Methods - For mobile and programmatic access
-    // ============================================================================
-
-    /**
-     * API: Get payment history for a group
-     */
-    public function apiPaymentHistory(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $payments = $group->payments()
-            ->with('payer', 'recipient')
-            ->latest()
-            ->get()
-            ->map(function ($payment) {
-                return [
-                    'id' => $payment->id,
-                    'payer' => [
-                        'id' => $payment->payer->id,
-                        'name' => $payment->payer->name,
-                    ],
-                    'recipient' => [
-                        'id' => $payment->recipient->id,
-                        'name' => $payment->recipient->name,
-                    ],
-                    'amount' => $payment->amount,
-                    'status' => $payment->status,
-                    'created_at' => $payment->created_at,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'count' => $payments->count(),
-            'data' => $payments,
-        ]);
-    }
-
-    /**
-     * API: Get transaction history for a group
-     */
-    public function apiTransactionHistory(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $expenses = $group->expenses()
-            ->with('payer', 'splits.user')
-            ->latest()
-            ->get()
-            ->map(function ($expense) {
-                return [
-                    'id' => $expense->id,
-                    'type' => 'expense',
-                    'title' => $expense->title,
-                    'amount' => $expense->amount,
-                    'payer' => [
-                        'id' => $expense->payer->id,
-                        'name' => $expense->payer->name,
-                    ],
-                    'date' => $expense->date,
-                    'splits_count' => $expense->splits()->count(),
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'count' => $expenses->count(),
-            'data' => $expenses,
-        ]);
-    }
-
-    /**
-     * API: Mark payment as paid
-     */
-    public function apiMarkPayment(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $validated = $request->validate([
-            'split_id' => 'required|integer|exists:expense_splits,id',
-        ]);
-
-        try {
-            $split = ExpenseSplit::findOrFail($validated['split_id']);
-
-            // Verify split belongs to this group
-            if ($split->expense->group_id !== $group->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Split not found in this group',
-                ], 404);
-            }
-
-            $split->update(['is_paid' => true, 'paid_at' => now()]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment marked as paid',
-                'data' => $split,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark payment: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Batch mark payments as paid
-     */
-    public function apiMarkPaidBatch(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $validated = $request->validate([
-            'split_ids' => 'required|array|min:1',
-            'split_ids.*' => 'integer|exists:expense_splits,id',
-        ]);
-
-        try {
-            $updated = 0;
-            foreach ($validated['split_ids'] as $splitId) {
-                $split = ExpenseSplit::findOrFail($splitId);
-
-                // Verify split belongs to this group
-                if ($split->expense->group_id !== $group->id) {
-                    continue;
-                }
-
-                if (!$split->is_paid) {
-                    $split->update(['is_paid' => true, 'paid_at' => now()]);
-                    $updated++;
-                }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payments marked as paid',
-                'updated' => $updated,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark payments: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    /**
-     * API: Get settlement details for a group
-     */
-    public function apiSettlementDetails(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $settlement = $this->calculateSettlement($group, null);
-
-        return response()->json([
-            'success' => true,
-            'data' => $settlement,
-        ]);
-    }
-
-    /**
-     * API: Get recent activities in a group
-     */
-    public function apiRecentActivities(Request $request, Group $group)
-    {
-        $this->authorize('viewMembers', $group);
-
-        $expenses = $group->expenses()
-            ->with('payer')
-            ->latest()
-            ->limit(20)
-            ->get()
-            ->map(function ($expense) {
-                return [
-                    'id' => $expense->id,
-                    'type' => 'expense_added',
-                    'title' => $expense->title,
-                    'description' => 'Expense added by ' . $expense->payer->name,
-                    'amount' => $expense->amount,
-                    'timestamp' => $expense->created_at,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'count' => $expenses->count(),
-            'data' => $expenses,
-        ]);
     }
 }
