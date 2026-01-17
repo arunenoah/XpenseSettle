@@ -1330,7 +1330,8 @@ class PaymentController extends Controller
             $result[$groupMember->id] = [
                 'user' => $groupMember->user,
                 'is_contact' => false,
-                'owes' => []
+                'owes' => [],
+                'settled' => []  // Initialize settled array
             ];
         }
 
