@@ -347,6 +347,9 @@
             <span>Recent Activity</span>
         </h2>
         @php
+            // Debug: Check what variables are available
+            // echo "DEBUG: recentPayments=" . (isset($recentPayments) ? count($recentPayments) : 'NOT SET') . "\n";
+
             // Combine all activity types into one array for chronological display
             $allActivities = [];
 
@@ -359,8 +362,8 @@
                 ];
             }
 
-            // Add mark as paid payments
-            if (isset($recentPayments)) {
+            // Add mark as paid payments (Payments Sent)
+            if (isset($recentPayments) && $recentPayments->count() > 0) {
                 foreach ($recentPayments as $payment) {
                     $allActivities[] = [
                         'type' => 'payment',
