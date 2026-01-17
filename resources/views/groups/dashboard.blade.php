@@ -304,6 +304,11 @@
                                             ⚡ Settle
                                         </button>
                                     @endif
+                                @else
+                                    <!-- Show checkmark for settled/paid items -->
+                                    <span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold">
+                                        ✓ Paid
+                                    </span>
                                 @endif
                             </div>
                         </div>
@@ -446,20 +451,31 @@
                             @endif
                         </div>
                     @elseif($activity['type'] === 'payment')
-                        @php 
+                        @php
                             $payment = $activity['data'];
-                            $payer = $payment->split->expense->payer;
-                            $sender = $payment->split->user ?? $payment->split->contact;
-                            $isReceived = $payer->id === auth()->id(); // Current user is the one who received payment
-                            $borderColor = $isReceived ? 'border-green-200' : 'border-blue-200';
-                            $hoverBorder = $isReceived ? 'hover:border-green-400' : 'hover:border-blue-400';
-                            $textColor = $isReceived ? 'text-green-700' : 'text-blue-700';
-                            $amountColor = $isReceived ? 'text-green-600' : 'text-blue-600';
-                            $badgeBg = $isReceived ? 'bg-green-100' : 'bg-blue-100';
-                            $badgeText = $isReceived ? 'text-green-700' : 'text-blue-700';
-                            $emoji = $isReceived ? '💰' : '💸';
-                            $title = $isReceived ? 'Payment Received' : 'Payment Sent';
+                            // Safely check if relationships exist
+                            $canRender = $payment && $payment->split && $payment->split->expense && $payment->split->expense->payer;
+
+                            if ($canRender) {
+                                $payer = $payment->split->expense->payer;
+                                $sender = $payment->split->user ?? $payment->split->contact;
+                                $isReceived = $payer->id === auth()->id(); // Current user is the one who received payment
+                                $borderColor = $isReceived ? 'border-green-200' : 'border-blue-200';
+                                $hoverBorder = $isReceived ? 'hover:border-green-400' : 'hover:border-blue-400';
+                                $textColor = $isReceived ? 'text-green-700' : 'text-blue-700';
+                                $amountColor = $isReceived ? 'text-green-600' : 'text-blue-600';
+                                $badgeBg = $isReceived ? 'bg-green-100' : 'bg-blue-100';
+                                $badgeText = $isReceived ? 'text-green-700' : 'text-blue-700';
+                                $emoji = $isReceived ? '💰' : '💸';
+                                $title = $isReceived ? 'Payment Received' : 'Payment Sent';
+                                $memberName = $payment->split->getMemberName();
+                                $payerName = $payer->name;
+                                $expenseTitle = $payment->split->expense->title;
+                                $shareAmount = $payment->split->share_amount;
+                                $paidDate = $payment->paid_date ?? $payment->created_at;
+                            }
                         @endphp
+                        @if($canRender)
                         <div class="bg-white p-5 rounded-xl border-2 {{ $borderColor }} hover:shadow-lg {{ $hoverBorder }} transition-all transform hover:scale-102">
                             <div class="flex items-start justify-between gap-3 mb-2">
                                 <div class="flex-1 min-w-0">
@@ -469,28 +485,29 @@
                                     </h3>
                                     <div class="flex items-center gap-2 mt-2 flex-wrap">
                                         <span class="text-sm font-bold {{ $textColor }}">
-                                            {{ $payment->split->getMemberName() }}
+                                            {{ $memberName }}
                                         </span>
                                         <span class="text-gray-400">→</span>
                                         <span class="text-sm font-bold {{ $textColor }}">
-                                            {{ $payment->split->expense->payer->name }}
+                                            {{ $payerName }}
                                         </span>
                                     </div>
                                     <p class="text-xs text-gray-600 mt-1">
-                                        For: {{ $payment->split->expense->title }}
+                                        For: {{ $expenseTitle }}
                                     </p>
                                     <p class="text-xs font-semibold text-gray-500 mt-1">
-                                        📅 {{ $payment->paid_date->format('M d, Y') ?? $payment->created_at->format('M d, Y') }}
+                                        📅 {{ $paidDate->format('M d, Y') }}
                                     </p>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($payment->split->share_amount) }}</p>
+                                    <p class="text-2xl font-black {{ $amountColor }}">${{ formatCurrency($shareAmount) }}</p>
                                     <span class="inline-block mt-1 px-3 py-1 {{ $badgeBg }} {{ $badgeText }} text-xs font-bold rounded-full">
                                         {{ $isReceived ? '✓ Received' : '✓ Sent' }}
                                     </span>
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @elseif($activity['type'] === 'advance')
                         @php
                             $advance = $activity['data'];
@@ -1012,30 +1029,52 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle groupPaymentForm submission to reload page after successful payment
+    // Handle groupPaymentForm submission via AJAX to ensure fresh data on reload
     const groupPaymentForm = document.getElementById('groupPaymentForm');
     if (groupPaymentForm) {
-        // Monitor for when the form completes and reload
-        const originalSubmit = groupPaymentForm.submit;
-        groupPaymentForm.submit = function() {
-            console.log('Submitting payment form');
-            originalSubmit.call(this);
-
-            // Reload page after 2 seconds to reflect updated balances
-            setTimeout(() => {
-                console.log('Reloading page to show updated balances');
-                window.location.reload();
-            }, 2000);
-        };
-
-        // Also handle form submission button click
         groupPaymentForm.addEventListener('submit', function(e) {
-            console.log('Form submit event detected');
-            // Let the form submit normally, but reload after a delay
-            setTimeout(() => {
-                console.log('Reloading page after form submission');
-                window.location.reload();
-            }, 2000);
+            e.preventDefault();
+            console.log('Payment form submit intercepted, submitting via fetch');
+
+            // Collect form data including hidden split_ids
+            const formData = new FormData(this);
+
+            // Submit via fetch to ensure proper response handling
+            fetch('/payments/mark-paid-batch', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log('Payment response received:', response.status);
+                if (!response.ok) {
+                    throw new Error(`Payment failed with status ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Payment processed successfully:', data);
+                // Close the modal
+                closeGroupPaymentModal();
+
+                // Show success message
+                if (data.message) {
+                    console.log('Success message:', data.message);
+                }
+
+                // Reload page to show updated balances and recent activity
+                console.log('Reloading page to show updated payments and balances');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500); // Shorter delay since AJAX completes faster
+            })
+            .catch(error => {
+                console.error('Payment error:', error);
+                alert('Error marking payment: ' + error.message);
+            });
         });
     }
 });
