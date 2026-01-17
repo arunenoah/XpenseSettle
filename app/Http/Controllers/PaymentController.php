@@ -1687,8 +1687,12 @@ class PaymentController extends Controller
             $split = ExpenseSplit::find($splitId);
             if (!$split) continue;
 
-            // Check authorization - only the person who owes can mark as paid
-            if ($split->user_id !== $user->id) {
+            // Check authorization - both the payer and the person who owes can mark as paid
+            // Either: person owes the split ($split->user_id) or person is the payer ($split->expense->payer_id)
+            $isOwer = $split->user_id === $user->id;
+            $isPayer = $split->expense->payer_id === $user->id;
+
+            if (!$isOwer && !$isPayer) {
                 $failedCount++;
                 continue;
             }
