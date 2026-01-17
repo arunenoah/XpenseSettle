@@ -270,16 +270,22 @@
             <div class="space-y-2">
                 @foreach($settlement as $item)
                     @php
-                        // Skip settlements with negligible or zero amounts
-                        if (abs($item['net_amount']) < 0.01) {
+                        // Skip settlements only if they have no expenses and net_amount is negligible
+                        // Show items with net_amount = 0 if they have expense history (were paid)
+                        $hasExpenses = isset($item['expenses']) && count($item['expenses']) > 0;
+                        $isNegligible = abs($item['net_amount']) < 0.01;
+
+                        if ($isNegligible && !$hasExpenses) {
                             continue;
                         }
 
                         $isOwed = $item['net_amount'] > 0;
-                        $bgColor = $isOwed ? 'bg-red-50' : 'bg-green-50';
-                        $borderColor = $isOwed ? 'border-red-200' : 'border-green-200';
-                        $textColor = $isOwed ? 'text-red-600' : 'text-green-600';
-                        $emoji = $isOwed ? '😬' : '🤑';
+                        $isPaid = $isNegligible && $hasExpenses; // Items with zero net_amount but with expense history
+
+                        $bgColor = $isPaid ? 'bg-green-50' : ($isOwed ? 'bg-red-50' : 'bg-green-50');
+                        $borderColor = $isPaid ? 'border-green-200' : ($isOwed ? 'border-red-200' : 'border-green-200');
+                        $textColor = $isPaid ? 'text-green-600' : ($isOwed ? 'text-red-600' : 'text-green-600');
+                        $emoji = $isPaid ? '✅' : ($isOwed ? '😬' : '🤑');
                     @endphp
                     <div class="p-2 sm:p-3 {{ $bgColor }} border {{ $borderColor }} rounded-lg">
                         <div class="flex items-center justify-between gap-2">
@@ -287,12 +293,23 @@
                                 <span class="text-lg">{{ $emoji }}</span>
                                 <div class="flex-1 min-w-0">
                                     <p class="font-bold text-sm text-gray-900 truncate">{{ $item['user']->name }}</p>
-                                    <p class="text-xs {{ $textColor }} font-semibold">{{ $isOwed ? 'You Owe' : 'Owe You' }}</p>
+                                    <p class="text-xs {{ $textColor }} font-semibold">
+                                        @if($isPaid)
+                                            Paid ✓
+                                        @else
+                                            {{ $isOwed ? 'You Owe' : 'Owe You' }}
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
                             <div class="text-right flex-shrink-0">
                                 <p class="font-black text-base {{ $textColor }}">${{ formatCurrency($item['amount']) }}</p>
-                                @if($item['net_amount'] > 0)
+                                @if($isPaid)
+                                    <!-- Show checkmark button for settled/paid items - clickable to view details -->
+                                    <button class="mt-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold hover:bg-green-200 transition-all cursor-pointer" title="Fully settled">
+                                        ✓ Paid
+                                    </button>
+                                @elseif($item['net_amount'] > 0)
                                     @if(isset($item['split_ids']) && count($item['split_ids']) > 0)
                                         <button onclick="openGroupPaymentModal({{ json_encode($item['split_ids']) }}, '{{ $item['user']->name }}', {{ $item['amount'] }}, '{{ addslashes($item['user']->name) }}')"
                                                 class="mt-1 px-2 py-0.5 bg-green-500 text-white rounded text-xs font-bold">
@@ -304,11 +321,6 @@
                                             ⚡ Settle
                                         </button>
                                     @endif
-                                @else
-                                    <!-- Show checkmark for settled/paid items -->
-                                    <span class="inline-block mt-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold">
-                                        ✓ Paid
-                                    </span>
                                 @endif
                             </div>
                         </div>
