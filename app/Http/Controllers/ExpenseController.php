@@ -831,18 +831,24 @@ class ExpenseController extends Controller
             $customSplits = [];
 
             foreach ($members as $member) {
-                // For GroupMember objects, use user_id or contact_id as the key
+                // For GroupMember objects, use user_id or contact_id as the key for output
                 $memberId = $this->getMemberId($member);
 
-                // Try both integer and string keys for flexibility
-                $key = $memberId;
-                $stringKey = (string) $memberId;
-
+                // The form sends splits with GroupMember ID as key (e.g., splits[69], splits[81])
+                // Try GroupMember ID first, then user/contact ID
                 $value = 0;
-                if (isset($splits[$key])) {
-                    $value = round((float) $splits[$key], 2);
-                } elseif (isset($splits[$stringKey])) {
-                    $value = round((float) $splits[$stringKey], 2);
+
+                // Try GroupMember ID (form sends this)
+                if (isset($splits[$member->id])) {
+                    $value = round((float) $splits[$member->id], 2);
+                } elseif (isset($splits[(string) $member->id])) {
+                    $value = round((float) $splits[(string) $member->id], 2);
+                }
+                // Fallback to user/contact ID (API might send this)
+                elseif (isset($splits[$memberId])) {
+                    $value = round((float) $splits[$memberId], 2);
+                } elseif (isset($splits[(string) $memberId])) {
+                    $value = round((float) $splits[(string) $memberId], 2);
                 }
 
                 // Only include members with non-zero amounts
