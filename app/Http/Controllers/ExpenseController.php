@@ -845,7 +845,10 @@ class ExpenseController extends Controller
                     $value = round((float) $splits[$stringKey], 2);
                 }
 
-                $customSplits[$memberId] = $value;
+                // Only include members with non-zero amounts
+                if ($value > 0) {
+                    $customSplits[$memberId] = $value;
+                }
             }
 
             // Validate total

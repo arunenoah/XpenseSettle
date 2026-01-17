@@ -100,16 +100,32 @@ class ExpenseService
      * Create custom splits for an expense.
      *
      * @param Expense $expense
-     * @param array $splits
+     * @param array $splits Array where key can be GroupMember ID or User/Contact ID, value is amount
      */
     private function createSplits(Expense $expense, array $splits): void
     {
-        foreach ($splits as $groupMemberId => $data) {
-            // Get the GroupMember to determine if it's a user or contact
-            $groupMember = \App\Models\GroupMember::find($groupMemberId);
+        $group = $expense->group;
+
+        foreach ($splits as $memberId => $data) {
+            // Try to find as GroupMember ID first
+            $groupMember = \App\Models\GroupMember::find($memberId);
+
+            // If not found as GroupMember ID, try as User ID within this group
+            if (!$groupMember) {
+                $groupMember = \App\Models\GroupMember::where('group_id', $group->id)
+                    ->where('user_id', $memberId)
+                    ->first();
+            }
+
+            // If still not found, try as Contact ID within this group
+            if (!$groupMember) {
+                $groupMember = \App\Models\GroupMember::where('group_id', $group->id)
+                    ->where('contact_id', $memberId)
+                    ->first();
+            }
 
             if (!$groupMember) {
-                continue; // Skip if group member not found
+                continue; // Skip if member not found
             }
 
             // Handle both simple amount and detailed split data
