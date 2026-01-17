@@ -573,7 +573,7 @@ class GroupController extends Controller
                 }
 
                 $data = [
-                    'id' => $member->id ?? $participant->id,
+                    'id' => $participant->id,
                     'name' => $participant->name,
                     'email' => $participant->email ?? null,
                     'type' => $type,
