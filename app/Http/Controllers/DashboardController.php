@@ -856,6 +856,7 @@ class DashboardController extends Controller
             ->where('status', 'paid')
             ->with([
                 'split.user',
+                'split.contact',
                 'split.expense.payer',
                 'split.expense.group',
                 'paidBy',
