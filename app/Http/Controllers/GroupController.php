@@ -77,11 +77,36 @@ class GroupController extends Controller
      */
     public function index()
     {
-        $groups = auth()->user()->groups()
+        $user = auth()->user();
+        $groups = $user->groups()
             ->withoutTrashed()
             ->with('creator', 'members')
             ->latest()
             ->paginate(12);
+
+        // Calculate settlement balances for each group
+        $paymentController = app(PaymentController::class);
+        $groups = $groups->map(function ($group) use ($user, $paymentController) {
+            $settlement = $paymentController->calculateSettlement($group, $user);
+
+            $iOwe = 0;
+            $theyOweMe = 0;
+
+            foreach ($settlement as $item) {
+                if ($item['net_amount'] > 0) {
+                    // User owes this person
+                    $iOwe += $item['net_amount'];
+                } else {
+                    // This person owes user
+                    $theyOweMe += abs($item['net_amount']);
+                }
+            }
+
+            $group->user_i_owe = round($iOwe, 2);
+            $group->user_they_owe_me = round($theyOweMe, 2);
+
+            return $group;
+        });
 
         return view('groups.index', compact('groups'));
     }

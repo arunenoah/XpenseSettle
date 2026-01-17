@@ -57,6 +57,27 @@
                             </div>
                         </div>
 
+                        <!-- Balance Info -->
+                        <div class="mt-4 pt-4 border-t border-gray-200 space-y-2">
+                            @if($group->user_i_owe > 0)
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-red-600 font-semibold">You Owe</span>
+                                    <span class="font-bold text-red-600">{{ $group->currency ?? 'AUD' }}{{ number_format($group->user_i_owe, 2) }}</span>
+                                </div>
+                            @endif
+                            @if($group->user_they_owe_me > 0)
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-green-600 font-semibold">They Owe You</span>
+                                    <span class="font-bold text-green-600">{{ $group->currency ?? 'AUD' }}{{ number_format($group->user_they_owe_me, 2) }}</span>
+                                </div>
+                            @endif
+                            @if($group->user_i_owe == 0 && $group->user_they_owe_me == 0)
+                                <div class="text-center text-sm text-gray-500">
+                                    ✓ All Settled
+                                </div>
+                            @endif
+                        </div>
+
                         <!-- Footer -->
                         <div class="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
                             <div class="flex items-center gap-2 min-w-0">
