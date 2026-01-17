@@ -86,7 +86,7 @@ class GroupController extends Controller
 
         // Calculate settlement balances for each group
         $paymentController = app(PaymentController::class);
-        $groups = $groups->map(function ($group) use ($user, $paymentController) {
+        $groupCollection = $groups->getCollection()->map(function ($group) use ($user, $paymentController) {
             $settlement = $paymentController->calculateSettlement($group, $user);
 
             $iOwe = 0;
@@ -107,6 +107,9 @@ class GroupController extends Controller
 
             return $group;
         });
+
+        // Replace paginator collection with mapped collection
+        $groups->setCollection($groupCollection);
 
         return view('groups.index', compact('groups'));
     }
