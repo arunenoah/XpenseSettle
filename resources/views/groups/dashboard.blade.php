@@ -1012,67 +1012,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle groupPaymentForm submission to reload page on success
+    // Handle groupPaymentForm submission to reload page after successful payment
     const groupPaymentForm = document.getElementById('groupPaymentForm');
     if (groupPaymentForm) {
+        // Monitor for when the form completes and reload
+        const originalSubmit = groupPaymentForm.submit;
+        groupPaymentForm.submit = function() {
+            console.log('Submitting payment form');
+            originalSubmit.call(this);
+
+            // Reload page after 2 seconds to reflect updated balances
+            setTimeout(() => {
+                console.log('Reloading page to show updated balances');
+                window.location.reload();
+            }, 2000);
+        };
+
+        // Also handle form submission button click
         groupPaymentForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const action = this.action;
-
-            // Log the submission
-            console.log('Submitting payment form to:', action, 'with splits:', Array.from(formData.getAll('split_ids[]')));
-
-            // Submit via fetch to handle the response properly
-            fetch(action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Payment response:', data);
-                if (data.success) {
-                    // Show success message
-                    const successMsg = document.createElement('div');
-                    successMsg.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-                    successMsg.textContent = data.message || 'Payment marked successfully!';
-                    document.body.appendChild(successMsg);
-
-                    // Close modal
-                    closeGroupPaymentModal();
-
-                    // Reload page after a short delay to show the success message
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    // Show error message
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-                    errorMsg.textContent = data.message || 'Failed to mark payment';
-                    document.body.appendChild(errorMsg);
-
-                    // Remove error message after 5 seconds
-                    setTimeout(() => {
-                        errorMsg.remove();
-                    }, 5000);
-                }
-            })
-            .catch(error => {
-                console.error('Payment submission error:', error);
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999]';
-                errorMsg.textContent = 'Error submitting payment: ' + error.message;
-                document.body.appendChild(errorMsg);
-
-                setTimeout(() => {
-                    errorMsg.remove();
-                }, 5000);
-            });
+            console.log('Form submit event detected');
+            // Let the form submit normally, but reload after a delay
+            setTimeout(() => {
+                console.log('Reloading page after form submission');
+                window.location.reload();
+            }, 2000);
         });
     }
 });
