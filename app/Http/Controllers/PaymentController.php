@@ -1681,37 +1681,17 @@ class PaymentController extends Controller
 
         // Collect all splits first (if any) - filter out null values
         $splitIds = array_filter($validated['split_ids'] ?? [], function($id) { return $id !== null && $id !== ''; });
-
-        \Log::info("markPaidBatch: Processing splits", [
-            'split_ids' => $splitIds,
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-        ]);
-
         foreach ($splitIds as $splitId) {
             $split = ExpenseSplit::find($splitId);
-            if (!$split) {
-                \Log::warning("markPaidBatch: Split not found", ['split_id' => $splitId]);
-                continue;
-            }
+            if (!$split) continue;
 
             // Check authorization - both the payer and the person who owes can mark as paid
             // Either: person owes the split ($split->user_id) or person is the payer ($split->expense->payer_id)
             $isOwer = $split->user_id === $user->id;
             $isPayer = $split->expense->payer_id === $user->id;
 
-            \Log::info("markPaidBatch: Checking split authorization", [
-                'split_id' => $splitId,
-                'split_user_id' => $split->user_id,
-                'expense_payer_id' => $split->expense->payer_id,
-                'is_ower' => $isOwer,
-                'is_payer' => $isPayer,
-                'authorized' => ($isOwer || $isPayer),
-            ]);
-
             if (!$isOwer && !$isPayer) {
                 $failedCount++;
-                \Log::warning("markPaidBatch: User not authorized for split", ['split_id' => $splitId]);
                 continue;
             }
 
@@ -1723,12 +1703,6 @@ class PaymentController extends Controller
                 $payeeName = $split->expense->payer->name;
             }
         }
-
-        \Log::info("markPaidBatch: After collecting splits", [
-            'total_splits' => count($splits),
-            'total_amount' => $totalAmount,
-            'group_ids' => $groupIds,
-        ]);
 
         // Handle manual settlement if no splits but payee_id provided
         if (empty($splits) && !empty($validated['payee_id']) && !empty($validated['group_id']) && !empty($validated['payment_amount'])) {
@@ -1908,24 +1882,10 @@ class PaymentController extends Controller
             }
         } else {
             // Single group settlement - mark splits as paid normally
-            \Log::info("markPaidBatch: Processing single-group settlement with " . count($splits) . " splits");
-
             foreach ($splits as $split) {
                 try {
-                    \Log::info("markPaidBatch: Marking split as paid", [
-                        'split_id' => $split->id,
-                        'expense_id' => $split->expense_id,
-                        'user_id' => $user->id,
-                    ]);
-
                     // Create or update payment
                     $payment = $this->paymentService->markAsPaid($split, $user, $validated);
-
-                    \Log::info("markPaidBatch: Payment created/updated", [
-                        'payment_id' => $payment->id,
-                        'split_id' => $payment->expense_split_id,
-                        'status' => $payment->status,
-                    ]);
 
                     // Track total amount and payer info
                     if (!isset($groupName)) {
