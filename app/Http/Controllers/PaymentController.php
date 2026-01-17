@@ -950,20 +950,22 @@ class PaymentController extends Controller
                             ];
                         }
 
-                        // Only add to net_amount if payment is not marked as paid
-                        // Marked payments should not contribute to the settlement balance
+                        // Always add to expenses for visibility and settlement calculation
+                        // Including individually paid splits because they contribute to gross amount
+                        // owed before advances/payments are applied
+                        $netBalances[$payerId]['expenses'][] = [
+                            'title' => $expense->title,
+                            'amount' => $split->share_amount,
+                            'type' => 'you_owe',  // User owes the payer
+                        ];
+
+                        // Always add to net_amount for accurate settlement balance
+                        // Individual payments settle specific splits, but don't affect overall settlement
+                        // between the two people (settlements/advances do)
+                        $netBalances[$payerId]['net_amount'] += $split->share_amount;
+
+                        // Only track split IDs for unpaid items (for marking as paid)
                         if (!$payment || $payment->status !== 'paid') {
-                            // Add to expenses for visibility and settlement calculation
-                            $netBalances[$payerId]['expenses'][] = [
-                                'title' => $expense->title,
-                                'amount' => $split->share_amount,
-                                'type' => 'you_owe',  // User owes the payer
-                            ];
-
-                            // Add to net_amount for accurate settlement balance
-                            $netBalances[$payerId]['net_amount'] += $split->share_amount;
-
-                            // Track split IDs for unpaid items (for marking as paid)
                             $netBalances[$payerId]['split_ids'][] = $split->id;
                         }
                     }
@@ -982,19 +984,19 @@ class PaymentController extends Controller
                         ];
                     }
 
-                    // Only add to net_amount if payment is not marked as paid
-                    // Marked payments should not contribute to the settlement balance
-                    if (!$payment || $payment->status !== 'paid') {
-                        // Add to expenses for visibility and settlement calculation
-                        $netBalances[$memberId]['expenses'][] = [
-                            'title' => $expense->title,
-                            'amount' => $split->share_amount,
-                            'type' => 'they_owe',  // Member owes the user (who paid)
-                        ];
+                    // Always add to expenses for visibility and settlement calculation
+                    // Including individually paid splits because they contribute to gross amount
+                    // owed before advances/payments are applied
+                    $netBalances[$memberId]['expenses'][] = [
+                        'title' => $expense->title,
+                        'amount' => $split->share_amount,
+                        'type' => 'they_owe',  // Member owes the user (who paid)
+                    ];
 
-                        // Subtract from net_amount for accurate settlement balance
-                        $netBalances[$memberId]['net_amount'] -= $split->share_amount;
-                    }
+                    // Always subtract from net_amount for accurate settlement balance
+                    // Individual payments settle specific splits, but don't affect overall settlement
+                    // between the two people (settlements/advances do)
+                    $netBalances[$memberId]['net_amount'] -= $split->share_amount;
                 } elseif ($expense->payer_id === $user->id && $split->contact_id && !$split->user_id) {
                     // User is the payer, a contact is a participant (contacts owe user money)
                     $contactId = $split->contact_id;
