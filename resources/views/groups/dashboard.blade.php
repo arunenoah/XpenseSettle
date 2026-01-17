@@ -360,12 +360,14 @@
             }
 
             // Add mark as paid payments
-            foreach ($recentPayments as $payment) {
-                $allActivities[] = [
-                    'type' => 'payment',
-                    'timestamp' => $payment->created_at,
-                    'data' => $payment
-                ];
+            if (isset($recentPayments)) {
+                foreach ($recentPayments as $payment) {
+                    $allActivities[] = [
+                        'type' => 'payment',
+                        'timestamp' => $payment->created_at,
+                        'data' => $payment
+                    ];
+                }
             }
 
             // Add advances (includes manual settlements)
