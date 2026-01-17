@@ -49,8 +49,9 @@ class SecurityHeaders
 
         // Content Security Policy - Prevent XSS and injection attacks
         // Allow inline scripts, external HTTPS scripts, and WebAssembly for OCR
+        // 'unsafe-eval' is required for Alpine.js dynamic expression evaluation
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: https:; " .
+               "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: https:; " .
                "worker-src 'self' blob: data:; " .
                "style-src 'self' 'unsafe-inline' https:; " .
                "img-src 'self' data: https: blob:; " .
