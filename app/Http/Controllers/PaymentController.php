@@ -917,6 +917,11 @@ class PaymentController extends Controller
                 continue;
             }
 
+            // Skip fully paid expenses - they're settled and don't affect balances
+            if ($expense->status === 'fully_paid') {
+                continue;
+            }
+
             // Skip expenses where user is both payer and sole participant (self-payment)
             $firstSplit = $expense->splits->first();
             if ($expense->payer_id === $user->id && $expense->splits->count() === 1 && $firstSplit && $firstSplit->user_id === $user->id) {

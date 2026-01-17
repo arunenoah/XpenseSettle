@@ -332,14 +332,15 @@ class ExpenseService
      */
     public function markExpenseAsPaid(Expense $expense): Expense
     {
-        // Check if all splits are paid
-        $unpaidCount = $expense->splits()
-            ->whereHas('payment', function ($query) {
-                $query->where('status', '!=', 'paid');
-            }, '=', 0)
-            ->count();
+        // Load fresh splits with their payment relationships
+        $expense->load('splits.payment');
 
-        if ($unpaidCount === 0) {
+        // Check if ALL splits have payments with status='paid'
+        $allSplitsPaid = $expense->splits->every(function ($split) {
+            return $split->payment && $split->payment->status === 'paid';
+        });
+
+        if ($allSplitsPaid && $expense->splits->count() > 0) {
             $expense->update(['status' => 'fully_paid']);
         }
 

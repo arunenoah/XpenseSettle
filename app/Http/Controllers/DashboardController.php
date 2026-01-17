@@ -974,9 +974,17 @@ class DashboardController extends Controller
         // Maps to track amounts owed between user and each other person
         $netBalances = [];  // User ID => [user_obj, net_amount, status]
 
-        foreach ($group->expenses as $expense) {
+        // Eager load splits with payment relationship to check payment status
+        $expenses = $group->expenses()->with(['splits.payment', 'payer'])->get();
+
+        foreach ($expenses as $expense) {
             // Skip itemwise expenses - they don't create splits and don't affect settlement
             if ($expense->split_type === 'itemwise') {
+                continue;
+            }
+
+            // Skip fully paid expenses - they're settled and don't affect balances
+            if ($expense->status === 'fully_paid') {
                 continue;
             }
 
