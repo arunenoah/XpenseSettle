@@ -34,16 +34,41 @@ class GroupController extends Controller
      */
     public function apiIndex()
     {
-        $groups = auth()->user()->groups()
+        $user = auth()->user();
+        $groups = $user->groups()
             ->withoutTrashed()
             ->with('creator', 'members')
             ->latest()
             ->get();
 
+        // Calculate settlement balances for each group
+        $paymentController = app(PaymentController::class);
+        $groupsWithBalances = $groups->map(function ($group) use ($user, $paymentController) {
+            $settlement = $paymentController->calculateSettlement($group, $user);
+
+            $iOwe = 0;
+            $theyOweMe = 0;
+
+            foreach ($settlement as $item) {
+                if ($item['net_amount'] > 0) {
+                    // User owes this person
+                    $iOwe += $item['net_amount'];
+                } else {
+                    // This person owes user
+                    $theyOweMe += abs($item['net_amount']);
+                }
+            }
+
+            $group->user_i_owe = round($iOwe, 2);
+            $group->user_they_owe_me = round($theyOweMe, 2);
+
+            return $group;
+        });
+
         return [
             'success' => true,
             'data' => [
-                'groups' => $groups->map(function ($group) {
+                'groups' => $groupsWithBalances->map(function ($group) {
                     return [
                         'id' => $group->id,
                         'name' => $group->name,
@@ -57,6 +82,8 @@ class GroupController extends Controller
                         ],
                         'member_count' => $group->members->count(),
                         'is_admin' => $group->isAdmin(auth()->user()),
+                        'user_i_owe' => $group->user_i_owe,
+                        'user_they_owe_me' => $group->user_they_owe_me,
                         'members' => $group->members->map(function ($member) {
                             return [
                                 'id' => $member->id,
@@ -66,7 +93,7 @@ class GroupController extends Controller
                         })->toArray(),
                     ];
                 })->toArray(),
-                'total_groups' => $groups->count(),
+                'total_groups' => $groupsWithBalances->count(),
             ]
         ];
     }
