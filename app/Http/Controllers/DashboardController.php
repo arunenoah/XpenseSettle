@@ -141,18 +141,18 @@ class DashboardController extends Controller
         // Now build the final breakdowns with NET balances per person
         foreach ($personBalancesByCurrency as $currency => $persons) {
             foreach ($persons as $personId => $data) {
-                // Process each group entry based on its individual amount, not the aggregate
-                foreach ($data['groups'] as $groupData) {
-                    $groupAmount = $groupData['amount'];  // Per-group amount (not absolute)
+                $netAmount = $data['net_amount'];
 
-                    if ($groupAmount > 0) {
-                        // User owes this person in this group
-                        $balancesByCurrency[$currency]['you_owe'] += $groupAmount;
+                if ($netAmount > 0) {
+                    // User owes this person
+                    $balancesByCurrency[$currency]['you_owe'] += $netAmount;
 
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
                         $personData = [
                             'person' => $data['person'],
-                            'amount' => $groupAmount,
-                            'net_amount' => $groupAmount,
+                            'amount' => $groupData['amount'],  // Per-group amount
+                            'net_amount' => $groupData['amount'],
                             'group_name' => $groupData['group_name'],
                             'group_id' => $groupData['group_id'],
                             'expense_count' => $groupData['expense_count'],
@@ -160,14 +160,17 @@ class DashboardController extends Controller
                             'split_ids' => $groupData['split_ids'],
                         ];
                         $settlementDetailsByCurrency[$currency]['you_owe_breakdown'][] = $personData;
-                    } elseif ($groupAmount < 0) {
-                        // This person owes user in this group
-                        $balancesByCurrency[$currency]['they_owe'] += abs($groupAmount);
+                    }
+                } elseif ($netAmount < 0) {
+                    // This person owes user
+                    $balancesByCurrency[$currency]['they_owe'] += abs($netAmount);
 
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
                         $personData = [
                             'person' => $data['person'],
-                            'amount' => abs($groupAmount),
-                            'net_amount' => $groupAmount,
+                            'amount' => abs($groupData['amount']),  // Per-group amount
+                            'net_amount' => $groupData['amount'],
                             'group_name' => $groupData['group_name'],
                             'group_id' => $groupData['group_id'],
                             'expense_count' => $groupData['expense_count'],
@@ -188,7 +191,7 @@ class DashboardController extends Controller
         if (!isset($balancesByCurrency[$primaryCurrency]) && count($balancesByCurrency) > 0) {
             $primaryCurrency = array_key_first($balancesByCurrency);
         }
-
+        
         $totalYouOwe = $balancesByCurrency[$primaryCurrency]['you_owe'] ?? 0;
         $totalTheyOweYou = $balancesByCurrency[$primaryCurrency]['they_owe'] ?? 0;
         $netBalance = $balancesByCurrency[$primaryCurrency]['net'] ?? 0;
@@ -474,18 +477,18 @@ class DashboardController extends Controller
         // Now build the final breakdowns with NET balances per person
         foreach ($personBalancesByCurrency as $currency => $persons) {
             foreach ($persons as $personId => $data) {
-                // Process each group entry based on its individual amount, not the aggregate
-                foreach ($data['groups'] as $groupData) {
-                    $groupAmount = $groupData['amount'];  // Per-group amount (not absolute)
+                $netAmount = $data['net_amount'];
 
-                    if ($groupAmount > 0) {
-                        // User owes this person in this group
-                        $balancesByCurrency[$currency]['you_owe'] += $groupAmount;
+                if ($netAmount > 0) {
+                    // User owes this person
+                    $balancesByCurrency[$currency]['you_owe'] += $netAmount;
 
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
                         $personData = [
                             'person' => $data['person'],
-                            'amount' => $groupAmount,
-                            'net_amount' => $groupAmount,
+                            'amount' => $groupData['amount'],  // Per-group amount
+                            'net_amount' => $groupData['amount'],
                             'group_name' => $groupData['group_name'],
                             'group_id' => $groupData['group_id'],
                             'expense_count' => $groupData['expense_count'],
@@ -493,14 +496,17 @@ class DashboardController extends Controller
                             'split_ids' => $groupData['split_ids'],
                         ];
                         $settlementDetailsByCurrency[$currency]['you_owe_breakdown'][] = $personData;
-                    } elseif ($groupAmount < 0) {
-                        // This person owes user in this group
-                        $balancesByCurrency[$currency]['they_owe'] += abs($groupAmount);
+                    }
+                } elseif ($netAmount < 0) {
+                    // This person owes user
+                    $balancesByCurrency[$currency]['they_owe'] += abs($netAmount);
 
+                    // Create separate breakdown items for each group to maintain backward compatibility with view
+                    foreach ($data['groups'] as $groupData) {
                         $personData = [
                             'person' => $data['person'],
-                            'amount' => abs($groupAmount),
-                            'net_amount' => $groupAmount,
+                            'amount' => abs($groupData['amount']),  // Per-group amount
+                            'net_amount' => $groupData['amount'],
                             'group_name' => $groupData['group_name'],
                             'group_id' => $groupData['group_id'],
                             'expense_count' => $groupData['expense_count'],
